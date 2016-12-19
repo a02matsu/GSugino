@@ -348,7 +348,6 @@ endif
 !   no contribution
 
 if( p5 == 0 ) then 
-!! change!!
 !! (5) Dirac from face 2
 ! preparation
 do f=1,num_faces
