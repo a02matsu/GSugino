@@ -1,0 +1,1 @@
+Generalized Sugino model

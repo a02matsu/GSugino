@@ -1,0 +1,107 @@
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! module to initialize variables
+module initialization
+use mt95
+use global_parameters
+implicit none
+
+contains
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! read the preevious configuration
+subroutine read_config(total_ite,UMAT,Phi,state_mt95)
+implicit none
+
+integer, intent(inout) :: total_ite
+type(genrand_state), intent(inout) :: state_mt95
+complex(kind(0d0)), intent(inout) :: UMAT(1:NMAT,1:NMAT,1:num_links)
+complex(kind(0d0)), intent(inout) :: Phi(1:dimG,1:num_sites)
+
+type(genrand_srepr) :: char_mt95
+
+open(IN_CONF_FILE, file=Fconfigin, status='OLD',action='READ',form='unformatted')
+read(IN_CONF_FILE) total_ite
+read(IN_CONF_FILE) UMAT
+read(IN_CONF_FILE) PHI
+read(IN_CONF_FILE) char_mt95
+state_mt95=char_mt95
+
+end subroutine read_config
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! read the configuration from the medfile
+!subroutine read_from_intermediate_file(total_ite,UMAT,Phi)
+!implicit none
+
+!integer, intent(inout) :: total_ite
+!complex(kind(0d0)), intent(inout) :: UMAT(1:NMAT,1:NMAT,1:num_links)
+!complex(kind(0d0)), intent(inout) :: Phi(1:dimG,1:num_sites)
+
+
+!end subroutine read_from_intermediate_file
+
+
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! set random configuration
+!! 
+!! For SU(N) case, the initial UMAT must be nearer than
+!! all the Z_N centers, Omega_n=diag( exp( 2\pi i n / N ) ) from 1_N. 
+!! We see
+!!   min_n( || 1 - Omega_n || ) = 2 sin( \pi/N ). 
+!! On the other hand, 
+!!   || 1 - U || = 4/N Tr( sin^2( \theat T / 2 ) ) \sim < \theta^2 > 
+!! Thus the random number must satisfy 
+!!   <\theta^2> < 2\pi/N
+!! 
+subroutine set_random_config(UMAT,Phi)
+use SUN_generators, only : Make_SUN_generators
+use matrix_functions, only : matrix_exp
+use global_subroutines, only : BoxMuller2
+implicit none
+
+complex(kind(0d0)), intent(inout) :: UMAT(1:NMAT,1:NMAT,1:num_links)
+complex(kind(0d0)), intent(inout) :: Phi(1:dimG,1:num_sites)
+
+double precision, parameter :: PI=dacos(-1d0)
+complex(kind(0d0)) :: TMAT(1:NMAT,1:NMAT,1:NMAT**2-1)
+double precision :: rsite(1:2*dimG*num_sites) ! for PHI
+double precision :: rlink(1:dimG,1:num_links) ! for UMAT
+complex(kind(0d0)) :: AMAT(1:NMAT,1:NMAT,1:num_links)
+integer :: s,l,a,f,i
+
+call make_SUN_generators(TMAT,NMAT)
+
+!call genrand_real3(rsite)
+call BoxMuller2(rsite,num_sites*dimG)
+call genrand_real3(rlink)
+
+rsite=rsite * 0.01d0 / mass_square_phi
+i=0
+do s=1,num_sites
+  do a=1,dimG
+    i=i+1
+    PHI(a,s)=dcmplx(rsite(2*i-1))+(0d0,1d0)*dcmplx(rsite(2*i))
+  enddo
+enddo
+
+! random number must be sufficiently small
+rlink=rlink * ( 1d0/dble(NMAT*NMAT*m_omega) )
+AMAT=(0d0,0d0)
+do l=1,num_links
+  do a=1,dimG
+    AMAT(:,:,l)=AMAT(:,:,l)+rlink(a,l)*TMAT(:,:,a)
+  enddo
+enddo
+
+
+do l=1,num_links
+!call matrix_exp(NMAT,(0d0,1d0)*AMAT(:,:,l),UMAT(:,:,l))
+call matrix_exp(UMAT(:,:,l),(0d0,1d0)*AMAT(:,:,l))
+enddo
+
+end subroutine set_random_config
+
+
+end module initialization
