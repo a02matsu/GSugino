@@ -22,7 +22,7 @@ complex(kind(0d0)), intent(inout) :: Phi(1:dimG,1:num_sites)
 complex(kind(0d0)) :: P_Phi(1:dimG,1:num_sites)
 double precision :: P_A(1:dimG,1:num_links)
 complex(kind(0d0)) :: PF(1:sizeD)
-complex(kind(0d0)) :: Phi_BAK(1:dimG,1:num_sites)
+!complex(kind(0d0)) :: Phi_BAK(1:dimG,1:num_sites)
 complex(kind(0d0)) :: PhiMat_BAK(1:NMAT,1:NMAT,1:num_sites)
 complex(kind(0d0)) :: UMAT_BAK(1:NMAT,1:NMAT,1:num_links)
 double precision :: Hold,Hnew
@@ -43,7 +43,7 @@ write(*,*) "# Ntau*Dtau=",Ntau*Dtau
 
 !! backup
 PhiMat_BAK=PhiMat
-Phi_BAK=Phi
+!Phi_BAK=Phi
 UMAT_BAK=UMAT
 
 call genrand_init( get=state )
@@ -66,21 +66,21 @@ call make_pseudo_fermion(PF,UMAT,PhiMat)
 call Make_Hamiltonian(Hold,CGite,info,UMAT,PhiMat,PF,P_A,P_Phi)
 !! molecular evolution
 !call molecular_evolution(UMAT,Phi,PF,P_A,P_Phi,info)
-call molecular_evolution_Omelyan(UMAT,Phi,PF,P_A,P_Phi,info)
+call molecular_evolution_Omelyan(UMAT,PhiMat,PF,P_A,P_Phi,info)
   !write(*,*) UMAT-UMAT_BAK
   !write(*,*) "!!!"
   !write(*,*) Phi-Phi_BAK
 !! calculate Hamiltonian 
 
-do s=1,num_sites
-call make_traceless_matrix_from_modes(PhiMat(:,:,s),NMAT,Phi(:,s))
-enddo
+!do s=1,num_sites
+!call make_traceless_matrix_from_modes(PhiMat(:,:,s),NMAT,Phi(:,s))
+!enddo
 call Make_Hamiltonian(Hnew,CGite,info,UMAT,PhiMat,PF,P_A,P_Phi)
 !! metropolice
 write(*,'(I5,e20.10)') Ntau, dabs(Hnew-Hold)!, Hold, Hnew
 !! return to the original values
 PhiMat=PhiMat_bak
-Phi=Phi_Bak
+!Phi=Phi_Bak
 UMAT=UMAT_bak
 
 !srepr=state ! mt95では"="がassignmentされている
@@ -106,7 +106,7 @@ double precision :: P_A(1:dimG,1:num_links)
 complex(kind(0d0)) :: P_Phi(1:dimG,1:num_sites)
 complex(kind(0d0)) :: PF(1:sizeD)
 
-complex(kind(0d0)) Phi_BAK(1:dimG,1:num_sites)
+!complex(kind(0d0)) Phi_BAK(1:dimG,1:num_sites)
 complex(kind(0d0)) PhiMat_BAK(1:NMAT,1:NMAT,1:num_sites)
 complex(kind(0d0)) UMAT_BAK(1:NMAT,1:NMAT,1:num_links)
 double precision Hold, Hnew
@@ -147,16 +147,16 @@ do ite=total_ite+1,total_ite+num_ite
   call Make_Hamiltonian(Hold,CGite1,info1,UMAT,PhiMat,PF,P_A,P_Phi)
   !! backup
   PhiMat_BAK=PhiMat
-  Phi_BAK=Phi
+  !Phi_BAK=Phi
   UMAT_BAK=UMAT
   !! molecular evolution
-  call molecular_evolution_Omelyan(UMAT,Phi,PF,P_A,P_Phi,info)
-  do s=1,num_sites
-  call make_traceless_matrix_from_modes(PhiMat(:,:,s),NMAT,Phi(:,s))
-  enddo
+  call molecular_evolution_Omelyan(UMAT,PhiMat,PF,P_A,P_Phi,info)
+  !do s=1,num_sites
+  !call make_traceless_matrix_from_modes(PhiMat(:,:,s),NMAT,Phi(:,s))
+  !enddo
   if( info == 1 ) then
     PhiMat=PhiMat_BAK
-    Phi=Phi_BAK
+    !Phi=Phi_BAK
     UMAT=UMAT_BAK
     write(*,*) "### CAUTION: CG iterations reaches to the maximal."
   else
@@ -165,7 +165,7 @@ do ite=total_ite+1,total_ite+num_ite
     !! calculate Hamiltonian 
     call Make_Hamiltonian(Hnew,CGite2,info2,UMAT,PhiMat,PF,P_A,P_Phi)
     !! metropolice
-    call Metropolice_test(Hnew-Hold,Phi_BAK,PhiMat_Bak,UMAT_BAK,Phi,PhiMat,UMAT,accept)
+    call Metropolice_test(Hnew-Hold,PhiMat_Bak,UMAT_BAK,PhiMat,UMAT,accept)
   endif
   !! write out the configuration
    if ( mod(ite,config_step) == 0 ) then
@@ -328,7 +328,7 @@ end subroutine set_randomP
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! Molecular Evolution by Omelyan integrator
-subroutine molecular_evolution_Omelyan(UMAT,Phi,PF,P_A,P_Phi,info)
+subroutine molecular_evolution_Omelyan(UMAT,PhiMat,PF,P_A,P_Phi,info)
 use SUN_generators, only : make_traceless_matrix_from_modes, trace_mta
 !use matrix_functions, only : MATRIX_EXP
 !use observables, only : calc_min_and_max_of_eigenvalues_Dirac
@@ -336,8 +336,8 @@ implicit none
 
 double precision, parameter :: lambda=0.1931833275d0
 complex(kind(0d0)), intent(inout) :: UMAT(1:NMAT,1:NMAT,1:num_links)
-complex(kind(0d0)), intent(inout) :: Phi(1:dimG,1:num_sites)
-complex(kind(0d0)) :: PhiMat(1:NMAT,1:NMAT,1:num_sites)
+complex(kind(0d0)) :: Phi(1:dimG,1:num_sites)
+complex(kind(0d0)), intent(inout) :: PhiMat(1:NMAT,1:NMAT,1:num_sites)
 complex(kind(0d0)), intent(in) :: PF(1:sizeD)
 double precision, intent(inout) :: P_A(1:dimG,1:num_links)
 complex(kind(0d0)), intent(inout) :: P_Phi(1:dimG,1:num_sites)
@@ -352,7 +352,9 @@ integer :: j,k,ii
 complex(kind(0d0)) :: minimal, maximal
 
 do s=1,num_sites
-  call make_traceless_matrix_from_modes(PhiMat(:,:,s),NMAT,Phi(:,s))
+  do a=1,dimG
+    call trace_MTa(Phi(a,s),PhiMat(:,:,s),a,NMAT)
+  enddo
 enddo
 
 !! first step
@@ -654,14 +656,14 @@ call calc_matrix_rational_power(&
 end subroutine make_pseudo_fermion
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-subroutine Metropolice_test(delta_Ham,Phi_BAK,PhiMat_Bak,UMAT_BAK,Phi,PhiMat,UMAT,accept)
+subroutine Metropolice_test(delta_Ham,PhiMat_Bak,UMAT_BAK,PhiMat,UMAT,accept)
 implicit none
 
 double precision, intent(in) :: delta_Ham
-complex(kind(0d0)), intent(in) :: Phi_BAK(1:dimG,1:num_sites)
+!complex(kind(0d0)), intent(in) :: Phi_BAK(1:dimG,1:num_sites)
 complex(kind(0d0)), intent(in) :: PhiMat_BAK(1:NMAT,1:NMAT,1:num_sites)
 complex(kind(0d0)), intent(in) :: UMAT_BAK(1:NMAT,1:NMAT,1:num_links)
-complex(kind(0d0)), intent(inout) :: Phi(1:dimG,1:num_sites)
+!complex(kind(0d0)), intent(inout) :: Phi(1:dimG,1:num_sites)
 complex(kind(0d0)), intent(inout) :: PhiMat(1:NMAT,1:NMAT,1:num_sites)
 complex(kind(0d0)), intent(inout) :: UMAT(1:NMAT,1:NMAT,1:num_links)
 integer, intent(inout) :: accept
@@ -676,7 +678,7 @@ else
   if( exp( -delta_Ham ) > random_num ) then
     accept=accept+1
   else
-    Phi=Phi_BAK
+    !Phi=Phi_BAK
     PhiMat=PhiMat_BAK
     UMAT=UMAT_BAK
   endif
