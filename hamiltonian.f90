@@ -18,12 +18,13 @@ contains
 !!  D_{AB}=-D_{BA}
 !! Make sure that the fermionic action includes 
 !! the prefactor 1/2.
-subroutine Make_Hamiltonian(Htotal,CGite,info,UMAT,Phi,PF,P_A,P_Phi)
-use SUN_generators, only : make_traceless_matrix_from_modes
+subroutine Make_Hamiltonian(Htotal,CGite,info,UMAT,PhiMat,PF,P_A,P_Phi)
+!use SUN_generators, only : make_traceless_matrix_from_modes
 implicit none
 
 complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_links)
-complex(kind(0d0)), intent(in) :: Phi(1:dimG,1:num_sites)
+complex(kind(0d0)), intent(in) :: PhiMAT(1:NMAT,1:NMAT,1:num_sites)
+complex(kind(0d0)) :: Phi(1:dimG,1:num_sites)
 complex(kind(0d0)), intent(in) :: PF(1:sizeD)
 complex(kind(0d0)), intent(in) :: P_Phi(1:dimG,1:num_sites)
 double precision, intent(in) :: P_A(1:dimG,1:num_links)
@@ -33,10 +34,10 @@ double precision, intent(out) :: Htotal
 integer a,s,l
 double precision :: SB_S,SB_L,SB_F,SB_M, SF !,SB_T
 
-complex(kind(0d0)):: PhiMat(1:NMAT,1:NMAT,1:num_sites)
-do s=1,num_sites
-call make_traceless_matrix_from_modes(PhiMat(:,:,s),NMAT,Phi(:,s))
-enddo
+!complex(kind(0d0)):: PhiMat(1:NMAT,1:NMAT,1:num_sites)
+!do s=1,num_sites
+!call make_traceless_matrix_from_modes(PhiMat(:,:,s),NMAT,Phi(:,s))
+!enddo
 
 CGite=0
 info=0
