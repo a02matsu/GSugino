@@ -329,6 +329,7 @@ end subroutine set_randomP
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! Molecular Evolution by Omelyan integrator
 subroutine molecular_evolution_Omelyan(UMAT,Phi,PF,P_A,P_Phi,info)
+use SUN_generators, only : make_traceless_matrix_from_modes, trace_mta
 !use matrix_functions, only : MATRIX_EXP
 !use observables, only : calc_min_and_max_of_eigenvalues_Dirac
 implicit none
@@ -336,6 +337,7 @@ implicit none
 double precision, parameter :: lambda=0.1931833275d0
 complex(kind(0d0)), intent(inout) :: UMAT(1:NMAT,1:NMAT,1:num_links)
 complex(kind(0d0)), intent(inout) :: Phi(1:dimG,1:num_sites)
+complex(kind(0d0)) :: PhiMat(1:NMAT,1:NMAT,1:num_sites)
 complex(kind(0d0)), intent(in) :: PF(1:sizeD)
 double precision, intent(inout) :: P_A(1:dimG,1:num_links)
 complex(kind(0d0)), intent(inout) :: P_Phi(1:dimG,1:num_sites)
@@ -349,10 +351,13 @@ integer :: j,k,ii
 
 complex(kind(0d0)) :: minimal, maximal
 
+do s=1,num_sites
+  call make_traceless_matrix_from_modes(PhiMat(:,:,s),NMAT,Phi(:,s))
+enddo
 
 !! first step
 ! momentum
-call Make_force(dSdPhi,dSdA,UMAT,Phi,PF,info)
+call Make_force(dSdPhi,dSdA,UMAT,PhiMat,PF,info)
 if( info == 1 ) return
 do s=1,num_sites
   do a=1,dimG
@@ -380,6 +385,9 @@ do i=1, Ntau-1
       Phi(a,s)=Phi(a,s) + Dtau_phi*0.5d0 * dconjg( P_phi(a,s) )
     enddo
   enddo
+do s=1,num_sites
+  call make_traceless_matrix_from_modes(PhiMat(:,:,s),NMAT,Phi(:,s))
+enddo
   !write(*,*) "start: update_UMAT 1"
   call update_UMAT(UMAT,P_A,0.5d0*Dtau_A)
   !write(*,*) "end: update_UMAT 1"
@@ -387,7 +395,7 @@ do i=1, Ntau-1
   !write(*,*) dble(maximal*conjg(maximal)), dble(minimal*conjg(minimal))
 ! momentum
   !write(*,*) "start: Make_force 1"
-  call Make_force(dSdPhi,dSdA,UMAT,Phi,PF,info)
+  call Make_force(dSdPhi,dSdA,UMAT,PhiMat,PF,info)
   if( info == 1 ) return
   !write(*,*) "end: Make_force 1"
   !write(*,*) "1-2"
@@ -407,12 +415,15 @@ do i=1, Ntau-1
       Phi(a,s)=Phi(a,s) + Dtau_phi * 0.5d0 * dconjg( P_phi(a,s) )
     enddo
   enddo
+do s=1,num_sites
+  call make_traceless_matrix_from_modes(PhiMat(:,:,s),NMAT,Phi(:,s))
+enddo
   !write(*,*) "start: update_UMAT 2"
   call update_UMAT(UMAT,P_A,0.5d0*Dtau_A)
   !write(*,*) "end: update_UMAT 2"
 ! momentum
   !write(*,*) "start: Make_force 2"
-  call Make_force(dSdPhi,dSdA,UMAT,Phi,PF,info)
+  call Make_force(dSdPhi,dSdA,UMAT,PhiMat,PF,info)
   if ( info == 1 ) return
   !write(*,*) "end: Make_force 2"
   !write(*,*) "2-2"
@@ -438,9 +449,12 @@ do s=1,num_sites
     Phi(a,s)=Phi(a,s) + Dtau_phi*0.5d0 * dconjg( P_phi(a,s) )
   enddo
 enddo
+do s=1,num_sites
+  call make_traceless_matrix_from_modes(PhiMat(:,:,s),NMAT,Phi(:,s))
+enddo
 call update_UMAT(UMAT,P_A,Dtau_A*0.5d0)
 ! momentum
-call Make_force(dSdPhi,dSdA,UMAT,Phi,PF, info)
+call Make_force(dSdPhi,dSdA,UMAT,PhiMat,PF, info)
 if ( info == 1 ) return 
 do s=1,num_sites
   do a=1,dimG
@@ -458,9 +472,12 @@ do s=1,num_sites
     Phi(a,s)=Phi(a,s) + Dtau_phi*0.5d0 * dconjg( P_phi(a,s) )
   enddo
 enddo
+do s=1,num_sites
+  call make_traceless_matrix_from_modes(PhiMat(:,:,s),NMAT,Phi(:,s))
+enddo
 call update_UMAT(UMAT,P_A,Dtau_A*0.5d0)
 ! momentum
-call Make_force(dSdPhi,dSdA,UMAT,Phi,PF,info)
+call Make_force(dSdPhi,dSdA,UMAT,PhiMat,PF,info)
 if ( info == 1 ) return
 do s=1,num_sites
   do a=1,dimG

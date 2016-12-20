@@ -11,13 +11,13 @@ contains
 !! dS/Dphi 
 !complex(kind(0d0)) function dSdPhi(a,s)
 !subroutine Make_bosonic_force_Phi(dSdPhi_boson)
-subroutine Make_force(dSdPhi,dSdA,UMAT,Phi,PF,info)
-use SUN_generators, only : make_traceless_matrix_from_modes, trace_mta
+subroutine Make_force(dSdPhi,dSdA,UMAT,PhiMat,PF,info)
+use SUN_generators, only : trace_mta
 implicit none
 
 complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_links)
-complex(kind(0d0)), intent(in) :: Phi(1:dimG,1:num_sites)
-complex(kind(0d0)) :: PhiMat(1:NMAT,1:NMAT,1:num_sites)
+!complex(kind(0d0)) :: Phi(1:dimG,1:num_sites)
+complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_sites)
 complex(kind(0d0)), intent(in) :: PF(1:sizeD)
 complex(kind(0d0)), intent(out) :: dSdPhi(1:dimG,1:num_sites)
 double precision, intent(out) :: dSdA(1:dimG,1:num_links)
@@ -37,9 +37,9 @@ double precision :: dSdA_boson_face(1:dimG,1:num_links)
 double precision :: dSdA_fermion(1:dimG,1:num_links)
 
 integer :: s,a,l
-do s=1,num_sites
-call make_traceless_matrix_from_modes(PhiMat(:,:,s),NMAT,Phi(:,s))
-enddo
+!do s=1,num_sites
+!call make_traceless_matrix_from_modes(PhiMat(:,:,s),NMAT,Phi(:,s))
+!enddo
 
 dSdPhi=(0d0,0d0)
 dSdPhi_boson_mass=(0d0,0d0)
