@@ -61,7 +61,7 @@ call genrand_init( put=state )
 !! set random momentum
 call set_randomP(P_A,P_Phi)
 ! produce pseudo-fermion
-call make_pseudo_fermion(PF,UMAT,Phi)
+call make_pseudo_fermion(PF,UMAT,PhiMat)
 !! calculate Hamiltonian 
 call Make_Hamiltonian(Hold,CGite,info,UMAT,PhiMat,PF,P_A,P_Phi)
 !! molecular evolution
@@ -142,7 +142,7 @@ do ite=total_ite+1,total_ite+num_ite
   !! set random momentuet
   call set_randomP(P_A,P_Phi)
   !! produce pseudo-fermion
-  call make_pseudo_fermion(PF,UMAT,Phi)
+  call make_pseudo_fermion(PF,UMAT,PhiMat)
   !! calculate Hamiltonian 
   call Make_Hamiltonian(Hold,CGite1,info1,UMAT,PhiMat,PF,P_A,P_Phi)
   !! backup
@@ -256,7 +256,7 @@ SB_F=0d0
 SF=0d0
 
 !! produce pseudo-fermion
-call make_pseudo_fermion(PF,UMAT,Phi)
+call make_pseudo_fermion(PF,UMAT,PhiMat)
 !! actions
 call bosonic_action_mass(SB_M,PhiMat)
 call bosonic_action_site(SB_S,PhiMat)
@@ -618,21 +618,29 @@ end subroutine update_UMAT
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! make pseudo fermion
-subroutine make_pseudo_fermion(PF,UMAT,Phi)
+subroutine make_pseudo_fermion(PF,UMAT,PhiMat)
 !use matrix_functions,  only : BoxMuller2
+use SUN_generators, only : trace_MTa
 use Dirac_operator
 use rational_algorithm
 implicit none
 
 
 complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_links)
-complex(kind(0d0)), intent(in) :: Phi(1:dimG,1:num_sites)
+complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_sites)
+complex(kind(0d0)) :: Phi(1:dimG,1:num_sites)
 complex(kind(0d0)), intent(out) :: PF(1:sizeD)
 
 complex(kind(0d0)) :: gauss(1:sizeD)
 double precision :: gauss2(1:2*sizeD),rtmp
 integer :: i,j,info,CGite
 
+integer :: s,a
+do s=1,num_sites
+  do a=1,dimG
+    call trace_MTa(Phi(a,s),PhiMat(:,:,s),a,NMAT)
+  enddo
+enddo
 
 call BoxMuller2(gauss2,sizeD)
 do i=1,sizeD
