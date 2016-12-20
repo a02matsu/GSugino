@@ -7,14 +7,14 @@ contains
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! compute (MM^\dagger)^r . Bvec
 subroutine calc_matrix_rational_power(rvec, Bvec, NMAT, &
-        NumVec, epsilon, MaxIte, info, CGite, alpha_r, beta_r,UMAT,Phi, ProdMat)
+        NumVec, epsilon, MaxIte, info, CGite, alpha_r, beta_r,UMAT,PhiMat, ProdMat)
 implicit none
 interface 
-  subroutine ProdMat(R_VEC,VEC,MSIZE,UMAT,Phi)
+  subroutine ProdMat(R_VEC,VEC,MSIZE,UMAT,PhiMat)
     integer, intent(in) :: MSIZE
     complex(kind(0d0)), intent(in) :: VEC(1:MSIZE)
     complex(kind(0d0)), intent(inout) :: R_VEC(1:MSIZE)
-    complex(kind(0d0)), intent(in) :: UMAT(:,:,:),Phi(:,:)
+    complex(kind(0d0)), intent(in) :: UMAT(:,:,:),PhiMat(:,:,:)
   end subroutine ProdMat
 end interface
 
@@ -31,10 +31,10 @@ complex(kind(0d0)) :: Xvec(1:NMAT,1:NumVec)
 integer :: r
 
 !! 行列を構成する変数
-complex(kind(0d0)), intent(in) :: UMAT(:,:,:), Phi(:,:) 
+complex(kind(0d0)), intent(in) :: UMAT(:,:,:), PhiMat(:,:,:) 
 
 
-call mmBiCG( Xvec, Bvec, beta_r, NMAT, NumVec, epsilon, MaxIte, info, CGite, UMAT, Phi, ProdMat )
+call mmBiCG( Xvec, Bvec, beta_r, NMAT, NumVec, epsilon, MaxIte, info, CGite, UMAT, PhiMat, ProdMat )
 
 rvec = dcmplx(alpha_r(0)) * Bvec
 do r=1,NumVec
@@ -89,17 +89,17 @@ end subroutine calc_matrix_rational_power
 !!    MAT: a given matrix
 !!    given_vec: a vector v 
 !!    NMAT: size of the vector
-subroutine mmBiCG( Xvec, Bvec, sigma, NMAT, NumVec, epsilon, MaxIte, info, CGite, UMAT,Phi, ProdMat )
+subroutine mmBiCG( Xvec, Bvec, sigma, NMAT, NumVec, epsilon, MaxIte, info, CGite, UMAT,PhiMat, ProdMat )
 implicit none
 interface
 !! R_VEC = MATRIX . VEC を計算するサブルーチン
 !! ただし、MATRIX は明示的に指定しない。
 !! 呼び出す側で定義する必要がある。
-  subroutine ProdMat(R_VEC,VEC,MSIZE,UMAT,Phi)
+  subroutine ProdMat(R_VEC,VEC,MSIZE,UMAT,PhiMat)
     integer, intent(in) :: MSIZE
     complex(kind(0d0)), intent(in) :: VEC(1:MSIZE)
     complex(kind(0d0)), intent(inout) :: R_VEC(1:MSIZE)
-    complex(kind(0d0)), intent(in) :: UMAT(:,:,:),Phi(:,:)
+    complex(kind(0d0)), intent(in) :: UMAT(:,:,:),PhiMat(:,:,:)
   end subroutine ProdMat
 end interface
 
@@ -112,7 +112,7 @@ integer, intent(in) :: MaxIte
 integer, intent(inout) :: info 
 integer, intent(inout) :: CGite
 !! 行列を構成する変数
-complex(kind(0d0)), intent(in) :: UMAT(:,:,:), Phi(:,:)
+complex(kind(0d0)), intent(in) :: UMAT(:,:,:), PhiMat(:,:,:)
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!== DEPEND ON ProdMat YOUR MADE ==
 !complex(kind(0d0)), intent(in) :: MAT(1:NMAT,1:NMAT)
@@ -165,7 +165,7 @@ do ite=1,MaxIte
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!== DEPEND ON ProdMat YOU MADE ==
- call ProdMat(tmp_vec, p_vec, NMAT,UMAT,Phi)
+ call ProdMat(tmp_vec, p_vec, NMAT,UMAT,PhiMat)
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
  call InnerProd(tmp_c1, p_vec, tmp_vec, NMAT)
  alpha_k = rkrk / dble(tmp_c1)
@@ -173,7 +173,7 @@ do ite=1,MaxIte
 ! (2) update r_k --> r_{k+1}
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!== DEPEND ON ProdMat YOU MADE ==
- call ProdMat(tmp_vec, p_vec, NMAT,UMAT,Phi)
+ call ProdMat(tmp_vec, p_vec, NMAT,UMAT,PhiMat)
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
  do i=1,NMAT
    r_vec(i) = r_vec(i) - dcmplx(alpha_k) * tmp_vec(i)

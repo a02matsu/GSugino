@@ -18,33 +18,33 @@ implicit none
 complex(kind(0d0)), intent(inout) :: Dirac(1:sizeD,1:sizeD)
 complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_links)
 complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_sites)
-complex(kind(0d0)) :: Phi(1:dimG,1:num_sites)
+!complex(kind(0d0)) :: Phi(1:dimG,1:num_sites)
 
 complex(kind(0d0)) :: unitvec(1:sizeD),dirac_vec(1:sizeD)
 integer i,j
 integer s,a
 
-do s=1,num_sites
-  do a=1,dimG
-    call trace_MTa(Phi(a,s),PhiMat(:,:,s),a,NMAT)
-  enddo
-enddo
+!do s=1,num_sites
+  !do a=1,dimG
+    !call trace_MTa(Phi(a,s),PhiMat(:,:,s),a,NMAT)
+  !enddo
+!enddo
 do i=1,sizeD
   unitvec=(0d0,0d0)
   unitvec(i)=(1d0,0d0)
-  call prod_Dirac(Dirac(:,i),unitvec,sizeD,UMAT,Phi)
+  call prod_Dirac(Dirac(:,i),unitvec,sizeD,UMAT,PhiMat)
 enddo
 
 end subroutine make_Dirac
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! make D^\dagger D matrix
-subroutine make_DdagD(DdagD,UMAT,Phi)
+subroutine make_DdagD(DdagD,UMAT,PhiMat)
 implicit none
 
 complex(kind(0d0)), intent(inout) :: DdagD(1:sizeD,1:sizeD)
 complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_links)
-complex(kind(0d0)), intent(in) :: Phi(1:dimG,1:num_sites)
+complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_sites)
 
 
 complex(kind(0d0)) :: unitvec(1:sizeD),dirac_vec(1:sizeD)
@@ -53,7 +53,7 @@ integer i,j
 do i=1,sizeD
   unitvec=(0d0,0d0)
   unitvec(i)=(1d0,0d0)
-  call prod_DdagD(DdagD(:,i),unitvec,sizeD,UMAT,Phi)
+  call prod_DdagD(DdagD(:,i),unitvec,sizeD,UMAT,Phimat)
 enddo
 
 end subroutine make_DdagD
@@ -69,13 +69,13 @@ end subroutine make_DdagD
 !!     = -conjg(D_{ij}) D_{jk} v_k                 
 !! w=Dv => D^\dagger w = -( D.conjg(w) )^\dagger 
 !!                     = -conjg[ D.conjg( D v ) ]
-subroutine Prod_DdagD(DdagD_vec, vec, Vsize,UMAT,Phi)
+subroutine Prod_DdagD(DdagD_vec, vec, Vsize,UMAT,Phimat)
 implicit none
 
 integer, intent(in) :: Vsize !! vecsize must be sizeD
 complex(kind(0d0)), intent(in) :: vec(1:Vsize)
 complex(kind(0d0)), intent(inout) :: DdagD_vec(1:Vsize)
-complex(kind(0d0)), intent(in) :: UMAT(:,:,:),Phi(:,:)
+complex(kind(0d0)), intent(in) :: UMAT(:,:,:),PhiMat(:,:,:)
 
 complex(kind(0d0)) :: tmpvec(1:Vsize),tmpvec2(1:Vsize)
 
@@ -83,12 +83,12 @@ integer :: i
 
 
 
-call Prod_Dirac(tmpvec,vec,Vsize,UMAT,Phi)
+call Prod_Dirac(tmpvec,vec,Vsize,UMAT,PhiMat)
 do i=1,Vsize
   tmpvec2(i)=-dconjg(tmpvec(i))
 enddo
 
-call Prod_Dirac(tmpvec,tmpvec2,Vsize,UMAT,Phi)
+call Prod_Dirac(tmpvec,tmpvec2,Vsize,UMAT,PhiMat)
 
 do i=1,Vsize
   DdagD_vec(i)=dconjg(tmpvec(i))!*0.25d0 !! HERE!!
@@ -102,14 +102,14 @@ end subroutine Prod_DdagD
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! compute D.vec
 !!  S_f = 1/2 \Psi^T D \Psi
-subroutine Prod_Dirac(D_vec, vec, Vsize,UMAT,Phi)
+subroutine Prod_Dirac(D_vec, vec, Vsize,UMAT,PhiMat)
 implicit none
 
 integer, intent(in) :: Vsize !! vecsize must be sizeD
 complex(kind(0d0)), intent(in) :: vec(1:Vsize)
 complex(kind(0d0)), intent(inout) :: D_vec(1:Vsize)
 complex(kind(0d0)), intent(in) :: UMAT(:,:,:)
-complex(kind(0d0)), intent(in) :: Phi(:,:)
+complex(kind(0d0)), intent(in) :: PhiMat(:,:,:)
 
 !complex(kind(0d0)), parameter :: mass_f=1d0
 
@@ -126,7 +126,7 @@ complex(kind(0d0)) :: DF_chi(1:NMAT,1:NMAT,1:num_faces)
 
 
 
-complex(kind(0d0)) :: PhiMat(1:NMAT,1:NMAT,1:num_sites)
+!complex(kind(0d0)) :: PhiMat(1:NMAT,1:NMAT,1:num_sites)
 complex(kind(0d0)) :: bPhiMat(1:NMAT,1:NMAT,1:num_sites)
 complex(kind(0d0)) :: r_site(1:dimG,1:num_sites)
 complex(kind(0d0)) :: r_link(1:dimG,1:num_links)
@@ -190,8 +190,13 @@ do f=1,num_faces
 enddo
 
 do s=1,num_sites
-  call make_traceless_matrix_from_modes(PhiMat(:,:,s),NMAT,Phi(:,s))
-  call make_traceless_matrix_from_modes(bPhiMat(:,:,s),NMAT,dconjg(Phi(:,s)))
+  do i=1,NMAT
+    do j=1,NMAT
+  !call make_traceless_matrix_from_modes(PhiMat(:,:,s),NMAT,Phi(:,s))
+  bPhiMat(i,j,s)=conjg(PhiMat(j,i,s))
+  !call make_traceless_matrix_from_modes(bPhiMat(:,:,s),NMAT,dconjg(Phi(:,s)))
+    enddo
+  enddo
 enddo
 
 DF_eta=(0d0,0d0)

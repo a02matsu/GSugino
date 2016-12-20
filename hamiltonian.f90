@@ -279,7 +279,7 @@ implicit none
 
 complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_links)
 complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_sites)
-complex(kind(0d0)):: Phi(1:dimG,1:num_sites)
+!complex(kind(0d0)):: Phi(1:dimG,1:num_sites)
 complex(kind(0d0)), intent(in) :: PF(1:sizeD)
 double precision, intent(out) :: SF
 integer, intent(inout) :: info,CGite
@@ -299,12 +299,12 @@ complex(kind(0d0)) :: SF_direct
 complex(kind(0d0)) :: tmpvec(1:sizeD),tmp,tmp2
 double precision :: distance
 integer :: j
-integer :: s,a
-do s=1,num_sites
-  do a=1,dimG
-    call trace_MTa(Phi(a,s),PhiMat(:,:,s),a,NMAT)
-  enddo
-enddo
+!integer :: s,a
+!do s=1,num_sites
+  !do a=1,dimG
+    !call trace_MTa(Phi(a,s),PhiMat(:,:,s),a,NMAT)
+  !enddo
+!enddo
 
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -314,7 +314,7 @@ enddo
 !  DdagD4_PF, PF, sizeD, N_Remez4, epsilon, CG_max, info, CGite, &
 !  Remez_alpha4, Remez_beta4, prod_DdagD)
 call mmBiCG( chi, PF, Remez_beta4, sizeD, N_Remez4, epsilon, CG_max, info, &
-             CGite, UMAT, Phi, Prod_DdagD )
+             CGite, UMAT, PhiMat, Prod_DdagD )
 DdagD4_PF=Remez_alpha4(0)*PF
 do r=1,N_Remez4
   DdagD4_PF=DdagD4_PF + Remez_alpha4(r)*chi(:,r)

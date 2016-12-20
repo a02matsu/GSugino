@@ -652,12 +652,12 @@ complex(kind(0d0)) :: gauss(1:sizeD)
 double precision :: gauss2(1:2*sizeD),rtmp
 integer :: i,j,info,CGite
 
-integer :: s,a
-do s=1,num_sites
-  do a=1,dimG
-    call trace_MTa(Phi(a,s),PhiMat(:,:,s),a,NMAT)
-  enddo
-enddo
+!integer :: s,a
+!do s=1,num_sites
+  !do a=1,dimG
+    !call trace_MTa(Phi(a,s),PhiMat(:,:,s),a,NMAT)
+  !enddo
+!enddo
 
 call BoxMuller2(gauss2,sizeD)
 do i=1,sizeD
@@ -666,7 +666,7 @@ enddo
 
 call calc_matrix_rational_power(&
   PF, gauss, sizeD, N_Remez8, epsilon, CG_max, info, CGite, &
-  Remez_alpha8, Remez_beta8, UMAT,Phi, prod_DdagD)
+  Remez_alpha8, Remez_beta8, UMAT,PhiMat, prod_DdagD)
 
 end subroutine make_pseudo_fermion
 

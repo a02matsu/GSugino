@@ -16,7 +16,7 @@ use SUN_generators, only : trace_mta
 implicit none
 
 complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_links)
-!complex(kind(0d0)) :: Phi(1:dimG,1:num_sites)
+complex(kind(0d0)) :: Phi(1:dimG,1:num_sites)
 complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_sites)
 complex(kind(0d0)), intent(in) :: PF(1:sizeD)
 complex(kind(0d0)), intent(out) :: dSdPhi(1:dimG,1:num_sites)
@@ -37,9 +37,11 @@ double precision :: dSdA_boson_face(1:dimG,1:num_links)
 double precision :: dSdA_fermion(1:dimG,1:num_links)
 
 integer :: s,a,l
-!do s=1,num_sites
-!call make_traceless_matrix_from_modes(PhiMat(:,:,s),NMAT,Phi(:,s))
-!enddo
+do s=1,num_sites
+  do a=1,dimG
+    call trace_MTa(Phi(a,s),PhiMat(:,:,s),a,NMAT)
+  enddo
+enddo
 
 dSdPhi=(0d0,0d0)
 dSdPhi_boson_mass=(0d0,0d0)
@@ -468,10 +470,10 @@ dSdA_fermion=0d0
 !write(*,*) "   mmBiCG start"
 !call check_Dirac(UMAT,Phi)
 call mmBiCG( chi, PF, Remez_beta4, sizeD, N_Remez4, epsilon, &
-             CG_max, info, CGite, UMAT, Phi, Prod_DdagD )
+             CG_max, info, CGite, UMAT, PhiMat, Prod_DdagD )
 !write(*,*) "   mmBiCG end", cgite
 do r=1,N_Remez4
-  call prod_Dirac(Dchi(:,r),chi(:,r),sizeD,UMAT,Phi)
+  call prod_Dirac(Dchi(:,r),chi(:,r),sizeD,UMAT,PhiMat)
   
   call prod_dDdPhi(dDdPhi_chi(:,:,:,r),chi(:,r),UMAT,Phi)
   call prod_dDdbPhi(dDdbPhi_chi(:,:,:,r),chi(:,r),UMAT,Phi)
