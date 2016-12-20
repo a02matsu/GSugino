@@ -10,14 +10,15 @@ implicit none
 
 contains
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-subroutine test_hamiltonian(UMAT,Phi)
+subroutine test_hamiltonian(UMAT,PhiMat)
 use mt95
 use Dirac_operator
 use SUN_generators, only : make_traceless_matrix_from_modes
 implicit none
 
 complex(kind(0d0)), intent(inout) :: UMAT(1:NMAT,1:NMAT,1:num_links)
-complex(kind(0d0)), intent(inout) :: Phi(1:dimG,1:num_sites)
+complex(kind(0d0)) :: Phi(1:dimG,1:num_sites)
+complex(kind(0d0)), intent(inout) :: PhiMat(1:NMAT,1:NMAT,1:num_sites)
 
 complex(kind(0d0)) :: P_Phi(1:dimG,1:num_sites)
 double precision :: P_A(1:dimG,1:num_links)
@@ -31,13 +32,11 @@ integer :: seed,CGite,info
 type(genrand_state) :: state
 type(genrand_srepr) :: srepr
 
-integer s
-complex(kind(0d0)):: PhiMat(1:NMAT,1:NMAT,1:num_sites)
-do s=1,num_sites
-call make_traceless_matrix_from_modes(PhiMat(:,:,s),NMAT,Phi(:,s))
-enddo
+!do s=1,num_sites
+!call make_traceless_matrix_from_modes(PhiMat(:,:,s),NMAT,Phi(:,s))
+!enddokk
 
-call check_Dirac(UMAT,Phi)
+call check_Dirac(UMAT,PhiMat)
 write(*,*) "# test hamiltonian"
 write(*,*) "# Ntau*Dtau=",Ntau*Dtau
 
@@ -91,13 +90,14 @@ enddo
 end subroutine test_hamiltonian
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-subroutine HybridMonteCarlo(UMAT,Phi,seed,total_ite)
+subroutine HybridMonteCarlo(UMAT,PhiMat,seed,total_ite)
 use output
-use SUN_generators, only : make_traceless_matrix_from_modes
+use SUN_generators, only : make_traceless_matrix_from_modes,trace_MTa
 implicit none
 
 complex(kind(0d0)), intent(inout) :: UMAT(1:NMAT,1:NMAT,1:num_links)
-complex(kind(0d0)), intent(inout) :: Phi(1:dimG,1:num_sites)
+complex(kind(0d0)) :: Phi(1:dimG,1:num_sites)
+complex(kind(0d0)), intent(inout) :: PhiMat(1:NMAT,1:NMAT,1:num_sites)
 integer, intent(inout) :: seed
 integer, intent(inout) :: total_ite
 
@@ -119,11 +119,11 @@ integer :: t_start, t_end, t_rate, t_max
 integer :: CGite1, CGite2, info1, info2, info
 double precision :: diff
 
-integer s
-complex(kind(0d0)):: PhiMat(1:NMAT,1:NMAT,1:num_sites)
-do s=1,num_sites
-call make_traceless_matrix_from_modes(PhiMat(:,:,s),NMAT,Phi(:,s))
-enddo
+integer s,a
+
+!do s=1,num_sites
+!call make_traceless_matrix_from_modes(PhiMat(:,:,s),NMAT,Phi(:,s))
+!enddo
 
 !! prepare intermediate file
 open(unit=MED_CONF_FILE,status='replace',file=Fmedconf,action='write',form='unformatted')
@@ -135,6 +135,11 @@ open(unit=OUTPUT_FILE,status='replace',file=Foutput,action='write')
 write(*,*) "# start Monte Carlo simulation"
 
 accept=0
+  do s=1,num_sites
+    do a=1,dimG
+      call trace_MTa(Phi(a,s),PhiMat(:,:,s),a,NMAT)
+    enddo
+  enddo
 call write_header(seed,UMAT,Phi)
 !! measure the time used in this simulation
 call system_clock(t_start)
@@ -168,6 +173,11 @@ do ite=total_ite+1,total_ite+num_ite
     call Metropolice_test(Hnew-Hold,PhiMat_Bak,UMAT_BAK,PhiMat,UMAT,accept)
   endif
   !! write out the configuration
+  do s=1,num_sites
+    do a=1,dimG
+      call trace_MTa(Phi(a,s),PhiMat(:,:,s),a,NMAT)
+    enddo
+  enddo
    if ( mod(ite,config_step) == 0 ) then
        write(MED_CONF_FILE) ite
        write(MED_CONF_FILE) UMAT
@@ -191,6 +201,11 @@ write(*,*) "# Total time: ",diff,"[s]"
 
 
 !! write the final configuration 
+  do s=1,num_sites
+    do a=1,dimG
+      call trace_MTa(Phi(a,s),PhiMat(:,:,s),a,NMAT)
+    enddo
+  enddo
 open(unit=OUT_CONF_FILE,status='replace',file=Fconfigout,action='write',form='unformatted')
 write(OUT_CONF_FILE) ite-1
 write(OUT_CONF_FILE) UMAT

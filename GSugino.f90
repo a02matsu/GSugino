@@ -2,6 +2,7 @@ program main
 use mt95
 use global_parameters
 use initialization
+use SUN_generators, only : make_traceless_matrix_from_modes
 !use structure_constant
 !use simplicial_complex
 use simulation
@@ -11,11 +12,14 @@ implicit none
 !! variables
 complex(kind(0d0)), allocatable :: UMAT(:,:,:) ! unitary link variables
 complex(kind(0d0)), allocatable :: PHI(:,:) ! complex scalar at sites
+complex(kind(0d0)), allocatable :: PHIMAT(:,:,:) ! complex scalar at sites
 
 integer :: total_ite ! total iteration
 integer :: seed, time
 type(genrand_state) :: state_mt95 ! state of mt95
 double precision :: tmp
+
+integer :: s
 
 integer num_para, iargc
 num_para = iargc()
@@ -38,6 +42,7 @@ endif
 ! initialize the size of the variables
 allocate( UMAT(1:NMAT,1:NMAT,1:num_links) )
 allocate( PHI(1:dimG, 1:num_sites) )
+allocate( PHIMAT(1:NMAT,1:NMAT, 1:num_sites) )
 
 ! set the seed of the random number generators
 ! The default value is set in the parameter file.
@@ -75,6 +80,9 @@ allocate( PHI(1:dimG, 1:num_sites) )
     !stop
 !! check anti-symmetricity of Dirac and Hermiticity of D\dag D
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+do s=1,num_sites
+call make_traceless_matrix_from_modes(PhiMat(:,:,s),NMAT,Phi(:,s))
+enddo
 
   if (writedown_mode==1) then
     call writedown_config_action_and_fores(UMAT,Phi,seed)
@@ -83,9 +91,9 @@ allocate( PHI(1:dimG, 1:num_sites) )
 
   if (test_mode==1) then
     !call check_Dirac(UMAT,Phi)
-    call test_hamiltonian(UMAT,Phi)
+    call test_hamiltonian(UMAT,PhiMat)
   else
-    call HybridMonteCarlo(UMAT,Phi,seed,total_ite)
+    call HybridMonteCarlo(UMAT,PhiMat,seed,total_ite)
   endif
 
 

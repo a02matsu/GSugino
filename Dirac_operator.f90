@@ -11,16 +11,24 @@ contains
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! make Dirac matrix
-subroutine make_Dirac(Dirac,UMAT,Phi)
+subroutine make_Dirac(Dirac,UMAT,PhiMat)
+use SUN_generators, only : trace_MTa
 implicit none
 
 complex(kind(0d0)), intent(inout) :: Dirac(1:sizeD,1:sizeD)
 complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_links)
-complex(kind(0d0)), intent(in) :: Phi(1:dimG,1:num_sites)
+complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_sites)
+complex(kind(0d0)) :: Phi(1:dimG,1:num_sites)
 
 complex(kind(0d0)) :: unitvec(1:sizeD),dirac_vec(1:sizeD)
 integer i,j
+integer s,a
 
+do s=1,num_sites
+  do a=1,dimG
+    call trace_MTa(Phi(a,s),PhiMat(:,:,s),a,NMAT)
+  enddo
+enddo
 do i=1,sizeD
   unitvec=(0d0,0d0)
   unitvec(i)=(1d0,0d0)
