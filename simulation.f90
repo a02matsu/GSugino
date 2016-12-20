@@ -13,6 +13,7 @@ contains
 subroutine test_hamiltonian(UMAT,Phi)
 use mt95
 use Dirac_operator
+use SUN_generators, only : make_traceless_matrix_from_modes
 implicit none
 
 complex(kind(0d0)), intent(inout) :: UMAT(1:NMAT,1:NMAT,1:num_links)
@@ -21,6 +22,7 @@ complex(kind(0d0)), intent(inout) :: Phi(1:dimG,1:num_sites)
 complex(kind(0d0)) :: P_Phi(1:dimG,1:num_sites)
 double precision :: P_A(1:dimG,1:num_links)
 complex(kind(0d0)) :: PF(1:sizeD)
+complex(kind(0d0)) :: PhiMat(1:NMAT,1:NMAT,1:num_sites)
 complex(kind(0d0)) :: Phi_BAK(1:dimG,1:num_sites)
 complex(kind(0d0)) :: UMAT_BAK(1:NMAT,1:NMAT,1:num_links)
 double precision :: Hold,Hnew
@@ -29,6 +31,9 @@ integer :: seed,CGite,info
 type(genrand_state) :: state
 type(genrand_srepr) :: srepr
 
+s=1,num_sites
+  call make_traceless_matrix_from_modes(PhiMat(:,:,s),NMAT,Phi(:,s))
+enddo
 call check_Dirac(UMAT,Phi)
 write(*,*) "# test hamiltonian"
 write(*,*) "# Ntau*Dtau=",Ntau*Dtau
@@ -54,7 +59,7 @@ call set_randomP(P_A,P_Phi)
 ! produce pseudo-fermion
 call make_pseudo_fermion(PF,UMAT,Phi)
 !! calculate Hamiltonian 
-call Make_Hamiltonian(Hold,CGite,info,UMAT,Phi,PF,P_A,P_Phi)
+call Make_Hamiltonian(Hold,CGite,info,UMAT,PhiMat,PF,P_A,P_Phi)
 !! molecular evolution
 !call molecular_evolution(UMAT,Phi,PF,P_A,P_Phi,info)
 call molecular_evolution_Omelyan(UMAT,Phi,PF,P_A,P_Phi,info)
@@ -62,7 +67,7 @@ call molecular_evolution_Omelyan(UMAT,Phi,PF,P_A,P_Phi,info)
   !write(*,*) "!!!"
   !write(*,*) Phi-Phi_BAK
 !! calculate Hamiltonian 
-call Make_Hamiltonian(Hnew,CGite,info,UMAT,Phi,PF,P_A,P_Phi)
+call Make_Hamiltonian(Hnew,CGite,info,UMAT,PhiMat,PF,P_A,P_Phi)
 !! metropolice
 write(*,'(I5,e20.10)') Ntau, dabs(Hnew-Hold)!, Hold, Hnew
 !! return to the original values
@@ -79,6 +84,7 @@ end subroutine test_hamiltonian
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 subroutine HybridMonteCarlo(UMAT,Phi,seed,total_ite)
 use output
+use SUN_generators, only : make_traceless_matrix_from_modes
 implicit none
 
 complex(kind(0d0)), intent(inout) :: UMAT(1:NMAT,1:NMAT,1:num_links)
@@ -90,6 +96,8 @@ integer, intent(inout) :: total_ite
 double precision :: P_A(1:dimG,1:num_links)
 complex(kind(0d0)) :: P_Phi(1:dimG,1:num_sites)
 complex(kind(0d0)) :: PF(1:sizeD)
+complex(kind(0d0)) PhiMat(1:NMAT,1:NMAT,1:num_sites)
+complex(kind(0d0)) PhiMat_BAK(1:NMAT,1:NMAT,1:num_sites)
 
 complex(kind(0d0)) Phi_BAK(1:dimG,1:num_sites)
 complex(kind(0d0)) UMAT_BAK(1:NMAT,1:NMAT,1:num_links)
@@ -102,6 +110,11 @@ type(genrand_srepr) :: srepr
 integer :: t_start, t_end, t_rate, t_max
 integer :: CGite1, CGite2, info1, info2, info
 double precision :: diff
+
+integer :: s
+do s=1,num_sites
+  call make_traceless_matrix_from_modes(PhiMat(:,:,s),NMAT,Phi(:,s))
+enddo
 
 !! prepare intermediate file
 open(unit=MED_CONF_FILE,status='replace',file=Fmedconf,action='write',form='unformatted')
@@ -122,23 +135,23 @@ do ite=total_ite+1,total_ite+num_ite
   !! produce pseudo-fermion
   call make_pseudo_fermion(PF,UMAT,Phi)
   !! calculate Hamiltonian 
-  call Make_Hamiltonian(Hold,CGite1,info1,UMAT,Phi,PF,P_A,P_Phi)
+  call Make_Hamiltonian(Hold,CGite1,info1,UMAT,PhiMat,PF,P_A,P_Phi)
   !! backup
-  Phi_BAK=Phi
+  PhiMat_BAK=PhiMat
   UMAT_BAK=UMAT
   !! molecular evolution
   call molecular_evolution_Omelyan(UMAT,Phi,PF,P_A,P_Phi,info)
   if( info == 1 ) then
-    Phi=Phi_BAK
+    PhiMat=PhiMat_BAK
     UMAT=UMAT_BAK
     write(*,*) "### CAUTION: CG iterations reaches to the maximal."
   else
     !! check distance of Uf from the origin
     !call check_vacuum(UMAT)
     !! calculate Hamiltonian 
-    call Make_Hamiltonian(Hnew,CGite2,info2,UMAT,Phi,PF,P_A,P_Phi)
+    call Make_Hamiltonian(Hnew,CGite2,info2,UMAT,PhiMat,PF,P_A,P_Phi)
     !! metropolice
-    call Metropolice_test(Hnew-Hold,Phi_BAK,UMAT_BAK,Phi,UMAT,accept)
+    call Metropolice_test(Hnew-Hold,PhiMat_BAK,UMAT_BAK,PhiMat,UMAT,accept)
   endif
   !! write out the configuration
    if ( mod(ite,config_step) == 0 ) then
@@ -616,13 +629,13 @@ call calc_matrix_rational_power(&
 end subroutine make_pseudo_fermion
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-subroutine Metropolice_test(delta_Ham,Phi_BAK,UMAT_BAK,Phi,UMAT,accept)
+subroutine Metropolice_test(delta_Ham,PhiMat_BAK,UMAT_BAK,PhiMat,UMAT,accept)
 implicit none
 
 double precision, intent(in) :: delta_Ham
-complex(kind(0d0)), intent(in) :: Phi_BAK(1:dimG,1:num_sites)
+complex(kind(0d0)), intent(in) :: PhiMat_BAK(1:NMAT,1:NMAT,1:num_sites)
 complex(kind(0d0)), intent(in) :: UMAT_BAK(1:NMAT,1:NMAT,1:num_links)
-complex(kind(0d0)), intent(inout) :: Phi(1:dimG,1:num_sites)
+complex(kind(0d0)), intent(inout) :: PhiMat(1:NMAT,1:NMAT,1:num_sites)
 complex(kind(0d0)), intent(inout) :: UMAT(1:NMAT,1:NMAT,1:num_links)
 integer, intent(inout) :: accept
 
@@ -636,7 +649,7 @@ else
   if( exp( -delta_Ham ) > random_num ) then
     accept=accept+1
   else
-    Phi=Phi_BAK
+    PhiMat=PhiMat_BAK
     UMAT=UMAT_BAK
   endif
 endif
