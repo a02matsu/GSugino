@@ -50,7 +50,7 @@ call bosonic_action_mass(SB_M,PhiMat)
 call bosonic_action_site(SB_S,PhiMat)
 call bosonic_action_link(SB_L,UMAT,PhiMat)
 call bosonic_action_face(SB_F,UMAT)
-call fermionic_action(SF,CGite,info,UMAT,Phi,PF)
+call fermionic_action(SF,CGite,info,UMAT,PhiMat,PF)
 !call bosonic_action_test(SB_T,UMAT)
 
 Htotal = SB_M
@@ -271,13 +271,14 @@ end subroutine bosonic_action_face
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! fermionic action 
-subroutine fermionic_action(SF,CGite,info,UMAT,Phi,PF)
+subroutine fermionic_action(SF,CGite,info,UMAT,PhiMat,PF)
 use rational_algorithm
 use Dirac_operator
 implicit none
 
 complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_links)
-complex(kind(0d0)), intent(in) :: Phi(1:dimG,1:num_sites)
+complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_sites)
+complex(kind(0d0)):: Phi(1:dimG,1:num_sites)
 complex(kind(0d0)), intent(in) :: PF(1:sizeD)
 double precision, intent(out) :: SF
 integer, intent(inout) :: info,CGite
@@ -297,6 +298,13 @@ complex(kind(0d0)) :: SF_direct
 complex(kind(0d0)) :: tmpvec(1:sizeD),tmp,tmp2
 double precision :: distance
 integer :: j
+integer :: s,a
+do s=1,num_sites
+  do a=1,dimG
+    call trace_MTa(Phi(a,s),PhiMat(:,:,s),a,NMAT)
+  enddo
+enddo
+
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ! computation using CG
