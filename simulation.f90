@@ -196,7 +196,20 @@ double precision :: dSdA(1:dimG,1:num_links)
 integer :: info,CGIte
 integer :: i,j,a,s,l
 
+!! writedown parameters
+write(*,'(a)',advance='no') "NMAT = "
+write(*,*) NMAT
+write(*,'(a)',advance='no') "a = "
+write(*,*) latticespacing
+write(*,'(a)',advance='no') "mass^2(dimensionless) = "
+write(*,*) mass_square_phi 
+write(*,'(a)',advance='no') "1/2g^2 = "
+write(*,*) overall_factor ! N/2g^2N=N/2a^2
+write(*,'(a)',advance='no') "m_omega = "
+write(*,*) m_omega
+
 !! write down UMAT
+write(*,*) "################################"
 write(*,*) "# link, i, j, UMAT(i,j,link)"
 do l=1,num_links
   do i=1,NMAT
@@ -237,6 +250,7 @@ call bosonic_action_link(SB_L,UMAT,PhiMat)
 call bosonic_action_face(SB_F,UMAT)
 call fermionic_action(SF,CGite,info,UMAT,Phi,PF)
 
+write(*,*) "################################"
 write(*,'(a)',advance='no') "SB_mass = "
 write(*,*) SB_M
 write(*,'(a)',advance='no') "SB_site = "

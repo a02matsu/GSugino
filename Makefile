@@ -121,6 +121,15 @@ endif
 	@true
 
 # moduleの依存性
+GSugino.o: \
+  mt95.o \
+  global_parameters.o \
+  initialization.o \
+  simulation.o \
+  simplicial_complex.o \
+  matrix_functions.o \
+  global_subroutines.o \
+  SUN_generators.o 
 global_parameters.o: \
   simplicial_complex.o \
   SUN_generators.o

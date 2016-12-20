@@ -42,10 +42,10 @@ integer, parameter :: p1=0
 integer, parameter :: p2=0
 integer, parameter :: p3=0
 integer, parameter :: p4=0
-integer, parameter :: p5=1
+integer, parameter :: p5=0
 
 ! writedown_mode=1 : write down config, hamiltonian and forces
-integer, parameter :: writedown_mode=0
+integer, parameter :: writedown_mode=1
 
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
