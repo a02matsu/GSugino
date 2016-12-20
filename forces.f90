@@ -71,7 +71,7 @@ call Make_bosonic_force_A_face(dSdA_boson_face,UMAT)
 
 !! force from fermion
 !write(*,*) "1"
-call Make_fermionic_force(dSdPhi_fermion,dSdA_fermion,UMAT,Phi,PF,info)
+call Make_fermionic_force(dSdPhi_fermion,dSdA_fermion,UMAT,PhiMat,PF,info)
 !write(*,*) "2"
 !write(*,*) dSdA_fermion
 
@@ -414,14 +414,15 @@ end subroutine Make_bosonic_force_A_face
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! dS/dPhi and dS/dA from fermion part
-subroutine Make_fermionic_force(dSdPhi_fermion,dSdA_fermion,UMAT,Phi,PF,info)
+subroutine Make_fermionic_force(dSdPhi_fermion,dSdA_fermion,UMAT,Phimat,PF,info)
 use rational_algorithm
 use Dirac_operator
 use differential_Dirac
 implicit none 
 
 complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_links)
-complex(kind(0d0)), intent(in) :: Phi(1:dimG,1:num_sites)
+complex(kind(0d0)) :: Phi(1:dimG,1:num_sites)
+complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_sites)
 complex(kind(0d0)), intent(in) :: PF(1:sizeD)
 complex(kind(0d0)), intent(out) :: dSdPhi_fermion(1:dimG,1:num_sites)
 double precision, intent(out) :: dSdA_fermion(1:dimG,1:num_links)
@@ -443,6 +444,12 @@ complex(kind(0d0)) :: dDdA_chi(1:sizeD,1:dimG,1:num_links,1:N_Remez4)
 complex(kind(0d0)) :: tmp
 integer :: CGite
 integer :: r,i,s,l,a,b
+
+do s=1,num_sites
+  do a=1,dimG
+    call trace_MTa(Phi(a,s),PhiMat(:,:,s),a,NMAT)
+  enddo
+enddo
 
 !! for test
 !complex(kind(0d0)) :: DdagD(1:sizeD,1:sizeD)
