@@ -210,27 +210,6 @@ do s=1,num_sites
   enddo
 enddo
 
-
-!do s=1,num_sites
-!do a=1,dimG
-!  tmp=(0d0,0d0)
-!  do i=1,NZF
-!    b=NZF_index(1,i)
-!    c=NZF_index(2,i)
-!    d=NZF_index(3,i)
-!    tmp(b)=tmp(b)+im_unit*NZF_value(i)*Phi(c,s)*dconjg(Phi(d,s))
-!  enddo
-!  
-!  do i=1,NZF_a(a)%num_
-!    b=NZF_a(a)%b_(i)
-!    c=NZF_a(a)%c_(i)
-!    dSdPhi_boson_site(a,s)=dSdPhi_boson_site(a,s) &
-!        +im_unit*NZF_a(a)%value_(i)*tmp(b)*dconjg(Phi(c,s))
-!  enddo
-!  dSdPhi_boson_site(a,s) = dSdPhi_boson_site(a,s) * (-0.5d0)*alpha_s(s)
-!
-!enddo
-!enddo
 end subroutine Make_bosonic_force_Phi_site
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -271,11 +250,6 @@ do l=1,num_links
       dPhibar(i,j,l)=conjg(dPhi(j,i))
     enddo
   enddo
-! Tr( Ta U_l^\dagger diff( \bar\Phi_s ) U_l ) for all links 
-    !call Trace_MTa(Tr_Ta_Ud_dPhibar_U(a,l),tmpmat2,a,NMAT)
-! Tr( Ta diff( \bar\Phi_s ) )
-    !call Trace_MTa(trace,dPhi,a,NMAT)
-    !Tr_Ta_dPhibar(a,l) = dconjg(trace)
 enddo
 
 dSdPhi_boson_link=(0d0,0d0)
@@ -478,7 +452,7 @@ do r=1,N_Remez4
   call prod_dDdPhi(dDdPhi_chi(:,:,:,r),chi(:,r),UMAT,Phi)
   call prod_dDdbPhi(dDdbPhi_chi(:,:,:,r),chi(:,r),UMAT,Phi)
   
-  call prod_dDdA(dDdA_chi(:,:,:,r),chi(:,r),UMAT,Phi)
+  call prod_dDdA(dDdA_chi(:,:,:,r),chi(:,r),UMAT,PhiMat)
 enddo
 
 do s=1,num_sites
@@ -509,42 +483,6 @@ do l=1,num_links
     enddo
   enddo
 enddo
-
-! changed 2015/11/08
-!dSdPhi_fermion = dSdPhi_fermion / cmplx(overall_factor) ! / cmplx(one_ov_2g2N)
-!dSdA_fermion = dSdA_fermion / cmplx(overall_factor) ! / cmplx(one_ov_2g2N)
-!write(*,*) "   end: fermionic force"
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-! direct computation of chi
-!chi_direct=(0d0,0d0)
-!call make_DdagD(DdagD)
-!do r=1,N_Remez4
-!  tmpmat=DdagD
-!  do i=1,sizeD
-!    tmpmat(i,i)=tmpmat(i,i)+Remez_beta4(r)
-!  enddo
-!  call matrix_inverse(sizeD,tmpmat)
-!  do i=1,sizeD
-!    do j=1,sizeD
-!      chi_direct(i,r)=chi_direct(i,r)+tmpmat(i,j)*PF(j)
-!    enddo
-!  enddo
-!enddo
-!
-!distance=0d0
-!do r=1,N_Remez4
-!  do i=1,sizeD
-!    tmp=chi(i,r)-chi_direct(i,r)
-!    distance=distance+dble( tmp * dconjg(tmp) )
-!enddo
-!enddo
-!
-!write(*,*) distance
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!  
-  
-
-
-  
 
 end subroutine Make_fermionic_force
 

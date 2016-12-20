@@ -24,7 +24,6 @@ implicit none
 
 complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_links)
 complex(kind(0d0)), intent(in) :: PhiMAT(1:NMAT,1:NMAT,1:num_sites)
-complex(kind(0d0)) :: Phi(1:dimG,1:num_sites)
 complex(kind(0d0)), intent(in) :: PF(1:sizeD)
 complex(kind(0d0)), intent(in) :: P_Phi(1:dimG,1:num_sites)
 double precision, intent(in) :: P_A(1:dimG,1:num_links)
@@ -33,11 +32,6 @@ integer, intent(inout) :: CGite,info
 double precision, intent(out) :: Htotal
 integer a,s,l
 double precision :: SB_S,SB_L,SB_F,SB_M, SF !,SB_T
-
-!complex(kind(0d0)):: PhiMat(1:NMAT,1:NMAT,1:num_sites)
-!do s=1,num_sites
-!call make_traceless_matrix_from_modes(PhiMat(:,:,s),NMAT,Phi(:,s))
-!enddo
 
 CGite=0
 info=0
@@ -165,7 +159,6 @@ integer i,j
 SB_S=0d0
 
 do s=1,num_sites
-  !call make_traceless_matrix_from_modes(phi_mat,NMAT,Phi(:,s))
   call matrix_commutator(comm,phimat(:,:,s),phimat(:,:,s),'N','C')
   ctmp=(0d0,0d0)
   do i=1,NMAT
@@ -177,30 +170,6 @@ do s=1,num_sites
 enddo
 
 SB_S=SB_S * overall_factor !* one_ov_2g2N
-
-!! compute [\phi_s,\bar^phi_s]^a
-!allocate(tmpmat(1:dimG,1:num_sites) )
-!tmpmat=(0d0,0d0)
-!do s=1,num_sites
-!do i=1,NZF
-!  a=NZF_index(1,i)
-!  b=NZF_index(2,i)
-!  c=NZF_index(3,i)
-!  tmpmat(a,s)=tmpmat(a,s)+im_unit*NZF_value(i)*Phi(b,s)*dconjg(Phi(c,s))
-!enddo
-!!do a=1,dimG
-!!write(*,*) tmpmat(a,s)
-!!enddo
-!enddo
-!
-!! S_b^{(s)}=\alpha_s tr( 1/4 [\phi_s, \bar\phi_s]^2 )
-!do s=1,num_sites
-!  tmp=0d0
-!  do a=1,dimG
-!    tmp=tmp+dble(tmpmat(a,s)*tmpmat(a,s))
-!  enddo
-!  SB_S=SB_S+alpha_s(s)*0.25d0*tmp
-!enddo
 
 end subroutine bosonic_action_site
 
@@ -215,7 +184,6 @@ double precision, intent(out) :: SB_L
 integer :: i,j
 integer :: l
 double precision :: tmp
-!complex(kind(0d0)) :: Phi_tip(1:NMAT,1:NMAT), Phi_org(1:NMAT,1:NMAT)
 complex(kind(0d0)) :: dPhi(1:NMAT,1:NMAT)
 
 
@@ -279,7 +247,6 @@ implicit none
 
 complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_links)
 complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_sites)
-!complex(kind(0d0)):: Phi(1:dimG,1:num_sites)
 complex(kind(0d0)), intent(in) :: PF(1:sizeD)
 double precision, intent(out) :: SF
 integer, intent(inout) :: info,CGite
@@ -299,12 +266,6 @@ complex(kind(0d0)) :: SF_direct
 complex(kind(0d0)) :: tmpvec(1:sizeD),tmp,tmp2
 double precision :: distance
 integer :: j
-!integer :: s,a
-!do s=1,num_sites
-  !do a=1,dimG
-    !call trace_MTa(Phi(a,s),PhiMat(:,:,s),a,NMAT)
-  !enddo
-!enddo
 
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

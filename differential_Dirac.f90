@@ -189,13 +189,13 @@ end subroutine prod_dDdbPhi
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! subroutine to return product of d/dA D . vec
-subroutine prod_dDdA(dDdA_chi,vec,UMAT,Phi)
+subroutine prod_dDdA(dDdA_vec,vec,UMAT,PhiMat)
 implicit none
 
 complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_links) 
-complex(kind(0d0)), intent(in) :: Phi(1:dimG,1:num_sites)
+complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_sites)
 complex(kind(0d0)), intent(in) :: vec(1:sizeD)
-complex(kind(0d0)), intent(out) :: dDdA_chi(1:sizeD, 1:dimG,1:num_links)
+complex(kind(0d0)), intent(out) :: dDdA_vec(1:sizeD, 1:dimG,1:num_links)
 
 complex(kind(0d0)) :: eta_ele(1:dimG,1:num_sites)
 complex(kind(0d0)) :: eta_mat(1:NMAT,1:NMAT,1:num_sites)
@@ -204,9 +204,21 @@ complex(kind(0d0)) :: lambda_mat(1:NMAT,1:NMAT,1:num_links)
 complex(kind(0d0)) :: chi_ele(1:dimG,1:num_faces)
 complex(kind(0d0)) :: chi_mat(1:NMAT,1:NMAT,1:num_faces)
 
+! d/dA_{ll,ii,jj} (D\Psi)_{s,i,j}=dDdA_eta(i,j,s,ii,jj,ll)
+complex(kind(0d0)) :: dDdA_eta(1:NMAT,1:NMAT,1:num_sites,1:NMAT,1:NMAT,1:num_links)
+! d/dA_{ll,ii,jj} (D\Psi)_{l,i,j}=dDdA_lambda(i,j,l,ii,jj,ll)
+complex(kind(0d0)) :: dDdA_lambda(1:NMAT,1:NMAT,1:num_links,1:NMAT,1:NMAT,1:num_links)
+! d/dA_{ll,ii,jj} (D\Psi)_{f,i,j}=dDdA_chi(i,j,f,ii,jj,ll)
+complex(kind(0d0)) :: dDdA_chi(1:NMAT,1:NMAT,1:num_faces,1:NMAT,1:NMAT,1:num_links)
+
+! d/dA_{ll,ii,jj} (Ta)_{ji} (D\Psi)_{s,i,j}=tmpdDdA_eta(ii,jj,ll,a,s)
+complex(kind(0d0)) :: tmpdDdA_eta(1:NMAT,1:NMAT,1:num_links,1:dimG,1:num_sites)
+! d/dA_{ll,ii,jj} (Ta)_{ji} (D\Psi)_{l,i,j}=tmpdDdA_lambda(ii,jj,ll,a,l)
+complex(kind(0d0)) :: tmpdDdA_lambda(1:NMAT,1:NMAT,1:num_links,1:dimG,1:num_links)
+! d/dA_{ll,ii,jj} (Ta)_{ji} (D\Psi)_{f,i,j}=tmpdDdA_chi(ii,jj,ll,a,f)
+complex(kind(0d0)) :: tmpdDdA_chi(1:NMAT,1:NMAT,1:num_links,1:dimG,1:num_faces)
+
 complex(kind(0d0)) :: Uinv(1:NMAT,1:NMAT,1:num_links)
-complex(kind(0d0)) :: Phi_mat(1:NMAT,1:NMAT,1:num_sites)
-complex(kind(0d0)) :: bPhi_mat(1:NMAT,1:NMAT,1:num_sites)
 complex(kind(0d0)) :: Uf(1:NMAT,1:NMAT,1:num_faces)
 complex(kind(0d0)) :: Ufm(1:NMAT,1:NMAT,1:num_faces)
 !complex(kind(0d0)) :: diffdiff_Omega(1:NMAT,1:NMAT,1:dimG,1:dimG)
@@ -242,6 +254,9 @@ do f=1,num_faces
 enddo
 
 !! preparation
+dDdA_vec=(0d0,0d0)
+dDdA_eta=(0d0,0d0)
+dDdA_lambda=(0d0,0d0)
 dDdA_chi=(0d0,0d0)
 do s=1,num_sites
   do a=1,dimG
@@ -261,10 +276,6 @@ do f=1,num_faces
   enddo
   call make_traceless_matrix_from_modes(chi_mat(:,:,f),NMAT,chi_ele(:,f))
 enddo
-do s=1,num_sites
-  call make_traceless_matrix_from_modes(Phi_mat(:,:,s),NMAT,Phi(:,s))
-  call make_traceless_matrix_from_modes(bPhi_mat(:,:,s),NMAT,dconjg(Phi(:,s)))
-enddo
 
 ! for test
 !call make_SUN_generators(T,NMAT)
@@ -277,20 +288,19 @@ if ( p2==0 ) then
 do s=1,num_sites
   do k=1,linkorg_to_s(s)%num_
     l=linkorg_to_s(s)%labels_(k)
-    do b=1,dimG
-      call commutator_MTa(comm,lambda_mat(:,:,l),b,NMAT)
-      call ZGEMM('N','N',NMAT,NMAT,NMAT,(1d0,0d0), &
-        comm, NMAT, &
-        UMAT(:,:,l), NMAT, &
-        (0d0,0d0), tmpmat1, NMAT)
-      call ZGEMM('C','N',NMAT,NMAT,NMAT,dcmplx(alpha_l(l)), &
-        UMAT(:,:,l), NMAT, &
-        tmpmat1, NMAT, &
-        (0d0,0d0), tmpmat2, NMAT)
-      do a=1,dimG
-        call trace_MTa(trace,tmpmat2,a,NMAT)
-        dDdA_chi(site_index(a,s),b,l) = dDdA_chi(site_index(a,s),b,l) &
-          + trace * overall_factor
+    ! tmpmat1 = lambda_l.U_l
+    call matrix_product(tmpmat1,lambda_mat(:,:,l),UMAT(:,:,l))
+    ! tmpmat2 = Ul^{-1}.lambda_l
+    call matrix_product(tmpmat2,UMAT(:,:,l),lambda_mat(:,:,l),'C','N')
+    do jj=1,NMAT
+      do ii=1,NMAT
+        do j=1,NMAT
+          do i=1,NMAT
+            dDdA_eta(i,j,s,ii,jj,l)= dDdA_eta(i,j,s,ii,jj,l) &
+              - cmplx(alpha_l(l))*conjg(UMAT(jj,i,l))*tmpmat1(ii,j) &
+              + cmplx(alpha_l(l))*tmpmat2(i,jj)*UMAT(ii,j,l)
+          enddo
+        enddo
       enddo
     enddo
   enddo
@@ -298,51 +308,67 @@ enddo
 
 do l=1,num_links
   s=link_tip(l)
-  call ZGEMM('N','C',NMAT,NMAT,NMAT,(1d0,0d0), &
-    eta_mat(:,:,s), NMAT, &
-    UMAT(:,:,l), NMAT, &
-    (0d0,0d0), tmpmat1, NMAT)
-  call ZGEMM('N','N',NMAT,NMAT,NMAT,(0d0,-1d0)*dcmplx(alpha_l(l)), &
-    UMAT(:,:,l), NMAT, &
-    tmpmat1, NMAT, &
-    (0d0,0d0), tmpmat2, NMAT)
-  do r=1,NZF
-    a=NZF_index(1,r)
-    b=NZF_index(2,r)
-    c=NZF_index(3,r)
-    call trace_MTa(trace,tmpmat2,c,NMAT)
-    dDdA_chi(link_index(a,l),b,l)= dDdA_chi(link_index(a,l),b,l) &
-      + trace * NZF_value(r) * overall_factor
+  ! tmpmat2 = Ul.eta_l.Ul^{-1}
+  call matrix_product(tmpmat1,UMAT(:,:,l),eta_mat(:,:,s))
+  call matrix_product(tmpmat2,tmpmat1,UMAT(:,:,l),'N','C')
+  do ii=1,NMAT
+    do i=1,NMAT
+      jj=ii
+      j=i
+      do k=1,NMAT
+        dDdA_lambda(k,j,l,ii,k,l) = dDdA_lambda(k,j,l,ii,k,l) & 
+          - cmplx(alpha_l(l)) * tmpmat2(ii,j)
+        dDdA_lambda(i,k,l,k,jj,l) = dDdA_lambda(i,k,l,k,jj,l) & 
+          + cmplx(alpha_l(l)) * tmpmat2(i,jj)
+      enddo
+    enddo
   enddo
 enddo
-endif
+endif 
 
 if ( p3==0 ) then
 !! (3) Dirac from link 2
 do l=1,num_links
-  call ZGEMM('N','C',NMAT,NMAT,NMAT,(1d0,0d0), &
-    bphi_mat(:,:,link_tip(l)), NMAT, &
-    UMAT(:,:,l), NMAT, &
-    (0d0,0d0), tmpmat1, NMAT)
-  call ZGEMM('N','N',NMAT,NMAT,NMAT,(1d0,0d0), &
-    UMAT(:,:,l), NMAT, &
-    tmpmat1, NMAT, &
-    (0d0,0d0), tmpmat2, NMAT)
+  s=link_tip(l)
+! d/dA_{ll,ii,jj} (D\Psi)_{s,i,j}=dDdA_eta(i,j,s,ii,jj,ll)
+! d/dA_{ll,ii,jj} (D\Psi)_{l,i,j}=dDdA_lambda(i,j,l,ii,jj,ll)
+! d/dA_{ll,ii,jj} (D\Psi)_{f,i,j}=dDdA_chi(i,j,f,ii,jj,ll)
 
-  do b=1,dimG
-    call commutator_TaM(tmpmat1,tmpmat2,b,NMAT)
-
-    call Matrix_Commutator(comm,tmpmat1,lambda_mat(:,:,l))
-
-    do a=1,dimG
-      call trace_MTa(trace,comm,a,NMAT)
-      dDdA_chi(link_index(a,l),b,l)=dDdA_chi(link_index(a,l),b,l) &
-        + (0d0,1d0) * dcmplx( alpha_l(l) ) * trace * overall_factor
+  ! tmpmat1 = Ul.\bar\Phi.Ul^{-1}
+  ! tmpmat2 = Ul.\bar\Phi.Ul^{-1}.lambda_l
+  ! tmpmat3 = lambda_l.Ul.\bar\Phi.Ul^{-1}
+  call matrix_product(tmpmat2,UMAT(:,:,l),PhiMat(:,:,s),'N','C')
+  call matrix_product(tmpmat1,tmpmat2,UMAT(:,:,l),'N','C')
+  call matrix_product(tmpmat2,tmpmat1,lambda_mat(:,:,l))
+  call matrix_product(tmpmat3,lambda_mat(:,:,l),tmpmat1)
+  do jj=1,NMAT
+    do ii=1,NMAT
+      do j=1,NMAT
+        do i=1,NMAT
+          if ( i==jj ) then
+            dDdA_lambda(i,j,l,ii,jj,l) = dDdA_lambda(i,j,l,ii,jj,l) & 
+              +(0d0,1d0)*cmplx(alpha_l(l))*tmpmat2(ii,j)
+          endif
+          if ( j==ii ) then
+            dDdA_lambda(i,j,l,ii,jj,l) = dDdA_lambda(i,j,l,ii,jj,l) & 
+              +(0d0,1d0)*cmplx(alpha_l(l))*tmpmat3(i,jj)
+          endif
+          dDdA_lambda(i,j,l,ii,jj,l) = dDdA_lambda(i,j,l,ii,jj,l) & 
+            -(0d0,1d0)*cmplx(alpha_l(l))*lambda_mat(i,jj,l)*tmpmat1(ii,j) &
+            -(0d0,1d0)*cmplx(alpha_l(l))*lambda_mat(ii,j,l)*tmpmat1(i,jj)
+        enddo
+      enddo
     enddo
   enddo
 enddo
 endif
+
       
+! d/dA_{ll,ii,jj} (Ta)_{ji} (D\Psi)_{s,i,j}=tmpdDdA_eta(ii,jj,ll,a,s)
+! d/dA_{ll,ii,jj} (Ta)_{ji} (D\Psi)_{l,i,j}=tmpdDdA_lambda(ii,jj,ll,a,l)
+! d/dA_{ll,ii,jj} (Ta)_{ji} (D\Psi)_{f,i,j}=tmpdDdA_chi(ii,jj,ll,a,f)
+
+
       
 !! (4) Dirac from face 1
 !   no contribution
@@ -384,7 +410,7 @@ do f=1,num_faces
     do b=1,dimG
       do a=1,dimG
         call trace_MTa(trace,diffdiff_Omega_lambda(:,:,b),a,NMAT)
-        dDdA_chi(face_index(a,f),b,l)= dDdA_chi(face_index(a,f),b,l) &
+        dDdA_vec(face_index(a,f),b,l)= dDdA_vec(face_index(a,f),b,l) &
           + (0d0,1d0)*dcmplx(alpha_f(f)*beta_f(f))*trace*overall_factor
       enddo
     enddo
@@ -413,7 +439,7 @@ do l=1,num_links
                 *diffdiff_Omega2(f)%val(jj,ii,b,a,j,k)
             enddo
           enddo
-          dDdA_chi(link_index(a,l),b,ll)= dDdA_chi(link_index(a,l),b,ll) &
+          dDdA_vec(link_index(a,l),b,ll)= dDdA_vec(link_index(a,l),b,ll) &
               -(0d0,1d0)*dcmplx(alpha_f(f)*beta_f(f))*tmp*overall_factor
         enddo
       enddo
@@ -422,6 +448,48 @@ do l=1,num_links
   enddo
 enddo
 endif
+
+do ll=1,num_links
+  do ii=1,NMAT
+    do jj=1,NMAT
+      !!!!!!!!!!!
+      do s=1,num_sites
+        do a=1,dimG
+          call trace_MTa(tmpdDdA_eta(ii,jj,ll,a,s),dDdA_eta(:,:,s,ii,jj,ll),a,NMAT)
+        enddo
+      enddo
+      !!!!!!!!!!!
+      do l=1,num_links
+        do a=1,dimG
+          call trace_MTa(tmpdDdA_lambda(ii,jj,ll,a,l),dDdA_lambda(:,:,l,ii,jj,ll),a,NMAT)
+        enddo
+      enddo
+      !!!!!!!!!!!
+    enddo
+  enddo
+enddo
+do s=1,num_sites
+  do a=1,dimG
+    do ll=1,num_links
+      do b=1,dimG
+        call trace_MTa(tmp,tmpdDdA_eta(:,:,ll,a,s),b,NMAT)
+        dDdA_vec(site_index(a,s),b,ll) &
+          = dDdA_vec(site_index(a,s),b,ll) + overall_factor * tmp
+      enddo
+    enddo
+  enddo
+enddo
+do l=1,num_links
+  do a=1,dimG
+    do ll=1,num_links
+      do b=1,dimG
+        call trace_MTa(tmp,tmpdDdA_lambda(:,:,ll,a,l),b,NMAT)
+        dDdA_vec(link_index(a,l),b,ll) &
+          = dDdA_vec(link_index(a,l),b,ll) + overall_factor * tmp
+      enddo
+    enddo
+  enddo
+enddo
 
 !dDdA_chi=dDdA_chi*overall_factor
 
@@ -548,6 +616,55 @@ endif
 !enddo
 
 end subroutine prod_dDdA
+
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! subroutine to return product of d/dA D . vec
+subroutine calc_dCosUinvdA(dCosUinvdA,cosUinv,Uf,UMAT,f,ll_label)
+use Dirac_operator, only : calc_Amat, calc_Bmat
+implicit none
+
+! for given f and ll
+! d cosUinv(i,j,f) / dA_{ii,jj,ll)
+complex(kind(0d0)), intent(out) :: dCosUinvdA(1:NMAT,1:NMAT,1:NMAT,1:NMAT)
+complex(kind(0d0)), intent(in) :: cosUinv(1:NMAT,1:NMAT)
+complex(kind(0d0)), intent(in) :: Uf(1:NMAT,1:NMAT)
+complex(kind(0d0)), intent(in) :: UMat(1:NMAT,1:NMAT,1:num_links)
+integer, intent(in) :: f,ll_label
+
+complex(kind(0d0)) :: Amat(1:NMAT,1:NMAT)
+complex(kind(0d0)) :: Bmat(1:NMAT,1:NMAT)
+complex(kind(0d0)) :: UinvA(1:NMAT,1:NMAT), BUinv(1:NMAT,1:NMAT)
+
+integer :: k,i,j,ii,jj
+
+dCosUinvdA=(0d0,0d0)
+do k=1,m_omega
+  call calc_Amat(Amat,f,ll_label,k,Uf,Umat)
+  call calc_Bmat(Bmat,f,ll_label,k,Uf,Umat)
+
+  call matrix_product(UinvA,cosUinv,Amat)
+  call matrix_product(BUinv,Bmat,cosUinv)
+
+  do jj=1,NMAT
+    do ii=1,NMAT
+      do j=1,NMAT
+        do i=1,NMAT
+          dCosUinvdA(i,j,ii,jj)=dCosUinvdA(i,j,ii,jj) &
+            + UinvA(i,ii)*BUinv(jj,j) &
+            - conjg( BUinv(ii,i) ) * conjg( UinvA(j,jj) )
+        enddo
+      enddo
+    enddo
+  enddo
+enddo
+
+dCosUinvdA=dCosUinvdA*(-links_in_f(f)%link_dirs_(ll_label))*(0d0,1d0)
+
+end subroutine calc_dCosUinvdA
+
+
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! subroutine to return product of d/dA D . vec
