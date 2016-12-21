@@ -379,7 +379,9 @@ if( p5 == 0 ) then
 do f=1,num_faces
   call Make_face_variable(Uf(:,:,f),f,UMAT) 
   call matrix_power(Ufm(:,:,f),Uf(:,:,f),m_omega)
+  !call calc_sinU_and_cosUinv(sinU(:,:,f),cosUinv(:,:,f),Ufm(:,:,f))
 enddo
+
 
 do f=1,num_faces
   do j=1,links_in_f(f)%num_
@@ -621,13 +623,16 @@ end subroutine prod_dDdA
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! subroutine to return product of d/dA D . vec
-subroutine calc_dCosUinvdA(dCosUinvdA,cosUinv,Uf,UMAT,f,ll_label)
+subroutine calc_dCosUinvdA_dSinUdA(dCosUinvdA,dSinUdA,&
+    cosUinv,sinU,Uf,UMAT,f,ll_label)
 use Dirac_operator, only : calc_Amat, calc_Bmat
 implicit none
 
 ! for given f and ll
 ! d cosUinv(i,j,f) / dA_{ii,jj,ll)
 complex(kind(0d0)), intent(out) :: dCosUinvdA(1:NMAT,1:NMAT,1:NMAT,1:NMAT)
+complex(kind(0d0)), intent(out) :: dSinUdA(1:NMAT,1:NMAT,1:NMAT,1:NMAT)
+complex(kind(0d0)), intent(in) :: sinU(1:NMAT,1:NMAT)
 complex(kind(0d0)), intent(in) :: cosUinv(1:NMAT,1:NMAT)
 complex(kind(0d0)), intent(in) :: Uf(1:NMAT,1:NMAT)
 complex(kind(0d0)), intent(in) :: UMat(1:NMAT,1:NMAT,1:num_links)
@@ -652,17 +657,263 @@ do k=1,m_omega
       do j=1,NMAT
         do i=1,NMAT
           dCosUinvdA(i,j,ii,jj)=dCosUinvdA(i,j,ii,jj) &
-            + UinvA(i,ii)*BUinv(jj,j) &
-            - conjg( BUinv(ii,i) ) * conjg( UinvA(j,jj) )
+            + UinvA(i,jj)*BUinv(ii,j) &
+            - conjg( BUinv(jj,i) ) * conjg( UinvA(j,ii) )
+          dSinUdA(i,j,ii,jj)=dSinUdA(i,j,ii,jj) &
+            + Amat(i,jj)*Bmat(ii,j) &
+            + conjg(Bmat(jj,i))*conjg(Amat(j,ii))
         enddo
       enddo
     enddo
   enddo
 enddo
-
 dCosUinvdA=dCosUinvdA*(-links_in_f(f)%link_dirs_(ll_label))*(0d0,1d0)
+dSinUdA=dSinUdA * links_in_f(f)%link_dirs_(ll_label) * (0d0,1d0)
 
-end subroutine calc_dCosUinvdA
+end subroutine calc_dCosUinvdA_dSinUdA
+
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! subroutine to return product of d/dA D . vec
+subroutine calc_dABmatdA(dAmatdA,dBmatdA,Uf,UMAT,ll_label,f,l_label,k)
+implicit none
+
+! for given f,l,k and ll
+! d Amat(i,j,f,l,k) / dA_{ii,jj,ll)
+complex(kind(0d0)), intent(out) :: dAmatdA(1:NMAT,1:NMAT,1:NMAT,1:NMAT)
+complex(kind(0d0)), intent(out) :: dBmatdA(1:NMAT,1:NMAT,1:NMAT,1:NMAT)
+complex(kind(0d0)), intent(in) :: Uf(1:NMAT,1:NMAT)
+complex(kind(0d0)), intent(in) :: UMat(1:NMAT,1:NMAT,1:num_links)
+integer, intent(in) :: f,ll_label,l_label,k
+
+complex(kind(0d0)) :: UU_1_to_ll(1:NMAT,1:NMAT) ! 1..ll
+complex(kind(0d0)) :: UU_ll_to_n(1:NMAT,1:NMAT) ! ll..n
+complex(kind(0d0)) :: UU_ll_to_l(1:NMAT,1:NMAT) ! ll..l
+complex(kind(0d0)) :: UU_1_to_l(1:NMAT,1:NMAT) ! 1..l
+complex(kind(0d0)) :: UU_l_to_n(1:NMAT,1:NMAT) ! l..n
+complex(kind(0d0)) :: UU_l_to_ll(1:NMAT,1:NMAT) ! l..ll
+
+complex(kind(0d0)) :: tmpmat1(1:NMAT,1:NMAT)
+complex(kind(0d0)) :: tmpmat2(1:NMAT,1:NMAT)
+complex(kind(0d0)) :: tmpmat3(1:NMAT,1:NMAT)
+complex(kind(0d0)) :: epsilon_r
+character :: C1
+integer :: n,label1,label2
+integer :: i,j,ii,jj,kk
+
+dAmatdA=(0d0,0d0)
+dBmatdA=(0d0,0d0)
+epsilon_r=cmplx(dble( links_in_f(f)%link_dirs_(ll_label) ))*(0d0,1d0)
+
+n=links_in_f(f)%num_
+!!!!!!!!!!!!!!
+if ( links_in_f(f)%link_labels_(ll_label) == 1 ) then
+  label2 = ll_label - 1
+else
+  label2 = ll_label
+endif 
+call calc_prodUl_from_n1_to_n2_in_Uf(UU_1_to_ll,f,1,label2,UMAT)
+!!!!!!!!!!!!!!
+if ( links_in_f(f)%link_labels_(ll_label) == 1 ) then
+  label1 = ll_label 
+else
+  label1 = ll_label+1
+endif 
+call calc_prodUl_from_n1_to_n2_in_Uf(UU_ll_to_n,f,label1,n,UMAT)
+!!!!!!!!!!!!!!
+if ( links_in_f(f)%link_labels_(ll_label) == 1 ) then
+  label1 = ll_label 
+else
+  label1 = ll_label+1
+endif 
+if ( links_in_f(f)%link_labels_(l_label) == 1 ) then
+  label2 = l_label-1
+else
+  label2 = l_label
+endif 
+call calc_prodUl_from_n1_to_n2_in_Uf(UU_ll_to_l,f,label1,label2,UMAT)
+!!!!!!!!!!!!!!
+if ( links_in_f(f)%link_labels_(l_label) == 1 ) then
+  label2 = l_label-1
+else
+  label2 = l_label
+endif 
+call calc_prodUl_from_n1_to_n2_in_Uf(UU_1_to_l,f,1,label2,UMAT)
+!!!!!!!!!!!!!!
+if ( links_in_f(f)%link_labels_(l_label) == 1 ) then
+  label1 = l_label
+else
+  label1 = l_label+1
+endif 
+call calc_prodUl_from_n1_to_n2_in_Uf(UU_l_to_n,f,label1,n,UMAT)
+!!!!!!!!!!!!!!
+if ( links_in_f(f)%link_labels_(l_label) == 1 ) then
+  label1 = l_label 
+else
+  label1 = l_label+1
+endif 
+call calc_prodUl_from_n1_to_n2_in_Uf(UU_l_to_n,f,label1,n,UMAT)
+!!!!!!!!!!!!!!
+if ( links_in_f(f)%link_labels_(l_label) == 1 ) then
+  label1 = l_label 
+else
+  label1 = l_label+1
+endif 
+if ( links_in_f(f)%link_labels_(ll_label) == 1 ) then
+  label2 = ll_label-1
+else
+  label2 = ll_label
+endif 
+call calc_prodUl_from_n1_to_n2_in_Uf(UU_l_to_ll,f,label1,label2,UMAT)
+
+        
+!!!!!!!!!!!!!! dAmatdA !!!!!!!!!!!!!!!!!
+if ( k > 1 ) then
+  do kk=1,k-1
+    call matrix_power(tmpmat2,Uf,kk-1)
+    call matrix_product(tmpmat1,tmpmat2,UU_1_to_ll)
+
+    call matrix_power(tmpmat2,Uf,k-kk-1)
+    call matrix_product(tmpmat3,UU_ll_to_n,tmpmat2)
+    call matrix_product(tmpmat2,tmpmat3,UU_1_to_l)
+
+    do jj=1,NMAT
+      do ii=1,NMAT
+        do j=1,NMAT
+          do i=1,NMAT
+            dAmatdA(i,j,ii,jj)=dAmatdA(i,j,ii,jj) &
+              + tmpmat1(i,jj) * tmpmat2(ii,j) * epsilon_r
+          enddo
+        enddo
+      enddo
+    enddo
+  enddo
+endif
+
+if ( ll_label < l_label ) then
+  call matrix_power(tmpmat2,Uf,k-1)
+  call matrix_product(tmpmat1,tmpmat2,UU_1_to_ll)
+
+  do jj=1,NMAT
+    do ii=1,NMAT
+      do j=1,NMAT
+        do i=1,NMAT
+          dAmatdA(i,j,ii,jj)=dAmatdA(i,j,ii,jj) &
+            + tmpmat1(i,jj) * UU_ll_to_l(ii,j) * epsilon_r
+        enddo
+      enddo
+    enddo
+  enddo
+endif
+
+if (ll_label == l_label) then
+  if ( links_in_f(f)%link_dirs_(ll_label) == -1 ) then
+    call matrix_power(tmpmat2,Uf,k-1)
+    call matrix_product(tmpmat1, tmpmat2,UU_1_to_l)
+    do jj=1,NMAT
+      do ii=1,NMAT
+        j=ii
+        do i=1,NMAT
+          dAmatdA(i,j,ii,jj)=dAmatdA(i,j,ii,jj) &
+            + tmpmat1(i,jj) * epsilon_r
+        enddo
+      enddo
+    enddo
+  endif
+endif
+
+!!!!!!!!!!! dBmatdA !!!!!!!!!!!!!!!
+if (m_omega-k > 0) then
+  do kk=1,m_omega-k
+    call matrix_power(tmpmat1, Uf, kk-1)
+    call matrix_product(tmpmat2,UU_l_to_n,tmpmat1)
+    call matrix_product(tmpmat1,tmpmat2,UU_1_to_ll)
+
+    call matrix_power(tmpmat3,Uf,m_omega-k-kk)
+    call matrix_product(tmpmat2,UU_ll_to_n,tmpmat3)
+
+    do jj=1,NMAT
+      do ii=1,NMAT
+        do j=1,NMAT
+          do i=1,NMAT
+            dBmatdA(i,j,ii,jj)=dBmatdA(i,j,ii,jj) &
+              + tmpmat1(i,jj) * tmpmat2(ii,j) * epsilon_r
+          enddo
+        enddo
+      enddo
+    enddo
+  enddo
+endif
+
+if ( ll_label > l_label) then
+  call matrix_power(tmpmat1,Uf,m_omega-k)
+  call matrix_product(tmpmat2,UU_ll_to_n,tmpmat1)
+
+  do jj=1,NMAT
+    do ii=1,NMAT
+      do j=1,NMAT
+        do i=1,NMAT
+          dBmatdA(i,j,ii,jj)=dBmatdA(i,j,ii,jj) &
+            + UU_l_to_ll(i,jj) * tmpmat2(ii,j) * epsilon_r
+        enddo
+      enddo
+    enddo
+  enddo
+endif
+
+if ( ll_label == l_label) then
+  if ( links_in_f(f)%link_dirs_(ll_label) == 1) then
+    call matrix_power(tmpmat2,Uf,m_omega-k)
+    call matrix_product(tmpmat1,UU_ll_to_n,tmpmat2)
+    do jj=1,NMAT
+      do ii=1,NMAT
+        i=jj
+        do j=1,NMAT
+          dBmatdA(i,j,ii,jj)=dBmatdA(i,j,ii,jj) &
+            + tmpmat1(ii,j) * epsilon_r
+        enddo
+      enddo
+    enddo
+  endif
+endif
+
+end subroutine calc_dABmatdA
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! MAT = UMAT or UMAT^\dagger in f
+!subroutine UMAT_in_f( MAT, f, l_label, UMAT )
+!implicit none
+!
+!complex(kind(0d0)), intent(out) :: MAT
+!integer, intent(in) :: f,l_label
+!complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_links)
+!
+!integer :: i,j
+!
+!if ( links_in_f(f)%link_dirs_(l_label) == 1 ) then
+!  MAT=UMAT(:,:,links_in_f(f)%link_labels_(l_label))
+!else
+!  do i=1,NMAT
+!    do j=1,NMAT
+!      MAT(i,j)=conjg(UMAT(j,i,links_in_f(f)%link_labels_(l_label)))
+!    enddo
+!  enddo
+!endif
+!
+!end subroutine UMAT_in_f
+
+
+
+
+
+
+
+
+
+
+
 
 
 

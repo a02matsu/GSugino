@@ -221,23 +221,29 @@ close( OUTPUT_FILE )
 end subroutine HybridMonteCarlo
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-subroutine writedown_config_action_and_fores(UMAT,Phi,seed)
+subroutine writedown_config_action_and_fores(UMAT,PhiMat,seed)
 use hamiltonian
-use SUN_generators, only : make_traceless_matrix_from_modes
+use SUN_generators, only : make_traceless_matrix_from_modes,trace_MTa
 implicit none
 
 complex(kind(0d0)), intent(inout) :: UMAT(1:NMAT,1:NMAT,1:num_links)
-complex(kind(0d0)), intent(inout) :: Phi(1:dimG,1:num_sites)
+complex(kind(0d0)), intent(inout) :: PhiMat(1:NMAT,1:NMAT,1:num_sites)
 integer, intent(inout) :: seed
 
 complex(kind(0d0)) :: PF(1:sizeD)
-complex(kind(0d0)):: PhiMat(1:NMAT,1:NMAT,1:num_sites)
-double precision :: SB_S,SB_L,SB_F,SB_M, SF
+double precision :: SB_S,SB_L,SB_F,SB_M, SF,SB
+complex(kind(0d0)) :: dSdPhiMat(1:NMAT,1:NMAT,1:num_sites)
+complex(kind(0d0)) :: dSdPhiMat_final(1:NMAT,1:NMAT,1:num_sites)
 complex(kind(0d0)) :: dSdPhi(1:dimG,1:num_sites)
 double precision :: dSdA(1:dimG,1:num_links)
+double precision :: dSdA_final(1:dimG,1:num_links)
+complex(kind(0d0)) :: tmp
 integer :: info,CGIte
 integer :: i,j,a,s,l
 
+dSdPhiMat_final=(0d0,0d0)
+dSdPhi=(0d0,0d0)
+dSdA_final=0d0
 !! write down UMAT
 write(*,*) "# link, i, j, UMAT(i,j,link)"
 do l=1,num_links
@@ -252,14 +258,19 @@ write(*,*) "###################"
 write(*,*) "# site, a, Phi(a,site) (a=1..dim(G))"
 do s=1,num_sites
   do a=1,dimG
-    write(*,*) s,a,Phi(a,s)
+    call trace_MTa(tmp,PhiMat(:,:,s),a,NMAT)
+    write(*,*) s,a,tmp
   enddo
 enddo
-
-
-do s=1,num_sites
-call make_traceless_matrix_from_modes(PhiMat(:,:,s),NMAT,Phi(:,s))
+!! produce pseudo-fermion
+call make_pseudo_fermion(PF,UMAT,PhiMat)
+write(*,*) "###################"
+write(*,*) "# I, PseudoFermion (eta_{s,a},lambda_{l,a},chi_{f,a}の順番, a=1..dim(G))"
+do a=1,sizeD
+    write(*,*) a, PF(a)
 enddo
+
+
  
 CGite=0
 info=0
@@ -268,16 +279,16 @@ SB_M=0d0
 SB_S=0d0
 SB_L=0d0
 SB_F=0d0
+SB=0d0
 SF=0d0
 
-!! produce pseudo-fermion
-call make_pseudo_fermion(PF,UMAT,PhiMat)
 !! actions
 call bosonic_action_mass(SB_M,PhiMat)
 call bosonic_action_site(SB_S,PhiMat)
 call bosonic_action_link(SB_L,UMAT,PhiMat)
 call bosonic_action_face(SB_F,UMAT)
-call fermionic_action(SF,CGite,info,UMAT,Phi,PF)
+SB=SB_M+SB_S+SB_F
+call fermionic_action(SF,CGite,info,UMAT,PhiMat,PF)
 
 write(*,'(a)',advance='no') "SB_mass = "
 write(*,*) SB_M
@@ -291,23 +302,59 @@ write(*,'(a)',advance='no') "S_fermion = "
 write(*,*) SF
 
 
-call Make_force(dSdPhi,dSdA,UMAT,Phi,PF,info)
+!call Make_force(dSdPhi,dSdA,UMAT,Phi,PF,info)
 
+dSdPhiMat=(0d0,0d0)
+call Make_bosonic_force_Phi_mass(dSdPhiMat,PhiMat)
+dSdPhiMat_final=dSdPhiMat_final+dSdPhiMat
+dSdPhiMat=(0d0,0d0)
+call Make_bosonic_force_Phi_site(dSdPhiMat,PhiMat)
+dSdPhiMat_final=dSdPhiMat_final+dSdPhiMat
+dSdPhiMat=(0d0,0d0)
+call Make_bosonic_force_Phi_link(dSdPhiMat,UMAT,PhiMat)
+dSdPhiMat_final=dSdPhiMat_final+dSdPhiMat
 write(*,*) "##############################"
-write(*,*) "#link,a,dSdA"
-do l=1,num_links
-  do a=1,dimG
-    write(*,*) l,a,dSdA(a,s)
-  enddo
-enddo
-
-write(*,*) "##############################"
-write(*,*) "#site,a,dSdA"
+write(*,*) "#site,a,dSdPhi from SB"
 do s=1,num_sites
   do a=1,dimG
-    write(*,*) s,a,dSdPhi(a,s)
+    call trace_MTa(tmp,dSdPhiMat_final(:,:,s),a,NMAT)
+    write(*,*) s,a,2d0*conjg(tmp)
   enddo
 enddo
+
+dSdA=0d0
+call Make_bosonic_force_A_link(dSdA,UMAT,PhiMat)
+dSdA_final=dSdA_final+dSdA
+dSdA=0d0
+call Make_bosonic_force_A_face(dSdA,UMAT)
+dSdA_final=dSdA_final+dSdA
+write(*,*) "##############################"
+write(*,*) "#link,a,dSdA from SB"
+do l=1,num_links
+  do a=1,dimG
+    write(*,*) l,a,dSdA_final(a,l)
+  enddo
+enddo
+
+dSdPhi=(0d0,0d0)
+dSdA=0d0
+call Make_fermionic_force(dSdPhi,dSdA,UMAT,PhiMat,PF,info)
+write(*,*) "##############################"
+write(*,*) "#site,a,dSdPhi from SF"
+do s=1,num_sites
+  do a=1,dimG
+    write(*,*) s,a,2d0*conjg(dSdPhi(a,s))
+  enddo
+enddo
+write(*,*) "##############################"
+write(*,*) "#link,a,dSdA from SF"
+do l=1,num_links
+  do a=1,dimG
+    write(*,*) l,a,dSdA(a,l)
+  enddo
+enddo
+
+
 
 end subroutine writedown_config_action_and_fores
 

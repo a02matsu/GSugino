@@ -990,7 +990,7 @@ character(1) :: char1
 integer :: link_place,i,j
 
 !! if there is no links in this period, return the unit matrix
-if ( n2 == n1-1 ) then 
+if ( n2 <= n1-1 ) then 
   call make_unit_matrix(ProdU)
   return
 endif

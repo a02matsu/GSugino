@@ -36,12 +36,12 @@ double precision :: dSdA_boson_link(1:dimG,1:num_links)
 double precision :: dSdA_boson_face(1:dimG,1:num_links)
 double precision :: dSdA_fermion(1:dimG,1:num_links)
 
-integer :: s,a,l
-do s=1,num_sites
-  do a=1,dimG
-    call trace_MTa(Phi(a,s),PhiMat(:,:,s),a,NMAT)
-  enddo
-enddo
+integer :: s,a!,l
+!do s=1,num_sites
+  !do a=1,dimG
+    !call trace_MTa(Phi(a,s),PhiMat(:,:,s),a,NMAT)
+  !enddo
+!enddo
 
 dSdPhi=(0d0,0d0)
 dSdPhi_boson_mass=(0d0,0d0)

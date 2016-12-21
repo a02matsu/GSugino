@@ -85,7 +85,7 @@ call make_traceless_matrix_from_modes(PhiMat(:,:,s),NMAT,Phi(:,s))
 enddo
 
   if (writedown_mode==1) then
-    call writedown_config_action_and_fores(UMAT,Phi,seed)
+    call writedown_config_action_and_fores(UMAT,PhiMat,seed)
     stop
   endif
 
