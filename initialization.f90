@@ -9,20 +9,20 @@ contains
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! read the preevious configuration
-subroutine read_config(total_ite,UMAT,Phi,state_mt95)
+subroutine read_config(total_ite,UMAT,PhiMat,state_mt95)
 implicit none
 
 integer, intent(inout) :: total_ite
 type(genrand_state), intent(inout) :: state_mt95
 complex(kind(0d0)), intent(inout) :: UMAT(1:NMAT,1:NMAT,1:num_links)
-complex(kind(0d0)), intent(inout) :: Phi(1:dimG,1:num_sites)
+complex(kind(0d0)), intent(inout) :: PhiMat(1:NMAT,1:NMAT,1:num_sites)
 
 type(genrand_srepr) :: char_mt95
 
 open(IN_CONF_FILE, file=Fconfigin, status='OLD',action='READ',form='unformatted')
 read(IN_CONF_FILE) total_ite
 read(IN_CONF_FILE) UMAT
-read(IN_CONF_FILE) PHI
+read(IN_CONF_FILE) PHIMat
 read(IN_CONF_FILE) char_mt95
 state_mt95=char_mt95
 
@@ -55,21 +55,21 @@ end subroutine read_config
 !! Thus the random number must satisfy 
 !!   <\theta^2> < 2\pi/N
 !! 
-subroutine set_random_config(UMAT,Phi)
+subroutine set_random_config(UMAT,PhiMat)
 use SUN_generators, only : Make_SUN_generators
 use matrix_functions, only : matrix_exp
 use global_subroutines, only : BoxMuller2
 implicit none
 
 complex(kind(0d0)), intent(inout) :: UMAT(1:NMAT,1:NMAT,1:num_links)
-complex(kind(0d0)), intent(inout) :: Phi(1:dimG,1:num_sites)
+complex(kind(0d0)), intent(inout) :: PhiMat(1:NMAT,1:NMAT,1:num_sites)
 
 double precision, parameter :: PI=dacos(-1d0)
 complex(kind(0d0)) :: TMAT(1:NMAT,1:NMAT,1:NMAT**2-1)
 double precision :: rsite(1:2*dimG*num_sites) ! for PHI
 double precision :: rlink(1:dimG,1:num_links) ! for UMAT
 complex(kind(0d0)) :: AMAT(1:NMAT,1:NMAT,1:num_links)
-integer :: s,l,a,f,i
+integer :: s,l,a,f,i,j,num
 
 call make_SUN_generators(TMAT,NMAT)
 
@@ -78,13 +78,22 @@ call BoxMuller2(rsite,num_sites*dimG)
 call genrand_real3(rlink)
 
 rsite=rsite * 0.01d0 / mass_square_phi
-i=0
 do s=1,num_sites
-  do a=1,dimG
-    i=i+1
-    PHI(a,s)=dcmplx(rsite(2*i-1))+(0d0,1d0)*dcmplx(rsite(2*i))
+  num=0
+  do i=1,NMAT
+    do j=1,NMAT
+      num=num+1
+      if ( i.ne.NMAT .or. j.ne.NMAT ) then
+        PHIMAT(i,j,s)=dcmplx(rsite(2*num-1))+(0d0,1d0)*dcmplx(rsite(2*num))
+      endif
+    enddo
+  enddo
+  PhiMat(NMAT,NMAT,s)=(0d0,0d0)
+  do i=1,NMAT-1
+    PhiMat(NMAT,NMAT,s)=PhiMat(NMAT,NMAT,s)-PhiMat(i,i,s)
   enddo
 enddo
+
 
 ! random number must be sufficiently small
 rlink=rlink * ( 1d0/dble(NMAT*NMAT*m_omega) )

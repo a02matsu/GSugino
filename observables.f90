@@ -10,21 +10,21 @@ implicit none
 
 contains
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-subroutine calc_bosonic_action(Sb,UMAT,Phi)
+subroutine calc_bosonic_action(Sb,UMAT,PhiMat)
 use hamiltonian
 implicit none
 
 double precision, intent(out) :: Sb
 complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_links)
-complex(kind(0d0)), intent(in) :: Phi(1:dimG,1:num_sites)
+complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_sites)
 
 double precision :: SB_S,SB_L,SB_F
 
 SB_S=0d0
 SB_L=0d0
 SB_F=0d0
-call bosonic_action_site(SB_S,Phi)
-call bosonic_action_link(SB_L,UMAT,Phi)
+call bosonic_action_site(SB_S,PhiMat)
+call bosonic_action_link(SB_L,UMAT,PhiMat)
 call bosonic_action_face(SB_F,UMAT)
 
 Sb=SB_S+SB_L+SB_F
@@ -33,18 +33,20 @@ end subroutine calc_bosonic_action
 
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-subroutine calc_TrX2(TrX2, Phi)
+subroutine calc_TrX2(TrX2, PhiMat)
 implicit none
 
 double precision, intent(out) :: TrX2
-complex(kind(0d0)), intent(in) :: Phi(1:dimG,1:num_sites)
+complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_sites)
 
-integer :: a,s
+integer :: s,i,j
 
 TrX2=0d0
 do s=1,num_sites
-  do a=1,dimG
-    TrX2=TrX2+ dble( Phi(a,s)*conjg( Phi(a,s) ) )
+  do i=1,NMAT
+    do j=1,NMAT
+      TrX2=TrX2+ dble( PhiMat(i,j,s)*conjg( PhiMat(i,j,s) ) )
+    enddo
   enddo
 enddo
 
@@ -53,12 +55,12 @@ TrX2 = TrX2 / (2d0 * dble(num_sites) )
 end subroutine calc_TrX2
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-subroutine calc_eigenvalues_Dirac(eigenvalues,UMAT,Phi)
+subroutine calc_eigenvalues_Dirac(eigenvalues,UMAT,PhiMat)
 use Dirac_operator, only : make_Dirac
 implicit none
 
 complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_links)
-complex(kind(0d0)), intent(in) :: Phi(1:dimG,1:num_sites)
+complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_sites)
 complex(kind(0d0)), intent(inout) :: eigenvalues(1:sizeD)
 
 complex(kind(0d0)) :: Dirac(1:sizeD,1:sizeD)
@@ -73,7 +75,7 @@ lwork=2*sizeD
 JOBVL='N'
 JOBVR='N'
 
-call make_Dirac(Dirac,UMAT,Phi)
+call make_Dirac(Dirac,UMAT,PhiMat)
 !do i=1,sizeD
 !  do j=1,sizeD
 !    write(*,*) i,j,Dirac(i,j)
@@ -133,16 +135,16 @@ end subroutine calc_eigenvalues_Dirac
 
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-subroutine calc_min_and_max_of_eigenvalues_Dirac(minimal,maximal,UMAT,Phi)
+subroutine calc_min_and_max_of_eigenvalues_Dirac(minimal,maximal,UMAT,PhiMat)
 implicit none
 
 complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_links)
-complex(kind(0d0)), intent(in) :: Phi(1:dimG,1:num_sites)
+complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_sites)
 complex(kind(0d0)), intent(inout) :: minimal, maximal
 
 complex(kind(0d0)) :: eigenvalues(1:sizeD)
 
-call calc_eigenvalues_Dirac(eigenvalues,UMAT,Phi)
+call calc_eigenvalues_Dirac(eigenvalues,UMAT,PhiMat)
 
 minimal=eigenvalues(1)
 maximal=eigenvalues(sizeD)

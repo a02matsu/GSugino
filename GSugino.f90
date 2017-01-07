@@ -11,7 +11,6 @@ implicit none
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! variables
 complex(kind(0d0)), allocatable :: UMAT(:,:,:) ! unitary link variables
-complex(kind(0d0)), allocatable :: PHI(:,:) ! complex scalar at sites
 complex(kind(0d0)), allocatable :: PHIMAT(:,:,:) ! complex scalar at sites
 
 integer :: total_ite ! total iteration
@@ -41,7 +40,6 @@ endif
 !    call test_module_simplicial_complex(sc)
 ! initialize the size of the variables
 allocate( UMAT(1:NMAT,1:NMAT,1:num_links) )
-allocate( PHI(1:dimG, 1:num_sites) )
 allocate( PHIMAT(1:NMAT,1:NMAT, 1:num_sites) )
 
 ! set the seed of the random number generators
@@ -56,10 +54,10 @@ allocate( PHIMAT(1:NMAT,1:NMAT, 1:num_sites) )
 ! set the variables depending on simulation_mode and test_mode
   !if (test_mode==1 .or. new_config==1) then
   if (new_config==1) then
-    call set_random_config(UMAT,PHI) 
+    call set_random_config(UMAT,PHIMAT) 
     total_ite=0
   else
-    call read_config(total_ite,UMAT,PHI,state_mt95) 
+    call read_config(total_ite,UMAT,PHIMat,state_mt95) 
   endif
   if( fix_seed == 0 ) then
     call genrand_init( put=state_mt95 )
@@ -80,9 +78,9 @@ allocate( PHIMAT(1:NMAT,1:NMAT, 1:num_sites) )
     !stop
 !! check anti-symmetricity of Dirac and Hermiticity of D\dag D
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-do s=1,num_sites
-call make_traceless_matrix_from_modes(PhiMat(:,:,s),NMAT,Phi(:,s))
-enddo
+!do s=1,num_sites
+!call make_traceless_matrix_from_modes(PhiMat(:,:,s),NMAT,Phi(:,s))
+!enddo
 
   if (writedown_mode==1) then
     call writedown_config_action_and_fores(UMAT,PhiMat,seed)

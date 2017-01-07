@@ -13,7 +13,6 @@ contains
 subroutine test_hamiltonian(UMAT,PhiMat)
 use mt95
 use Dirac_operator
-use SUN_generators, only : make_traceless_matrix_from_modes
 implicit none
 
 complex(kind(0d0)), intent(inout) :: UMAT(1:NMAT,1:NMAT,1:num_links)
@@ -92,7 +91,8 @@ end subroutine test_hamiltonian
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 subroutine HybridMonteCarlo(UMAT,PhiMat,seed,total_ite)
 use output
-use SUN_generators, only : make_traceless_matrix_from_modes,trace_MTa
+!use SUN_generators, only : make_traceless_matrix_from_modes,trace_MTa
+use SUN_generators, only : trace_MTa
 implicit none
 
 complex(kind(0d0)), intent(inout) :: UMAT(1:NMAT,1:NMAT,1:num_links)
@@ -173,19 +173,19 @@ do ite=total_ite+1,total_ite+num_ite
     call Metropolice_test(Hnew-Hold,PhiMat_Bak,UMAT_BAK,PhiMat,UMAT,accept)
   endif
   !! write out the configuration
-  do s=1,num_sites
-    do a=1,dimG
-      call trace_MTa(Phi(a,s),PhiMat(:,:,s),a,NMAT)
-    enddo
-  enddo
+  !do s=1,num_sites
+    !do a=1,dimG
+      !call trace_MTa(Phi(a,s),PhiMat(:,:,s),a,NMAT)
+    !enddo
+  !enddo
    if ( mod(ite,config_step) == 0 ) then
        write(MED_CONF_FILE) ite
        write(MED_CONF_FILE) UMAT
-       write(MED_CONF_FILE) PHI
+       write(MED_CONF_FILE) PHIMAT
        endif
    !! write out the observables 
    if ( mod(ite,obs_step) == 0 ) then
-       call write_observables(Phi,UMAT,ite,accept,Hnew-Hold,total_ite,CGite1)
+       call write_observables(PhiMat,UMAT,ite,accept,Hnew-Hold,total_ite,CGite1)
    endif
 enddo
 
@@ -201,15 +201,15 @@ write(*,*) "# Total time: ",diff,"[s]"
 
 
 !! write the final configuration 
-  do s=1,num_sites
-    do a=1,dimG
-      call trace_MTa(Phi(a,s),PhiMat(:,:,s),a,NMAT)
-    enddo
-  enddo
+  !do s=1,num_sites
+    !do a=1,dimG
+      !call trace_MTa(Phi(a,s),PhiMat(:,:,s),a,NMAT)
+    !enddo
+  !enddo
 open(unit=OUT_CONF_FILE,status='replace',file=Fconfigout,action='write',form='unformatted')
 write(OUT_CONF_FILE) ite-1
 write(OUT_CONF_FILE) UMAT
-write(OUT_CONF_FILE) Phi
+write(OUT_CONF_FILE) PhiMat
 call genrand_init( get=state )
 srepr=state ! mt95では"="がassignmentされている
 write(OUT_CONF_FILE) srepr%repr

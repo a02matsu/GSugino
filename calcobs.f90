@@ -19,6 +19,7 @@
 !      :: output configuration and observable for a specific configuration
 !   ./calcobs**.exe [med-file] 2 
 !      :: output U_f U_f^¥dagger - 1 
+! v07: swhich from phi to phimat
 program calcobs
 use global_parameters
 use initialization
@@ -26,7 +27,7 @@ use simplicial_complex
 use observables
 use Dirac_operator, only : make_Dirac
 use matrix_functions, only : matrix_inverse, CalcPfaffian, matrix_eigenvalues, PfaffianLog, matrix_product
-use SUN_generators, only : make_traceless_matrix_from_modes
+use SUN_generators, only : make_traceless_matrix_from_modes, trace_MTa
 use hamiltonian, only : bosonic_action_site, bosonic_action_link, bosonic_action_face
 implicit none
 
@@ -83,7 +84,7 @@ data obs_name/ &
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 
-integer :: ios, num_data, i, j, s, l, f
+integer :: ios, num_data, i, j, s, l, f,a
 integer :: num, iargc
 
 integer,parameter :: MED_FILE=10
@@ -95,7 +96,7 @@ integer :: testmode, numcon
 complex(kind(0d0)), allocatable :: UMAT(:,:,:) ! unitary link variables
 complex(kind(0d0)), allocatable :: PHI(:,:) ! complex scalar at sites
 integer :: ite
-complex(kind(0d0)), allocatable ::PhiMat(:,:) ! Phi in a matrix form
+complex(kind(0d0)), allocatable ::PhiMat(:,:,:) ! Phi in a matrix form
 real(8) :: SB
 
 complex(kind(0d0)), allocatable :: Dirac(:,:) 
@@ -188,7 +189,7 @@ call set_sc
 call set_alpha_beta
 allocate( UMAT(1:NMAT,1:NMAT,1:num_links) )
 allocate( PHI(1:dimG, 1:num_sites) )
-allocate( PHIMAT(1:NMAT, 1:NMAT) )
+allocate( PHIMAT(1:NMAT, 1:NMAT,1:num_sites) )
 allocate( Dirac(1:sizeD,1:sizeD) )
 allocate( Dirac_inv(1:sizeD,1:sizeD) )
 allocate( eigenvalues(1:sizeD) )
@@ -218,18 +219,24 @@ do while (ios == 0)
   num_data=num_data+1
   read(MED_FILE,iostat=ios) ite
   read(MED_FILE,iostat=ios) UMAT
-  read(MED_FILE,iostat=ios) PHI
+  read(MED_FILE,iostat=ios) PHIMAT
+
+  do s=1,num_sites
+    do a=1,dimG
+      call trace_MTa(Phi(a,s),PhiMat(:,:,s),a,NMAT)
+    enddo
+  enddo
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! TEST MODE 1
 if ( testmode == 1 .and. num_data == numcon) then
   write(*,'(a)') "# site, i, j, Re(Phi_s(i,j)), Im(Phi_s(i,j))"
   do s=1,num_sites
-    call make_traceless_matrix_from_modes(phimat(:,:), NMAT, Phi(:,s))
+    !call make_traceless_matrix_from_modes(phimat(:,:,s), NMAT, Phi(:,s))
     do i=1,NMAT
       do j=1,NMAT
-        write(*,'(3I2,X,E23.15,X,E23.15)') s,i,j,dble(phimat(i,j)),&
-          dble( (0d0,-1d0)*phimat(i,j) )
+        write(*,'(3I2,X,E23.15,X,E23.15)') s,i,j,dble(phimat(i,j,s)),&
+          dble( (0d0,-1d0)*phimat(i,j,s) )
       enddo
     enddo
   enddo
@@ -249,20 +256,20 @@ if ( testmode == 1 .and. num_data == numcon) then
   write(*,'(a,E23.15)') "# 1/2g^2 = ", overall_factor
 ! bosonic action
   write(*,'(a)') "#######"
-  call bosonic_action_site(SB,Phi)
+  call bosonic_action_site(SB,PhiMat)
   write(*,'(a)',advance='no') "# Sb_s = "
   write(*,'(E23.15)') SB
-  call bosonic_action_link(SB,UMAT,Phi)
+  call bosonic_action_link(SB,UMAT,PhiMat)
   write(*,'(a)',advance='no') "# Sb_l = "
   write(*,'(E23.15)') SB
   call bosonic_action_face(SB,UMAT)
   write(*,'(a)',advance='no') "# Sb_f = "
   write(*,'(E23.15)') SB
-  call calc_bosonic_action(SB,UMAT,Phi)
+  call calc_bosonic_action(SB,UMAT,PhiMat)
   write(*,'(a)',advance='no') "### Sb_all = "
   write(*,'(E23.15)') SB
 ! mu^2 part of PCSC
-  call make_Dirac(Dirac_inv,UMAT,Phi) ! Dirac operator
+  call make_Dirac(Dirac_inv,UMAT,PhiMat) ! Dirac operator
   call matrix_inverse(Dirac_inv)      ! compute inverse
   !!
   call calc_pcsc_site(pcsc_mass,Phi,Dirac_inv)
@@ -314,26 +321,26 @@ endif
   if( testmode == 0) then 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! prepare eigenvalues
-  call make_Dirac(Dirac,UMAT,Phi)
+  call make_Dirac(Dirac,UMAT,PhiMat)
   call matrix_eigenvalues(eigenvalues,Dirac)
 
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! compute observables 
 ! bosonic action
-  call calc_bosonic_action(OBS(1),UMAT,Phi)
+  call calc_bosonic_action(OBS(1),UMAT,PhiMat)
 ! TrX^2
-  call calc_TrX2(OBS(2),Phi)
+  call calc_TrX2(OBS(2),PhiMat)
 ! min eigen
   OBS(3)=dble(eigenvalues(1)*dconjg(eigenvalues(1)))
 ! max eigen
   OBS(4)=dble(eigenvalues(sizeD)*dconjg(eigenvalues(sizeD)))
 ! Pfaffian
   !call make_Dirac(Dirac,UMAT,Phi)
-  call make_Dirac(Dirac,UMAT,Phi)
+  call make_Dirac(Dirac,UMAT,PhiMat)
   call CalcPfaffian(OBS(5), OBS(6), Dirac)
 ! mu^2 part of PCSC
-  call make_Dirac(Dirac_inv,UMAT,Phi) ! Dirac operator
+  call make_Dirac(Dirac_inv,UMAT,PhiMat) ! Dirac operator
   call matrix_inverse(Dirac_inv)      ! compute inverse
   call calc_pcsc_mass(pcsc_mass,Phi,UMAT,Dirac_inv)
   OBS(7)=dble(pcsc_mass)
@@ -397,7 +404,7 @@ endif
     / ( (2d0,0d0) * conjg( compensator ) ))
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  call make_Dirac(Dirac_inv,UMAT,Phi) ! Dirac operator
+  call make_Dirac(Dirac_inv,UMAT,PhiMat) ! Dirac operator
   call matrix_inverse(Dirac_inv)      ! compute inverse
   call partial_Sf(Sf_site,Sf_link,Sf_face,Dirac,Dirac_inv)
   OBS(22) = dble(Sf_site)

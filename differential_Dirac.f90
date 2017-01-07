@@ -186,11 +186,10 @@ end subroutine prod_dDdPhi
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! subroutine to return product of d/d\Phi D^\dagger
-subroutine prod_dDdbPhi(dDdbPhi_vec,vec,UMAT,PhiMat)
+subroutine prod_dDdbPhi(dDdbPhi_vec,vec,UMAT)
 implicit none
 
 complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_links) 
-complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_sites)
 complex(kind(0d0)), intent(in) :: vec(1:sizeD)
 complex(kind(0d0)), intent(out) :: dDdbPhi_vec(1:sizeD,1:dimG,1:num_sites)
 complex(kind(0d0)) :: dDdbPhi_lambda(1:NMAT,1:NMAT,1:num_links,1:NMAT,1:NMAT,1:num_sites)

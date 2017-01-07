@@ -10,19 +10,19 @@ double precision :: OBS(1:num_obs) ! 1) bosonic action SB
 
 contains
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-subroutine write_header(seed,UMAT,Phi)
+subroutine write_header(seed,UMAT,PhiMat)
 implicit none
 
 integer, intent(in) :: seed 
 complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_links)
-complex(kind(0d0)), intent(in) :: Phi(1:dimG,1:num_sites)
+complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_sites)
 
 complex(kind(0d0)) :: min_eigen,max_eigen
 integer :: output
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! compute the eigenvalues of D
-call calc_smallset_and_largest_eigenvalues_of_D(min_eigen,max_eigen,UMAT,Phi)
+call calc_smallset_and_largest_eigenvalues_of_D(min_eigen,max_eigen,UMAT,PhiMat)
 
 !!!!!!!!!!!!!!!!!!!!!!!!!
 !! for standard output
@@ -110,21 +110,29 @@ write(output,'(I3,a)') num_obs+4,") acceptance rate"
 end subroutine write_observable_list
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-subroutine write_observables(Phi,UMAT,ite,accept,delta_Ham,total_ite,CGite)
+subroutine write_observables(PhiMat,UMAT,ite,accept,delta_Ham,total_ite,CGite)
 use observables
+use SUN_generators, only : trace_MTa
 implicit none
 
 complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_links)
-complex(kind(0d0)), intent(in) :: Phi(1:dimG,1:num_sites)
+complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_sites)
+complex(kind(0d0)) :: Phi(1:dimG,1:num_sites)
 double precision, intent(in) :: delta_Ham
 integer, intent(in) :: ite, accept, total_ite, CGite
-integer :: output,i
+integer :: output,i,s,a
 
 !complex(kind(0d0)) :: min_eigen,max_eigen
 !call calc_smallset_and_largest_eigenvalues_of_D(min_eigen,max_eigen,UMAT,Phi)
 
-call calc_bosonic_action(OBS(1),UMAT,Phi)
-call calc_TrX2(OBS(2),Phi)
+!do s=1,num_sites
+  !do a=1,dimG
+    !call trace_MTa(Phi(a,s),PhiMat(:,:,s),a,NMAT)
+  !enddo
+!enddo
+
+call calc_bosonic_action(OBS(1),UMAT,PhiMat)
+call calc_TrX2(OBS(2),PhiMat)
 
 !! for standard output
 call write_observables_to(6,ite,total_ite,accept,delta_Ham,CGite)
@@ -188,17 +196,17 @@ write(MED_CONF_FILE) Fmedconf
 end subroutine write_basic_info_to_medfile
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-subroutine calc_smallset_and_largest_eigenvalues_of_D(min_eigen,max_eigen,UMAT,Phi)
+subroutine calc_smallset_and_largest_eigenvalues_of_D(min_eigen,max_eigen,UMAT,PhiMat)
 use observables, only : calc_eigenvalues_Dirac
 implicit none
 
 complex(kind(0d0)), intent(out) :: min_eigen, max_eigen
 complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_links)
-complex(kind(0d0)), intent(in) :: Phi(1:dimG,1:num_sites)
+complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_sites)
 
 complex(kind(0d0)) :: eigenvalues(1:sizeD)
 
-call calc_eigenvalues_Dirac(eigenvalues,UMAT,Phi)
+call calc_eigenvalues_Dirac(eigenvalues,UMAT,PhiMat)
 
 min_eigen=eigenvalues(1)
 max_eigen=eigenvalues(sizeD)

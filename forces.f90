@@ -182,7 +182,6 @@ end subroutine Make_bosonic_force_Phi_mass
 !! dS/Dphi from site action
 !complex(kind(0d0)) function dSdPhi_boson_site(a,s)
 subroutine Make_bosonic_force_Phi_site(dSdPhi_boson_site,PhiMat)
-use SUN_generators, only : make_traceless_matrix_from_modes,trace_MTa
 use matrix_functions, only : matrix_commutator
 implicit none
 
@@ -202,7 +201,6 @@ do s=1,num_sites
   !do a=1,dimG
   do j=1,NMAT
     do i=1,NMAT
-    !call trace_MTa(trace,comm2,a,NMAT)
     dSdPhi_boson_site(i,j,s)=dcmplx(0.5d0*alpha_s(s))*comm2(i,j)& 
       * cmplx( overall_factor )
       !* cmplx( one_ov_2g2N )
@@ -216,7 +214,6 @@ end subroutine Make_bosonic_force_Phi_site
 !! dS/Dphi from link action
 !complex(kind(0d0)) function dSdPhi_boson_link(a,s)
 subroutine Make_bosonic_force_Phi_link(dSdPhi_boson_link,UMAT,PhiMat)
-use SUN_generators, only : trace_MTa, make_traceless_matrix_from_modes
 implicit none
 
 complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_links)
@@ -397,7 +394,6 @@ use differential_Dirac
 implicit none 
 
 complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_links)
-complex(kind(0d0)) :: Phi(1:dimG,1:num_sites)
 complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_sites)
 complex(kind(0d0)), intent(in) :: PF(1:sizeD)
 complex(kind(0d0)), intent(out) :: dSdPhi_fermion(1:dimG,1:num_sites)
@@ -421,11 +417,6 @@ complex(kind(0d0)) :: tmp
 integer :: CGite
 integer :: r,i,s,l,a,b
 
-do s=1,num_sites
-  do a=1,dimG
-    call trace_MTa(Phi(a,s),PhiMat(:,:,s),a,NMAT)
-  enddo
-enddo
 
 !! for test
 !complex(kind(0d0)) :: DdagD(1:sizeD,1:sizeD)
@@ -450,7 +441,7 @@ do r=1,N_Remez4
   call prod_Dirac(Dchi(:,r),chi(:,r),sizeD,UMAT,PhiMat)
   
   call prod_dDdPhi(dDdPhi_chi(:,:,:,r),chi(:,r),UMAT)
-  call prod_dDdbPhi(dDdbPhi_chi(:,:,:,r),chi(:,r),UMAT,Phi)
+  call prod_dDdbPhi(dDdbPhi_chi(:,:,:,r),chi(:,r),UMAT)
   
   call prod_dDdA(dDdA_chi(:,:,:,r),chi(:,r),UMAT,PhiMat)
 enddo
