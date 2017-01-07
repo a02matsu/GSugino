@@ -455,6 +455,53 @@ call ZGEMM(C1,C2,NMAT,NMAT,NMAT,(1d0,0d0), &
 
 end subroutine Matrix_Product
 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! product of 3 matrices
+subroutine matrix_3_product(prod,mat1,mat2,mat3,char1,char2,char3)
+implicit none
+
+complex(kind(0d0)), intent(in) :: MAT1(:,:), MAT2(:,:), MAT3(:,:)
+complex(kind(0d0)), intent(inout) :: prod(:,:)
+complex(kind(0d0)), allocatable :: tmp(:,:)
+character, optional :: char1,char2,char3
+character :: C1,C2 ,C3
+
+integer :: NMAT
+
+NMAT=size(MAT1,1)
+allocate( tmp(1:NMAT,1:NMAT) )
+
+if (present(char1)) then
+  C1=char1
+else
+  C1='N'
+endif
+
+if (present(char2)) then
+  C2=char2
+else
+  C2='N'
+endif
+
+if (present(char3)) then
+  C3=char3
+else
+  C3='N'
+endif
+
+call ZGEMM(C1,C2,NMAT,NMAT,NMAT,(1d0,0d0), &
+  MAT1, NMAT, &
+  MAT2, NMAT, &
+  (0d0,0d0), tmp, NMAT)
+
+call ZGEMM('N',C3,NMAT,NMAT,NMAT,(1d0,0d0), &
+  tmp, NMAT, &
+  MAT3, NMAT, &
+  (0d0,0d0), prod, NMAT)
+
+end subroutine Matrix_3_Product
+
+
 !***********************************************************
 !***********************************************************
 ! comm = [MAT1, MAT2]

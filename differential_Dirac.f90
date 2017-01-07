@@ -218,9 +218,7 @@ complex(kind(0d0)) :: tmpdDdA_lambda(1:NMAT,1:NMAT,1:num_links,1:dimG,1:num_link
 ! d/dA_{ll,ii,jj} (Ta)_{ji} (D\Psi)_{f,i,j}=tmpdDdA_chi(ii,jj,ll,a,f)
 complex(kind(0d0)) :: tmpdDdA_chi(1:NMAT,1:NMAT,1:num_links,1:dimG,1:num_faces)
 
-complex(kind(0d0)) :: Uinv(1:NMAT,1:NMAT,1:num_links)
-complex(kind(0d0)) :: Uf(1:NMAT,1:NMAT,1:num_faces)
-complex(kind(0d0)) :: Ufm(1:NMAT,1:NMAT,1:num_faces)
+!complex(kind(0d0)) :: Uinv(1:NMAT,1:NMAT,1:num_links)
 !complex(kind(0d0)) :: diffdiff_Omega(1:NMAT,1:NMAT,1:dimG,1:dimG)
 complex(kind(0d0)) :: diffdiff_Omega_lambda(1:NMAT,1:NMAT,1:dimG) 
 
@@ -236,6 +234,8 @@ complex(kind(0d0)) :: FF_MAT(1:NMAT,1:NMAT) ! part of fermion force
 !complex(kind(0d0)) :: tmp_diffdiff_Omega2(1:NMAT,1:NMAT,1:dimG,1:dimG)
 !complex(kind(0d0)) :: tmp_diff_Omega(1:NMAT,1:NMAT,1:dimG)
 !complex(kind(0d0)) :: tmp_diff_Omega2(1:NMAT,1:NMAT,1:dimG)
+complex(kind(0d0)) :: Uf(1:NMAT,1:NMAT,1:num_faces)
+complex(kind(0d0)) :: Ufm(1:NMAT,1:NMAT,1:num_faces)
 
 
 integer :: s,l,f,ll
@@ -376,80 +376,9 @@ endif
 if( p5 == 0 ) then 
 !! (5) Dirac from face 2
 ! preparation
-do f=1,num_faces
-  call Make_face_variable(Uf(:,:,f),f,UMAT) 
-  call matrix_power(Ufm(:,:,f),Uf(:,:,f),m_omega)
-  !call calc_sinU_and_cosUinv(sinU(:,:,f),cosUinv(:,:,f),Ufm(:,:,f))
-enddo
-
-
-do f=1,num_faces
-  do j=1,links_in_f(f)%num_
-    ll=links_in_f(f)%link_labels_(j)
-    do i=1,links_in_f(f)%num_
-      l=links_in_f(f)%link_labels_(i)
-      call calc_diffdiff_Omega(&
-        diffdiff_Omega2(f)%val(:,:,:,:,i,j),&
-        Uf(:,:,f),Ufm(:,:,f),f,l,ll,UMAT)
-    enddo
-  enddo
-enddo
-
-do f=1,num_faces
-  do i=1,links_in_f(f)%num_
-    l=links_in_f(f)%link_labels_(i)
-
-    diffdiff_Omega_lambda=(0d0,0d0)
-    do j=1,links_in_f(f)%num_
-      ll=links_in_f(f)%link_labels_(j)
-
-      do c=1,dimG
-        diffdiff_Omega_lambda(:,:,:) = diffdiff_Omega_lambda(:,:,:) &
-          +diffdiff_Omega2(f)%val(:,:,:,c,i,j) * lambda_ele(c,ll)
-       enddo
-    enddo
-
-    do b=1,dimG
-      do a=1,dimG
-        call trace_MTa(trace,diffdiff_Omega_lambda(:,:,b),a,NMAT)
-        dDdA_vec(face_index(a,f),b,l)= dDdA_vec(face_index(a,f),b,l) &
-          + (0d0,1d0)*dcmplx(alpha_f(f)*beta_f(f))*trace*overall_factor
-      enddo
-    enddo
-
-  enddo
-enddo
-
-
-do l=1,num_links
-  do i=1,face_in_l(l)%num_
-    f=face_in_l(l)%label_(i)
-    do k=1,links_in_f(f)%num_
-      if ( links_in_f(f)%link_labels_(k) == l ) then 
-        exit
-      endif
-    enddo
-    do j=1,links_in_f(f)%num_
-      ll=links_in_f(f)%link_labels_(j)
-
-      do a=1,dimG
-        do b=1,dimG
-          tmp=(0d0,0d0)
-          do ii=1,NMAT
-            do jj=1,NMAT
-              tmp=tmp+chi_mat(ii,jj,f)&
-                *diffdiff_Omega2(f)%val(jj,ii,b,a,j,k)
-            enddo
-          enddo
-          dDdA_vec(link_index(a,l),b,ll)= dDdA_vec(link_index(a,l),b,ll) &
-              -(0d0,1d0)*dcmplx(alpha_f(f)*beta_f(f))*tmp*overall_factor
-        enddo
-      enddo
-
-    enddo
-  enddo
-enddo
-endif
+  call calc_fermion_force_from_omega&
+      (dDdA_lambda,dDdA_chi,UMAT,lambda_mat,chi_mat)
+endif 
 
 do ll=1,num_links
   do ii=1,NMAT
@@ -467,6 +396,11 @@ do ll=1,num_links
         enddo
       enddo
       !!!!!!!!!!!
+      do f=1,num_faces
+        do a=1,dimG
+          call trace_MTa(tmpdDdA_chi(ii,jj,ll,a,f),dDdA_chi(:,:,f,ii,jj,ll),a,NMAT)
+        enddo
+      enddo
     enddo
   enddo
 enddo
@@ -492,6 +426,86 @@ do l=1,num_links
     enddo
   enddo
 enddo
+do f=1,num_faces
+  do a=1,dimG
+    do ll=1,num_links
+      do b=1,dimG
+        call trace_MTa(tmp,tmpdDdA_chi(:,:,ll,a,f),b,NMAT)
+        dDdA_vec(face_index(a,f),b,ll) &
+          = dDdA_vec(face_index(a,f),b,ll) + overall_factor * tmp
+      enddo
+    enddo
+  enddo
+enddo
+
+
+!do f=1,num_faces
+!  do j=1,links_in_f(f)%num_
+!    ll=links_in_f(f)%link_labels_(j)
+!    do i=1,links_in_f(f)%num_
+!      l=links_in_f(f)%link_labels_(i)
+!      call calc_diffdiff_Omega(&
+!        diffdiff_Omega2(f)%val(:,:,:,:,i,j),&
+!        Uf(:,:,f),Ufm(:,:,f),f,l,ll,UMAT)
+!    enddo
+!  enddo
+!enddo
+
+!do f=1,num_faces
+!  do i=1,links_in_f(f)%num_
+!    l=links_in_f(f)%link_labels_(i)
+!
+!    diffdiff_Omega_lambda=(0d0,0d0)
+!    do j=1,links_in_f(f)%num_
+!      ll=links_in_f(f)%link_labels_(j)
+!
+!      do c=1,dimG
+!        diffdiff_Omega_lambda(:,:,:) = diffdiff_Omega_lambda(:,:,:) &
+!          +diffdiff_Omega2(f)%val(:,:,:,c,i,j) * lambda_ele(c,ll)
+!       enddo
+!    enddo
+!
+!    do b=1,dimG
+!      do a=1,dimG
+!        call trace_MTa(trace,diffdiff_Omega_lambda(:,:,b),a,NMAT)
+!        dDdA_vec(face_index(a,f),b,l)= dDdA_vec(face_index(a,f),b,l) &
+!          + (0d0,1d0)*dcmplx(alpha_f(f)*beta_f(f))*trace*overall_factor
+!      enddo
+!    enddo
+!
+!  enddo
+!enddo
+!
+!
+!do l=1,num_links
+!  do i=1,face_in_l(l)%num_
+!    f=face_in_l(l)%label_(i)
+!    do k=1,links_in_f(f)%num_
+!      if ( links_in_f(f)%link_labels_(k) == l ) then 
+!        exit
+!      endif
+!    enddo
+!    do j=1,links_in_f(f)%num_
+!      ll=links_in_f(f)%link_labels_(j)
+!
+!      do a=1,dimG
+!        do b=1,dimG
+!          tmp=(0d0,0d0)
+!          do ii=1,NMAT
+!            do jj=1,NMAT
+!              tmp=tmp+chi_mat(ii,jj,f)&
+!                *diffdiff_Omega2(f)%val(jj,ii,b,a,j,k)
+!            enddo
+!          enddo
+!          dDdA_vec(link_index(a,l),b,ll)= dDdA_vec(link_index(a,l),b,ll) &
+!              -(0d0,1d0)*dcmplx(alpha_f(f)*beta_f(f))*tmp*overall_factor
+!        enddo
+!      enddo
+!
+!    enddo
+!  enddo
+!enddo
+
 
 !dDdA_chi=dDdA_chi*overall_factor
 
@@ -619,7 +633,286 @@ enddo
 
 end subroutine prod_dDdA
 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+subroutine calc_fermion_force_from_omega&
+    (dDdA_lambda,dDdA_chi,UMAT,lambda_mat,chi_mat)
+use Dirac_operator, only : calc_sinu_and_CosUinv, calc_Amat, Calc_Bmat
+implicit none 
+complex(kind(0d0)), intent(inout) :: dDdA_lambda&
+  (1:NMAT,1:NMAT,1:num_links, 1:NMAT,1:NMAT,1:num_links)
+complex(kind(0d0)), intent(inout) :: dDdA_chi&
+  (1:NMAT,1:NMAT,1:num_faces, 1:NMAT,1:NMAT,1:num_links)
+complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_links)
+complex(kind(0d0)), intent(in) :: lambda_mat(1:NMAT,1:NMAT,1:num_links)
+complex(kind(0d0)), intent(in) :: chi_mat(1:NMAT,1:NMAT,1:num_faces)
 
+complex(kind(0d0)) :: Uf(1:NMAT,1:NMAT,1:num_faces)
+complex(kind(0d0)) :: Ufm(1:NMAT,1:NMAT,1:num_faces)
+complex(kind(0d0)) :: sinU(1:NMAT,1:NMAT,1:num_faces)
+complex(kind(0d0)) :: cosUinv(1:NMAT,1:NMAT,1:num_faces)
+complex(kind(0d0)) :: Amat(1:NMAT,1:NMAT)
+complex(kind(0d0)) :: Bmat(1:NMAT,1:NMAT)
+
+complex(kind(0d0)) :: dCosUinvdA(1:NMAT,1:NMAT,1:NMAT,1:NMAT)
+complex(kind(0d0)) :: dSinUdA(1:NMAT,1:NMAT,1:NMAT,1:NMAT)
+complex(kind(0d0)) :: dAmatdA(1:NMAT,1:NMAT,1:NMAT,1:NMAT)
+complex(kind(0d0)) :: dBmatdA(1:NMAT,1:NMAT,1:NMAT,1:NMAT)
+
+complex(kind(0d0)) :: prodmat1(1:NMAT,1:NMAT)
+complex(kind(0d0)) :: prodmat2(1:NMAT,1:NMAT)
+complex(kind(0d0)) :: globalmat1(1:NMAT,1:NMAT)
+complex(kind(0d0)) :: globalmat2(1:NMAT,1:NMAT)
+complex(kind(0d0)) :: globalmat3(1:NMAT,1:NMAT)
+complex(kind(0d0)) :: globalmat4(1:NMAT,1:NMAT)
+complex(kind(0d0)) :: tmpmat1(1:NMAT,1:NMAT)
+complex(kind(0d0)) :: tmpmat2(1:NMAT,1:NMAT)
+complex(kind(0d0)) :: tmpmat3(1:NMAT,1:NMAT)
+complex(kind(0d0)) :: tmpmat4(1:NMAT,1:NMAT)
+complex(kind(0d0)) :: line(1:NMAT,1:NMAT,1:NMAT,1:NMAT)
+integer :: l_label,ll_label,k,l,ll
+integer :: i,j,ii,jj,f
+
+! label of face
+do f=1,num_faces
+  call Make_face_variable(Uf(:,:,f),f,UMAT) 
+  call matrix_power(Ufm(:,:,f),Uf(:,:,f),m_omega)
+  call calc_sinU_and_cosUinv(sinU(:,:,f),cosUinv(:,:,f),Ufm(:,:,f))
+enddo
+
+! label of face
+do f=1,num_faces
+! label of link fermion \lambda_l
+do l_label=1,links_in_f(f)%num_
+  l=links_in_f(f)%link_labels_(l_label)
+
+  ! label of link to differentiate
+  do ll_label=1,links_in_f(f)%num_
+    ll=links_in_f(f)%link_labels_(ll_label)
+!subroutine calc_dCosUinvdA_dSinUdA(dCosUinvdA,dSinUdA,&
+!    cosUinv,sinU,Uf,UMAT,f,ll_label)
+    call calc_dCosUinvdA_dSinUdA(dCosUinvdA,dSinUdA,&
+      cosUinv(:,:,f),sinU(:,:,f),Uf(:,:,f),UMAT,f,ll_label)
+
+    line=(0d0,0d0)
+    do k=1,m_omega
+      call calc_dABmatdA(dAmatdA,dBmatdA,&
+        Uf(:,:,f),UMAT,ll_label,f,l_label,k)
+      call calc_Amat(Amat,f,l_label,k,Uf(:,:,f),UMAT)
+      call calc_Bmat(Bmat,f,l_label,k,Uf(:,:,f),UMAT)
+
+      ! globalmat1 = A lambda B
+      call matrix_3_product(globalmat1,Amat,lambda_mat(:,:,l),Bmat)
+
+      ! globalmat2 = B^dag lambda A^dag
+      call matrix_3_product(globalmat2,Bmat,lambda_mat(:,:,l),Amat,'C','N','C')
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !! for test
+      globalmat1=lambda_mat(:,:,l)
+      globalmat2=lambda_mat(:,:,l)
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+
+      do jj=1,NMAT
+      do ii=1,NMAT
+        ! prodat1 = ¥delta_A lambda B + A lambda ¥delta_B
+        call matrix_3_product(prodmat1, &
+          dAmatdA(:,:,ii,jj),lambda_mat(:,:,l),BMAT)
+        call matrix_product(tmpmat1,Amat,lambda_mat(:,:,l))
+        call zgemm('N','N',NMAT,NMAT,NMAT,(1d0,0d0), &
+          tmpmat1, NMAT, &
+          dBmatdA(:,:,ii,jj), NMAT, &
+          (1d0,0d0), prodmat1, NMAT)
+
+        ! prodmat2 = ¥delta_B^dag lambda A^dag + B^dag lambda ¥delta_A^dag
+        call matrix_3_product(prodmat2,&
+          dBmatdA(:,:,jj,ii),lambda_mat(:,:,l),Amat,'C','N','C') 
+        call matrix_product(tmpmat1,Bmat,lambda_mat(:,:,l),'C','N')
+        call zgemm('N','C',NMAT,NMAT,NMAT,(1d0,0d0), &
+          tmpmat1, NMAT, &
+          dAmatdA(:,:,jj,ii), NMAT, & 
+          (1d0,0d0), prodmat2, NMAT)
+
+        ! line1
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !! for test
+        !call matrix_anticommutator(tmpmat1, prodmat1+prodmat2, CosUinv(:,:,f))
+        !line(:,:,ii,jj)=line(:,:,ii,jj)+tmpmat1
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        ! line2
+        call matrix_anticommutator(tmpmat1,globalmat1+globalmat2, dCosUinvdA(:,:,ii,jj))
+        line(:,:,ii,jj) = line(:,:,ii,jj) + tmpmat1
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! for test
+!        ! line3
+!        call matrix_product(tmpmat1,CosUinv(:,:,f),globalmat1-globalmat2)
+!        call matrix_product(tmpmat2,tmpmat1,CosUinv(:,:,f)) 
+!        call matrix_anticommutator(tmpmat3,dSinUdA(:,:,ii,jj),tmpmat2)
+!        line(:,:,ii,jj) = line(:,:,ii,jj) - tmpmat3
+!        ! line4
+!         ! 4-1 collect in tmpmat2
+!        call matrix_product(tmpmat3,dCosUinvdA(:,:,ii,jj),globalmat1-globalmat2)
+!        call matrix_product(tmpmat2,tmpmat3,CosUinv(:,:,f))
+!         ! 4-2 tmpmat1=CosUinv.(globalmat1-globalmat2) here
+!        call zgemm('N','N',NMAT,NMAT,NMAT,(1d0,0d0), &
+!          tmpmat1, NMAT, &
+!          dCosUinvdA(:,:,ii,jj), NMAT, &
+!          (1d0,0d0), tmpmat2, NMAT)
+!         ! 4-3
+!        call matrix_product(tmpmat3,CosUinv(:,:,f),prodmat1-prodmat2)
+!        call zgemm('N','N',NMAT,NMAT,NMAT,(1d0,0d0), &
+!          tmpmat3, NMAT, &
+!          CosUinv(:,:,f), NMAT, &
+!          (1d0,0d0), tmpmat2, NMAT)
+!         ! take anti-commutator
+!        call matrix_anticommutator(tmpmat1,tmpmat2,SinU(:,:,f))
+!        line(:,:,ii,jj) = line(:,:,ii,jj) - tmpmat1
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+      enddo ! ii
+      enddo ! jj
+    enddo ! k
+    do jj=1,NMAT
+      do ii=1,NMAT
+        dDdA_chi(:,:,f,ii,jj,ll)=dDdA_chi(:,:,f,ii,jj,ll) &
+          + cmplx(dble(links_in_f(f)%link_dirs_(l_label) ))*(0d0,1d0) &
+           * cmplx( alpha_f(f)*beta_f(f)/dble(m_omega) ) &
+           * line(:,:,ii,jj)
+       enddo
+     enddo
+  enddo ! ll
+enddo ! l
+enddo ! f
+
+do l=1,num_links
+do i=1,face_in_l(l)%num_       
+  f=face_in_l(l)%label_(i)
+  ! j: position of the link l in the face l
+  do l_label=1,links_in_f(f)%num_
+    if ( l == links_in_f(f)%link_labels_(l_label) ) exit
+  enddo
+
+  do ll_label=1,links_in_f(f)%num_
+    ll=links_in_f(f)%link_labels_(ll_label)
+    call calc_dCosUinvdA_dSinUdA(dCosUinvdA,dSinUdA,&
+      cosUinv(:,:,f),sinU(:,:,f),Uf(:,:,f),UMAT,f,ll_label)
+
+    line=(0d0,0d0)
+    do k=1,m_omega
+      globalmat3=(0d0,0d0)
+      globalmat4=(0d0,0d0)
+      call calc_dABmatdA(dAmatdA,dBmatdA,&
+        Uf(:,:,f),UMAT,ll_label,f,l_label,k)
+      call calc_Amat(Amat,f,l_label,k,Uf(:,:,f),UMAT)
+      call calc_Bmat(Bmat,f,l_label,k,Uf(:,:,f),UMAT)
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! for test
+      dAmatdA=(0d0,0d0)
+      dBmatdA=(0d0,0d0)
+      call make_unit_matrix(Amat)
+      call make_unit_matrix(Bmat)
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      ! globalmat3 = { CosUinv, chi_f }
+      call matrix_anticommutator(globalmat3,CosUinv(:,:,f),chi_mat(:,:,f))
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! for test
+!      ! globalmat4 = CosUinv.{ SinU, chi_f }.CosUinv
+!      call matrix_anticommutator(tmpmat1,SinU(:,:,f),chi_mat(:,:,f))
+!      call matrix_product(tmpmat2,CosUinv(:,:,f),tmpmat1)
+!      call matrix_product(globalmat4,tmpmat2,CosUinv(:,:,f))
+globalmat4=(0d0,0d0)
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+      do jj=1,NMAT
+      do ii=1,NMAT
+        ! prodmat1
+        call matrix_anticommutator(prodmat1,dCosUinvdA(:,:,ii,jj),chi_mat(:,:,f))
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! for test
+!        ! prodmat2
+!        ! 1st term
+!        call matrix_anticommutator(tmpmat1,dSinUdA(:,:,ii,jj),chi_mat(:,:,f))
+!        call matrix_product(tmpmat2,CosUinv(:,:,f),tmpmat1)
+!        call matrix_product(prodmat2,tmpmat2,CosUinv(:,:,f))
+!        ! 2nd term
+!        call matrix_anticommutator(tmpmat1,SinU(:,:,f),chi_mat(:,:,f))
+!        call matrix_product(tmpmat2,dCosUinvdA(:,:,ii,jj),tmpmat1)
+!        call zgemm('N','N',NMAT,NMAT,NMAT,(1d0,0d0), &
+!          tmpmat2, NMAT, &
+!          CosUinv(:,:,f),NMAT, &
+!          (1d0,0d0), prodmat2, NMAT)
+!        ! 3rd term tmpmat1={ SinU, chi_mat } now
+!        call matrix_product(tmpmat2,CosUinv(:,:,f),tmpmat1)
+!        call zgemm('N','N',NMAT,NMAT,NMAT,(1d0,0d0), &
+!          tmpmat2, NMAT, &
+!          dCosUinvdA(:,:,ii,jj),NMAT, &
+!          (1d0,0d0), prodmat2, NMAT)
+prodmat2=(0d0,0d0)
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+        ! line1
+        call matrix_3_product(line(:,:,ii,jj),&
+          dBmatdA(:,:,ii,jj),globalmat3-globalmat4,Amat)
+        ! line2
+        call matrix_product(tmpmat1,Bmat,globalmat3-globalmat4)
+        call zgemm('N','N',NMAT,NMAT,NMAT,(1d0,0d0), &
+          tmpmat1, NMAT, &
+          dAmatdA(:,:,ii,jj),NMAT, &
+          (1d0,0d0), line(:,:,ii,jj), NMAT)
+        ! line3
+        call matrix_product(tmpmat1,dAmatdA(:,:,jj,ii),globalmat3+globalmat4,'C','N') 
+        call zgemm('N','C',NMAT,NMAT,NMAT,(1d0,0d0), &
+          tmpmat1, NMAT, &
+          Bmat,NMAT, &
+          (1d0,0d0), line(:,:,ii,jj), NMAT)
+        ! line4
+        call matrix_product(tmpmat1,Amat,globalmat3+globalmat4,'C','N')
+        call zgemm('N','C',NMAT,NMAT,NMAT,(1d0,0d0), &
+          tmpmat1, NMAT, &
+          dBmatdA(:,:,jj,ii),NMAT, & 
+          (1d0,0d0), line(:,:,ii,jj), NMAT)
+        ! line5
+        call matrix_product(tmpmat1,Bmat,prodmat1-prodmat2)
+        call zgemm('N','N',NMAT,NMAT,NMAT,(1d0,0d0), &
+          tmpmat1, NMAT, &
+          Amat,NMAT, &
+          (1d0,0d0), line(:,:,ii,jj), NMAT)
+        ! line6
+        call matrix_product(tmpmat1,Amat,prodmat1+prodmat2,'C','N')
+        call zgemm('N','C',NMAT,NMAT,NMAT,(1d0,0d0), &
+          tmpmat1, NMAT, &
+          Bmat,NMAT, &
+          (1d0,0d0), line(:,:,ii,jj), NMAT)
+      enddo ! ii
+      enddo ! jj
+    enddo ! k
+
+    do jj=1,NMAT
+      do ii=1,NMAT
+         dDdA_lambda(:,:,l,ii,jj,ll)=dDdA_lambda(:,:,l,ii,jj,ll) &
+            - cmplx(dble(links_in_f(f)%link_dirs_(l_label) ))*(0d0,1d0) &
+             * cmplx( alpha_f(f)*beta_f(f)/dble(m_omega) ) &
+             * line(:,:,ii,jj)
+      enddo
+    enddo
+
+  enddo ! ll
+enddo ! f
+enddo ! l
+
+end subroutine calc_fermion_force_from_omega
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! subroutine to return product of d/dA D . vec
@@ -643,8 +936,10 @@ complex(kind(0d0)) :: Bmat(1:NMAT,1:NMAT)
 complex(kind(0d0)) :: UinvA(1:NMAT,1:NMAT), BUinv(1:NMAT,1:NMAT)
 
 integer :: k,i,j,ii,jj
+complex(kind(0d0)) :: factor
 
 dCosUinvdA=(0d0,0d0)
+dSinUdA=(0d0,0d0)
 do k=1,m_omega
   call calc_Amat(Amat,f,ll_label,k,Uf,Umat)
   call calc_Bmat(Bmat,f,ll_label,k,Uf,Umat)
@@ -667,8 +962,10 @@ do k=1,m_omega
     enddo
   enddo
 enddo
-dCosUinvdA=dCosUinvdA*(-links_in_f(f)%link_dirs_(ll_label))*(0d0,1d0)
-dSinUdA=dSinUdA * links_in_f(f)%link_dirs_(ll_label) * (0d0,1d0)
+
+factor=cmplx(dble(links_in_f(f)%link_dirs_(ll_label)))*(0d0,1d0)
+dCosUinvdA=dCosUinvdA*(-factor)
+dSinUdA=dSinUdA * factor
 
 end subroutine calc_dCosUinvdA_dSinUdA
 
@@ -687,11 +984,11 @@ complex(kind(0d0)), intent(in) :: Uf(1:NMAT,1:NMAT)
 complex(kind(0d0)), intent(in) :: UMat(1:NMAT,1:NMAT,1:num_links)
 integer, intent(in) :: f,ll_label,l_label,k
 
-complex(kind(0d0)) :: UU_1_to_ll(1:NMAT,1:NMAT) ! 1..ll
+complex(kind(0d0)) :: UU_initial_to_ll(1:NMAT,1:NMAT) ! 1..ll
+complex(kind(0d0)) :: UU_initial_to_l(1:NMAT,1:NMAT) ! 1..l
 complex(kind(0d0)) :: UU_ll_to_n(1:NMAT,1:NMAT) ! ll..n
-complex(kind(0d0)) :: UU_ll_to_l(1:NMAT,1:NMAT) ! ll..l
-complex(kind(0d0)) :: UU_1_to_l(1:NMAT,1:NMAT) ! 1..l
 complex(kind(0d0)) :: UU_l_to_n(1:NMAT,1:NMAT) ! l..n
+complex(kind(0d0)) :: UU_ll_to_l(1:NMAT,1:NMAT) ! ll..l
 complex(kind(0d0)) :: UU_l_to_ll(1:NMAT,1:NMAT) ! l..ll
 
 complex(kind(0d0)) :: tmpmat1(1:NMAT,1:NMAT)
@@ -713,7 +1010,14 @@ if ( links_in_f(f)%link_labels_(ll_label) == 1 ) then
 else
   label2 = ll_label
 endif 
-call calc_prodUl_from_n1_to_n2_in_Uf(UU_1_to_ll,f,1,label2,UMAT)
+call calc_prodUl_from_n1_to_n2_in_Uf(UU_initial_to_ll,f,1,label2,UMAT)
+!!!!!!!!!!!!!!
+if ( links_in_f(f)%link_labels_(l_label) == 1 ) then
+  label2 = l_label-1
+else
+  label2 = l_label
+endif 
+call calc_prodUl_from_n1_to_n2_in_Uf(UU_initial_to_l,f,1,label2,UMAT)
 !!!!!!!!!!!!!!
 if ( links_in_f(f)%link_labels_(ll_label) == 1 ) then
   label1 = ll_label 
@@ -721,6 +1025,13 @@ else
   label1 = ll_label+1
 endif 
 call calc_prodUl_from_n1_to_n2_in_Uf(UU_ll_to_n,f,label1,n,UMAT)
+!!!!!!!!!!!!!!
+if ( links_in_f(f)%link_labels_(l_label) == 1 ) then
+  label1 = l_label
+else
+  label1 = l_label+1
+endif 
+call calc_prodUl_from_n1_to_n2_in_Uf(UU_l_to_n,f,label1,n,UMAT)
 !!!!!!!!!!!!!!
 if ( links_in_f(f)%link_labels_(ll_label) == 1 ) then
   label1 = ll_label 
@@ -733,27 +1044,6 @@ else
   label2 = l_label
 endif 
 call calc_prodUl_from_n1_to_n2_in_Uf(UU_ll_to_l,f,label1,label2,UMAT)
-!!!!!!!!!!!!!!
-if ( links_in_f(f)%link_labels_(l_label) == 1 ) then
-  label2 = l_label-1
-else
-  label2 = l_label
-endif 
-call calc_prodUl_from_n1_to_n2_in_Uf(UU_1_to_l,f,1,label2,UMAT)
-!!!!!!!!!!!!!!
-if ( links_in_f(f)%link_labels_(l_label) == 1 ) then
-  label1 = l_label
-else
-  label1 = l_label+1
-endif 
-call calc_prodUl_from_n1_to_n2_in_Uf(UU_l_to_n,f,label1,n,UMAT)
-!!!!!!!!!!!!!!
-if ( links_in_f(f)%link_labels_(l_label) == 1 ) then
-  label1 = l_label 
-else
-  label1 = l_label+1
-endif 
-call calc_prodUl_from_n1_to_n2_in_Uf(UU_l_to_n,f,label1,n,UMAT)
 !!!!!!!!!!!!!!
 if ( links_in_f(f)%link_labels_(l_label) == 1 ) then
   label1 = l_label 
@@ -772,11 +1062,10 @@ call calc_prodUl_from_n1_to_n2_in_Uf(UU_l_to_ll,f,label1,label2,UMAT)
 if ( k > 1 ) then
   do kk=1,k-1
     call matrix_power(tmpmat2,Uf,kk-1)
-    call matrix_product(tmpmat1,tmpmat2,UU_1_to_ll)
+    call matrix_product(tmpmat1,tmpmat2,UU_initial_to_ll)
 
-    call matrix_power(tmpmat2,Uf,k-kk-1)
-    call matrix_product(tmpmat3,UU_ll_to_n,tmpmat2)
-    call matrix_product(tmpmat2,tmpmat3,UU_1_to_l)
+    call matrix_power(tmpmat3,Uf,k-kk-1)
+    call matrix_3_product(tmpmat2,UU_ll_to_n,tmpmat3,UU_initial_to_l)
 
     do jj=1,NMAT
       do ii=1,NMAT
@@ -793,7 +1082,7 @@ endif
 
 if ( ll_label < l_label ) then
   call matrix_power(tmpmat2,Uf,k-1)
-  call matrix_product(tmpmat1,tmpmat2,UU_1_to_ll)
+  call matrix_product(tmpmat1,tmpmat2,UU_initial_to_ll)
 
   do jj=1,NMAT
     do ii=1,NMAT
@@ -810,13 +1099,13 @@ endif
 if (ll_label == l_label) then
   if ( links_in_f(f)%link_dirs_(ll_label) == -1 ) then
     call matrix_power(tmpmat2,Uf,k-1)
-    call matrix_product(tmpmat1, tmpmat2,UU_1_to_l)
+    call matrix_product(tmpmat1, tmpmat2,UU_initial_to_l)
     do jj=1,NMAT
       do ii=1,NMAT
         j=ii
         do i=1,NMAT
           dAmatdA(i,j,ii,jj)=dAmatdA(i,j,ii,jj) &
-            + tmpmat1(i,jj) * epsilon_r
+            - (0d0,1d0)* tmpmat1(i,jj)
         enddo
       enddo
     enddo
@@ -826,13 +1115,12 @@ endif
 !!!!!!!!!!! dBmatdA !!!!!!!!!!!!!!!
 if (m_omega-k > 0) then
   do kk=1,m_omega-k
-    call matrix_power(tmpmat1, Uf, kk-1)
-    call matrix_product(tmpmat2,UU_l_to_n,tmpmat1)
-    call matrix_product(tmpmat1,tmpmat2,UU_1_to_ll)
+    call matrix_power(tmpmat2, Uf, kk-1)
+    call matrix_3_product(tmpmat1,UU_l_to_n,tmpmat2,UU_initial_to_ll)
 
     call matrix_power(tmpmat3,Uf,m_omega-k-kk)
     call matrix_product(tmpmat2,UU_ll_to_n,tmpmat3)
-
+!
     do jj=1,NMAT
       do ii=1,NMAT
         do j=1,NMAT
@@ -871,7 +1159,7 @@ if ( ll_label == l_label) then
         i=jj
         do j=1,NMAT
           dBmatdA(i,j,ii,jj)=dBmatdA(i,j,ii,jj) &
-            + tmpmat1(ii,j) * epsilon_r
+            + (0d0,1d0) * tmpmat1(ii,j) 
         enddo
       enddo
     enddo

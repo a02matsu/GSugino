@@ -379,6 +379,13 @@ do f=1,num_faces
     do k=1,m_omega
       call calc_Amat(Amat,f,i,k,Uf(:,:,f),UMAT)
       call calc_Bmat(Bmat,f,i,k,Uf(:,:,f),UMAT)
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !! for test
+      call make_unit_matrix(Amat)
+      call make_unit_matrix(Bmat)
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
       ! tmpmat2=A.lambda.B
       call matrix_product(tmpmat1,Amat,lambda_mat(:,:,l))
@@ -390,10 +397,10 @@ do f=1,num_faces
       line1=line1+tmpmat2+tmpmat3
       line2=line2+tmpmat2-tmpmat3
     enddo
-
     ! line2 = cosUinv.(A.lambda.B-Bdag.lambda.Adag).cosUinv
-    call matrix_product(tmpmat1,cosUinv(:,:,f),line2)
-    call matrix_product(line2,tmpmat1,cosUinv(:,:,f))
+    tmpmat1=line2
+    call matrix_3_product(line2,cosUinv(:,:,f),tmpmat1,cosUinv(:,:,f))
+    !call matrix_product(line2,tmpmat1,cosUinv(:,:,f))
 
     ! line1 = {A.lambda.B+B^dag.lambda.A^dag , (Um+Uminv)^{-1}
     tmpmat1=line1
@@ -401,6 +408,12 @@ do f=1,num_faces
     ! line2 = {cosUinv.(A.lambda.B-Bdag.lambda.Adag).cosUinv, sinU}
     tmpmat1=line2
     call matrix_AntiCommutator(line2,tmpmat1,sinU(:,:,f))
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !! for test
+    line2=(0d0,0d0)
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     
     DF_chi(:,:,f)=DF_chi(:,:,f)&
       + cmplx(dble(links_in_f(f)%link_dirs_(i)))*(0d0,1d0)&
@@ -446,6 +459,12 @@ do l=1,num_links
     call matrix_anticommutator(tmpmat2,sinU(:,:,f),chi_mat(:,:,f))
     call matrix_product(tmpmat3,cosUinv(:,:,f),tmpmat2)
     call matrix_product(tmpmat2,tmpmat3,cosUinv(:,:,f))
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    ! for test
+    tmpmat2=(0d0,0d0)
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     line1=tmpmat1-tmpmat2
     line2=tmpmat1+tmpmat2
 
@@ -453,6 +472,13 @@ do l=1,num_links
     do k=1,m_omega
       call calc_Amat(Amat,f,j,k,Uf(:,:,f),UMAT)
       call calc_Bmat(Bmat,f,j,k,Uf(:,:,f),UMAT)
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      ! for test
+      call make_unit_matrix(Amat)
+      call make_unit_matrix(Bmat)
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       ! tmpmat1= B.(tmpmat1-tmpmat2).A
       call matrix_product(tmpmat3,BMAT,line1)
       call matrix_product(tmpmat1,tmpmat3,AMAT)

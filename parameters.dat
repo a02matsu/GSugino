@@ -2,7 +2,7 @@
 2.667d0					! lattice spacing
 tetra.dat		! data of the simplicial complex
 ab_tetra2.dat	! data of alpha and beta
-0				! test_mode ; 0:Simulation mode 1:Test mode, 
+1				! test_mode ; 0:Simulation mode 1:Test mode, 
 0				! new_config ; 0:Old Config 1:New Config
 0				! fix_seed ; 0:previous value 1:fix 2:system time
 0				! reset_ite ; 0:continue total ite, 1:reset total ite
@@ -12,13 +12,13 @@ ab_tetra2.dat	! data of alpha and beta
 42342			! seed (works when fix_seed=1)
 1				! m_omega ;integer to avoid vacuum degeneracy (mm>=NMAT/4)
 0.1d0 			! mass_square_phi 
-0d0       	! mass_f; fermion mass
+0d-1       	! mass_f; fermion mass
 1d5		        ! Remez_factor4 ; range of remez approx( min*factor .. max*factor) 
 1d5		        ! Remez_factor8 ; range of remez approx( min*factor .. max*factor) 
 1d-12	    	! epsilon ; range to stop CG solver
 10000	    	! CG_max ; maximum number of CG iteration
 10     	! num_ite ; number of iterations
-10		! NTAU
+5		! NTAU
 0.1d0			! DTAU base
 6d0				! R_phi ; Dtau_phi=R_phi * Dtau
 1d0				! R_A   ; Dtau_A=R_A * Dtau
