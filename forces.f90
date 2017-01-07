@@ -449,7 +449,7 @@ call mmBiCG( chi, PF, Remez_beta4, sizeD, N_Remez4, epsilon, &
 do r=1,N_Remez4
   call prod_Dirac(Dchi(:,r),chi(:,r),sizeD,UMAT,PhiMat)
   
-  call prod_dDdPhi(dDdPhi_chi(:,:,:,r),chi(:,r),UMAT,Phi)
+  call prod_dDdPhi(dDdPhi_chi(:,:,:,r),chi(:,r),UMAT)
   call prod_dDdbPhi(dDdbPhi_chi(:,:,:,r),chi(:,r),UMAT,Phi)
   
   call prod_dDdA(dDdA_chi(:,:,:,r),chi(:,r),UMAT,PhiMat)
