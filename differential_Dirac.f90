@@ -11,21 +11,32 @@ contains
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! subroutine to return product of d/d\Phi D
-subroutine prod_dDdPhi(dDdPhi_chi,vec,UMAT,Phi)
+subroutine prod_dDdPhi(dDdPhi_vec,vec,UMAT,Phi)
 implicit none
 
 complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_links) 
 complex(kind(0d0)), intent(in) :: Phi(1:dimG,1:num_sites)
+complex(kind(0d0)) :: PhiMat(1:NMAT,1:NMAT,1:num_sites)
 complex(kind(0d0)), intent(in) :: vec(1:sizeD)
 ! dDdPhi_chi(a,s,i) = \frac{d}{d\Phi_{s,a}} ( D \Psi )_i
-complex(kind(0d0)), intent(out) :: dDdPhi_chi(1:sizeD, 1:dimG,1:num_sites)
+complex(kind(0d0)), intent(out) :: dDdPhi_vec(1:sizeD, 1:dimG,1:num_sites)
+complex(kind(0d0)) :: dDdPhi_eta(1:NMAT,1:NMAT,1:num_sites,1:NMAT,1:NMAT,1:num_sites)
+complex(kind(0d0)) :: dDdPhi_chi(1:NMAT,1:NMAT,1:num_faces,1:NMAT,1:NMAT,1:num_sites)
+! d/dA_{ll,ii,jj} (Ta)_{ji} (D\Psi)_{s,i,j}=tmpdDdA_eta(ii,jj,ll,a,s)
+complex(kind(0d0)) :: tmpdDdPhi_eta(1:NMAT,1:NMAT,1:num_sites,1:dimG,1:num_sites)
+! d/dA_{ll,ii,jj} (Ta)_{ji} (D\Psi)_{f,i,j}=tmpdDdA_chi(ii,jj,ll,a,f)
+complex(kind(0d0)) :: tmpdDdPhi_chi(1:NMAT,1:NMAT,1:num_sites,1:dimG,1:num_faces)
 
-!complex(kind(0d0)) :: eta_ele(1:dimG,1:num_sites)
+
+
+complex(kind(0d0)) :: eta_ele(1:dimG,1:num_sites)
+complex(kind(0d0)) :: eta_mat(1:NMAT,1:NMAT,1:num_sites)
 complex(kind(0d0)) :: chi_ele(1:dimG,1:num_faces)
+complex(kind(0d0)) :: chi_mat(1:NMAT,1:NMAT,1:num_faces)
 
-integer :: s,f
-integer :: i,j,r
-integer :: a,b,c
+complex(kind(0d0)) :: tmp
+integer :: s,f,i,j,ii,jj
+integer :: a,b,c,r
 
 !! site: (s,a) <--> r=a+dimG*(s-1)
 !! link: (l,a) <--> r=a+dimG*(num_sites + l -1)
@@ -37,28 +48,61 @@ integer :: a,b,c
 !    eta_ele(i,s)=vec(i+dimG*(s-1))
 !  enddo
 !enddo
+!! preparation
+dDdPhi_vec=(0d0,0d0)
+dDdPhi_eta=(0d0,0d0)
+dDdPhi_chi=(0d0,0d0)
+do s=1,num_sites
+  do a=1,dimG
+    eta_ele(a,s)=vec(site_index(a,s))
+  enddo
+  call make_traceless_matrix_from_modes(eta_mat(:,:,s),NMAT,eta_ele(:,s))
+enddo
 do f=1,num_faces
   do a=1,dimG
     chi_ele(a,f)=vec(face_index(a,f))
   enddo
+  call make_traceless_matrix_from_modes(chi_mat(:,:,f),NMAT,chi_ele(:,f))
 enddo
 
-dDdPhi_chi=(0d0,0d0)
 
 if( p1 == 0 ) then
     !write(*,*) p1
 !! (1) Dirac from site
 do s=1,num_sites
-  do r=1,NZF
-    a=NZF_index(1,r)
-    b=NZF_index(2,r)
-    c=NZF_index(3,r)
-    j=a+dimG*(s-1) ! j <=> (a,s)
-    dDdPhi_chi(j,b,s)=dDdPhi_chi(j,b,s)& 
-      +(0d0,-0.5d0)*dcmplx(alpha_s(s))*NZF_value(r) &
-      * vec(c+dimG*(s-1)) * overall_factor ! \eta_{s,c}
+  do jj=1,NMAT
+    i=jj
+    do ii=1,NMAT
+      do j=1,NMAT 
+        dDdPhi_eta(i,j,s,ii,jj,s)= dDdPhi_eta(i,j,s,ii,jj,s) &
+          + (-0.5d0,0d0)*cmplx( alpha_s(s)*overall_factor ) &
+            * eta_mat(ii,j,s)
+      enddo
+    enddo
+    !!
+    do ii=1,NMAT
+      j=ii
+      do i=1,NMAT
+        dDdPhi_eta(i,j,s,ii,jj,s)= dDdPhi_eta(i,j,s,ii,jj,s) &
+          - (-0.5d0,0d0)*cmplx( alpha_s(s)*overall_factor ) &
+            * eta_mat(i,jj,s)
+      enddo
+    enddo
   enddo
 enddo
+
+
+!do s=1,num_sites
+!  do r=1,NZF
+!    a=NZF_index(1,r)
+!    b=NZF_index(2,r)
+!    c=NZF_index(3,r)
+!    j=a+dimG*(s-1) ! j <=> (a,s)
+!    dDdPhi_chi(j,b,s)=dDdPhi_chi(j,b,s)& 
+!      +(0d0,-0.5d0)*dcmplx(alpha_s(s))*NZF_value(r) &
+!      * vec(c+dimG*(s-1)) * overall_factor ! \eta_{s,c}
+!  enddo
+!enddo
 endif
 
 !! (2) Dirac from link 1
@@ -71,16 +115,71 @@ if ( p4 == 0 ) then
 !! (4) Dirac from face 1
 do f=1,num_faces
   s=sites_in_f(f)%label_(1)
-  do r=1,NZF
-    a=NZF_index(1,r)
-    b=NZF_index(2,r)
-    c=NZF_index(3,r)
-    dDdPhi_chi(face_index(a,f),b,s)= dDdPhi_chi(face_index(a,f),b,s) &
-      +(0d0,-2d0)*dcmplx(alpha_f(f))*NZF_value(r)*chi_ele(c,f)*overall_factor
+  do jj=1,NMAT
+    i=jj
+    do ii=1,NMAT
+      do j=1,NMAT 
+        dDdPhi_chi(i,j,f,ii,jj,s)= dDdPhi_chi(i,j,f,ii,jj,s) &
+          + (-2d0,0d0)*cmplx( alpha_f(f)*overall_factor ) &
+            * chi_mat(ii,j,f)
+      enddo
+    enddo
+    !!
+    do ii=1,NMAT
+      j=ii
+      do i=1,NMAT
+        dDdPhi_chi(i,j,f,ii,jj,s)= dDdPhi_chi(i,j,f,ii,jj,s) &
+          - (-2d0,0d0)*cmplx( alpha_f(f)*overall_factor ) &
+            * chi_mat(i,jj,f)
+      enddo
+    enddo
   enddo
+!  do r=1,NZF
+!    a=NZF_index(1,r)
+!    b=NZF_index(2,r)
+!    c=NZF_index(3,r)
+!    dDdPhi_vec(face_index(a,f),b,s)= dDdPhi_vec(face_index(a,f),b,s) &
+!      +(0d0,-2d0)*dcmplx(alpha_f(f))*NZF_value(r)*chi_ele(c,f)*overall_factor
+!  enddo
 enddo
 endif
 
+do s=1,num_sites
+  do ii=1,NMAT
+    do jj=1,NMAT
+      !!!!!!!!!!!
+        do a=1,dimG
+          call trace_MTa(tmpdDdPhi_eta(ii,jj,s,a,s),dDdPhi_eta(:,:,s,ii,jj,s),a,NMAT)
+        enddo
+      !!!!!!!!!!!
+      do f=1,num_faces
+        do a=1,dimG
+          call trace_MTa(tmpdDdPhi_chi(ii,jj,s,a,f),dDdPhi_chi(:,:,f,ii,jj,s),a,NMAT)
+        enddo
+      enddo
+    enddo
+  enddo
+enddo
+do s=1,num_sites
+  do a=1,dimG
+      do b=1,dimG
+        call trace_MTa(tmp,tmpdDdPhi_eta(:,:,s,a,s),b,NMAT)
+        dDdPhi_vec(site_index(a,s),b,s) &
+          = dDdPhi_vec(site_index(a,s),b,s) +  tmp
+      enddo
+  enddo
+enddo
+do f=1,num_faces
+  do a=1,dimG
+    do s=1,num_sites
+      do b=1,dimG
+        call trace_MTa(tmp,tmpdDdPhi_chi(:,:,s,a,f),b,NMAT)
+        dDdPhi_vec(face_index(a,f),b,s) &
+          = dDdPhi_vec(face_index(a,f),b,s) + tmp
+      enddo
+    enddo
+  enddo
+enddo
 !dDdPhi_chi=dDdPhi_chi*overall_factor
   
 
@@ -220,7 +319,7 @@ complex(kind(0d0)) :: tmpdDdA_chi(1:NMAT,1:NMAT,1:num_links,1:dimG,1:num_faces)
 
 !complex(kind(0d0)) :: Uinv(1:NMAT,1:NMAT,1:num_links)
 !complex(kind(0d0)) :: diffdiff_Omega(1:NMAT,1:NMAT,1:dimG,1:dimG)
-complex(kind(0d0)) :: diffdiff_Omega_lambda(1:NMAT,1:NMAT,1:dimG) 
+!complex(kind(0d0)) :: diffdiff_Omega_lambda(1:NMAT,1:NMAT,1:dimG) 
 
 complex(kind(0d0)) :: trace,tmp
 complex(kind(0d0)) :: tmpmat1(1:NMAT,1:NMAT),tmpmat2(1:NMAT,1:NMAT)
@@ -234,24 +333,24 @@ complex(kind(0d0)) :: FF_MAT(1:NMAT,1:NMAT) ! part of fermion force
 !complex(kind(0d0)) :: tmp_diffdiff_Omega2(1:NMAT,1:NMAT,1:dimG,1:dimG)
 !complex(kind(0d0)) :: tmp_diff_Omega(1:NMAT,1:NMAT,1:dimG)
 !complex(kind(0d0)) :: tmp_diff_Omega2(1:NMAT,1:NMAT,1:dimG)
-complex(kind(0d0)) :: Uf(1:NMAT,1:NMAT,1:num_faces)
-complex(kind(0d0)) :: Ufm(1:NMAT,1:NMAT,1:num_faces)
+!complex(kind(0d0)) :: Uf(1:NMAT,1:NMAT,1:num_faces)
+!complex(kind(0d0)) :: Ufm(1:NMAT,1:NMAT,1:num_faces)
 
 
 integer :: s,l,f,ll
 integer :: i,j,k,nl,r,ii,jj
 integer :: a,b,c,d,e
 
-type diffdiff_by_linkvals_in_face
-  complex(kind(0d0)), allocatable :: val(:,:,:,:,:,:)
-end type diffdiff_by_linkvals_in_face
+!type diffdiff_by_linkvals_in_face
+  !complex(kind(0d0)), allocatable :: val(:,:,:,:,:,:)
+!end type diffdiff_by_linkvals_in_face
 
-type(diffdiff_by_linkvals_in_face) :: diffdiff_Omega2(1:num_faces)
+!type(diffdiff_by_linkvals_in_face) :: diffdiff_Omega2(1:num_faces)
 
-do f=1,num_faces
-  allocate( diffdiff_Omega2(f)%val(1:NMAT,1:NMAT,1:dimG,1:dimG,&
-    1:links_in_f(f)%num_, 1:links_in_f(f)%num_) )
-enddo
+!do f=1,num_faces
+  !allocate( diffdiff_Omega2(f)%val(1:NMAT,1:NMAT,1:dimG,1:dimG,&
+    !1:links_in_f(f)%num_, 1:links_in_f(f)%num_) )
+!enddo
 
 !! preparation
 dDdA_vec=(0d0,0d0)
