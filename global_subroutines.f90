@@ -1687,8 +1687,76 @@ endif
 
 end subroutine tmp_calc_diffdiff_Uf
 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!
+subroutine vec_to_mat(eta,lambda,chi,vec)
+use SUN_generators, only : make_traceless_matrix_from_modes
+implicit none
 
+complex(kind(0d0)), intent(out) :: eta(1:NMAT,1:NMAT,1:num_sites)
+complex(kind(0d0)), intent(out) :: lambda(1:NMAT,1:NMAT,1:num_links)
+complex(kind(0d0)), intent(out) :: chi(1:NMAT,1:NMAT,1:num_faces)
+complex(kind(0d0)), intent(in) :: vec(1:sizeD)
 
+complex(kind(0d0)) :: ele(1:dimG)
+integer :: s,l,f,a
+
+do s=1,num_sites
+  do a=1,dimG
+    ele(a)=vec(site_index(a,s))
+  enddo
+  call make_traceless_matrix_from_modes(eta(:,:,s),NMAT,ele)
+enddo
+
+do l=1,num_links
+  do a=1,dimG
+    ele(a)=vec(link_index(a,l))
+  enddo
+  call make_traceless_matrix_from_modes(lambda(:,:,l),NMAT,ele)
+enddo
+
+do f=1,num_faces
+  do a=1,dimG
+    ele(a)=vec(face_index(a,f))
+  enddo
+  call make_traceless_matrix_from_modes(chi(:,:,f),NMAT,ele)
+enddo
+
+end subroutine vec_to_mat
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!
+subroutine mat_to_vec(vec,eta,lambda,chi)
+use SUN_generators, only : trace_MTa
+implicit none
+
+complex(kind(0d0)), intent(in) :: eta(1:NMAT,1:NMAT,1:num_sites)
+complex(kind(0d0)), intent(in) :: lambda(1:NMAT,1:NMAT,1:num_links)
+complex(kind(0d0)), intent(in) :: chi(1:NMAT,1:NMAT,1:num_faces)
+complex(kind(0d0)), intent(out) :: vec(1:sizeD)
+
+complex(kind(0d0)) :: trace
+integer :: s,l,f,a
+
+do s=1,num_sites
+  do a=1,dimG
+    call trace_MTa(trace,eta(:,:,s),a,NMAT)
+    vec(site_index(a,s))=vec(site_index(a,s))+trace
+  enddo
+enddo
+do l=1,num_links
+  do a=1,dimG
+    call trace_MTa(trace,lambda(:,:,l),a,NMAT)
+    vec(link_index(a,l))=vec(link_index(a,l))+trace
+  enddo
+enddo
+do f=1,num_faces
+  do a=1,dimG
+    call trace_MTa(trace,chi(:,:,f),a,NMAT)
+    vec(face_index(a,f))=vec(face_index(a,f))+trace
+  enddo
+enddo
+end subroutine mat_to_vec
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! function to obtain the argument of a complex number z

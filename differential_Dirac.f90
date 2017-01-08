@@ -11,11 +11,15 @@ contains
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! subroutine to return product of d/d\Phi D
-subroutine prod_dDdPhi(dDdPhi_vec,vec,UMAT)
+subroutine prod_dDdPhi(dDdPhi_vec,eta_mat,chi_mat,UMAT)
 implicit none
 
 complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_links) 
-complex(kind(0d0)), intent(in) :: vec(1:sizeD)
+!complex(kind(0d0)), intent(in) :: vec(1:sizeD)
+!complex(kind(0d0)) :: eta_ele(1:dimG,1:num_sites)
+complex(kind(0d0)), intent(in) :: eta_mat(1:NMAT,1:NMAT,1:num_sites)
+!complex(kind(0d0)) :: chi_ele(1:dimG,1:num_faces)
+complex(kind(0d0)), intent(in) :: chi_mat(1:NMAT,1:NMAT,1:num_faces)
 ! dDdPhi_chi(a,s,i) = \frac{d}{d\Phi_{s,a}} ( D \Psi )_i
 complex(kind(0d0)), intent(out) :: dDdPhi_vec(1:sizeD, 1:dimG,1:num_sites)
 complex(kind(0d0)) :: dDdPhi_eta(1:NMAT,1:NMAT,1:num_sites,1:NMAT,1:NMAT,1:num_sites)
@@ -26,12 +30,6 @@ complex(kind(0d0)) :: tmpdDdPhi_eta(1:NMAT,1:NMAT,1:num_sites,1:dimG,1:num_sites
 complex(kind(0d0)) :: tmpdDdPhi_chi(1:NMAT,1:NMAT,1:num_sites,1:dimG,1:num_faces)
 
 
-
-complex(kind(0d0)) :: eta_ele(1:dimG,1:num_sites)
-complex(kind(0d0)) :: eta_mat(1:NMAT,1:NMAT,1:num_sites)
-complex(kind(0d0)) :: chi_ele(1:dimG,1:num_faces)
-complex(kind(0d0)) :: chi_mat(1:NMAT,1:NMAT,1:num_faces)
-
 complex(kind(0d0)) :: tmp
 integer :: s,f,i,j,ii,jj
 integer :: a,b,c,r
@@ -40,29 +38,9 @@ integer :: a,b,c,r
 !! link: (l,a) <--> r=a+dimG*(num_sites + l -1)
 !! face: (f,a) <--> r=a+dimG*(num_sites + num_links + f -1 )
 !! preparation
-!dDdPhi_chi=(0d0,0d0)
-!do s=1,num_sites
-!  do i=1,dimG
-!    eta_ele(i,s)=vec(i+dimG*(s-1))
-!  enddo
-!enddo
-!! preparation
 dDdPhi_vec=(0d0,0d0)
 dDdPhi_eta=(0d0,0d0)
 dDdPhi_chi=(0d0,0d0)
-do s=1,num_sites
-  do a=1,dimG
-    eta_ele(a,s)=vec(site_index(a,s))
-  enddo
-  call make_traceless_matrix_from_modes(eta_mat(:,:,s),NMAT,eta_ele(:,s))
-enddo
-do f=1,num_faces
-  do a=1,dimG
-    chi_ele(a,f)=vec(face_index(a,f))
-  enddo
-  call make_traceless_matrix_from_modes(chi_mat(:,:,f),NMAT,chi_ele(:,f))
-enddo
-
 
 if( p1 == 0 ) then
     !write(*,*) p1
@@ -186,18 +164,16 @@ end subroutine prod_dDdPhi
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! subroutine to return product of d/d\Phi D^\dagger
-subroutine prod_dDdbPhi(dDdbPhi_vec,vec,UMAT)
+subroutine prod_dDdbPhi(dDdbPhi_vec,lambda_mat,UMAT)
 implicit none
 
 complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_links) 
-complex(kind(0d0)), intent(in) :: vec(1:sizeD)
+!complex(kind(0d0)), intent(in) :: vec(1:sizeD)
+complex(kind(0d0)), intent(in) :: lambda_mat(1:NMAT,1:NMAT,1:num_links)
 complex(kind(0d0)), intent(out) :: dDdbPhi_vec(1:sizeD,1:dimG,1:num_sites)
 complex(kind(0d0)) :: dDdbPhi_lambda(1:NMAT,1:NMAT,1:num_links,1:NMAT,1:NMAT,1:num_sites)
 ! d/dA_{ll,ii,jj} (Ta)_{ji} (D\Psi)_{f,i,j}=tmpdDdA_chi(ii,jj,ll,a,f)
 complex(kind(0d0)) :: tmpdDdbPhi_lambda(1:NMAT,1:NMAT,1:num_sites,1:dimG,1:num_links)
-
-complex(kind(0d0)) :: lambda_ele(1:dimG,1:num_links)
-complex(kind(0d0)) :: lambda_mat(1:NMAT,1:NMAT,1:num_links)
 
 
 complex(kind(0d0)) :: tmpmat1(1:NMAT,1:NMAT)
@@ -211,13 +187,6 @@ integer :: a,b
 !! preparation
 dDdbPhi_vec=(0d0,0d0)
 dDdbPhi_lambda=(0d0,0d0)
-
-do l=1,num_links
-  do a=1,dimG    
-    lambda_ele(a,l)=vec(link_index(a,l))
-  enddo          
-  call make_traceless_matrix_from_modes(lambda_mat(:,:,l),NMAT,lambda_ele(:,l))
-enddo            
 
 
 ! (1) Dirac from site
@@ -293,20 +262,17 @@ end subroutine prod_dDdbPhi
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! subroutine to return product of d/dA D . vec
-subroutine prod_dDdA(dDdA_vec,vec,UMAT,PhiMat)
+subroutine prod_dDdA(dDdA_vec,eta_mat,lambda_mat,chi_mat,UMAT,PhiMat)
 implicit none
 
 complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_links) 
 complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_sites)
-complex(kind(0d0)), intent(in) :: vec(1:sizeD)
+!complex(kind(0d0)), intent(in) :: vec(1:sizeD)
 complex(kind(0d0)), intent(out) :: dDdA_vec(1:sizeD, 1:dimG,1:num_links)
 
-complex(kind(0d0)) :: eta_ele(1:dimG,1:num_sites)
-complex(kind(0d0)) :: eta_mat(1:NMAT,1:NMAT,1:num_sites)
-complex(kind(0d0)) :: lambda_ele(1:dimG,1:num_links)
-complex(kind(0d0)) :: lambda_mat(1:NMAT,1:NMAT,1:num_links)
-complex(kind(0d0)) :: chi_ele(1:dimG,1:num_faces)
-complex(kind(0d0)) :: chi_mat(1:NMAT,1:NMAT,1:num_faces)
+complex(kind(0d0)), intent(in) :: eta_mat(1:NMAT,1:NMAT,1:num_sites)
+complex(kind(0d0)), intent(in) :: lambda_mat(1:NMAT,1:NMAT,1:num_links)
+complex(kind(0d0)), intent(in) :: chi_mat(1:NMAT,1:NMAT,1:num_faces)
 
 ! d/dA_{ll,ii,jj} (D\Psi)_{s,i,j}=dDdA_eta(i,j,s,ii,jj,ll)
 complex(kind(0d0)) :: dDdA_eta(1:NMAT,1:NMAT,1:num_sites,1:NMAT,1:NMAT,1:num_links)
@@ -362,24 +328,6 @@ dDdA_vec=(0d0,0d0)
 dDdA_eta=(0d0,0d0)
 dDdA_lambda=(0d0,0d0)
 dDdA_chi=(0d0,0d0)
-do s=1,num_sites
-  do a=1,dimG
-    eta_ele(a,s)=vec(site_index(a,s))
-  enddo
-  call make_traceless_matrix_from_modes(eta_mat(:,:,s),NMAT,eta_ele(:,s))
-enddo
-do l=1,num_links
-  do a=1,dimG
-    lambda_ele(a,l)=vec(link_index(a,l))
-  enddo
-  call make_traceless_matrix_from_modes(lambda_mat(:,:,l),NMAT,lambda_ele(:,l))
-enddo
-do f=1,num_faces
-  do a=1,dimG
-    chi_ele(a,f)=vec(face_index(a,f))
-  enddo
-  call make_traceless_matrix_from_modes(chi_mat(:,:,f),NMAT,chi_ele(:,f))
-enddo
 
 ! for test
 !call make_SUN_generators(T,NMAT)

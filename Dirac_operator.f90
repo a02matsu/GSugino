@@ -114,11 +114,11 @@ complex(kind(0d0)), intent(in) :: PhiMat(:,:,:)
 !complex(kind(0d0)), parameter :: mass_f=1d0
 
 complex(kind(0d0)) :: eta_mat(1:NMAT,1:NMAT,1:num_sites)
-complex(kind(0d0)) :: eta_ele(1:dimG,1:num_sites)
+!complex(kind(0d0)) :: eta_ele(1:dimG,1:num_sites)
 complex(kind(0d0)) :: lambda_mat(1:NMAT,1:NMAT,1:num_links)
-complex(kind(0d0)) :: lambda_ele(1:dimG,1:num_links)
+!complex(kind(0d0)) :: lambda_ele(1:dimG,1:num_links)
 complex(kind(0d0)) :: chi_mat(1:NMAT,1:NMAT,1:num_faces)
-complex(kind(0d0)) :: chi_ele(1:dimG,1:num_faces)
+!complex(kind(0d0)) :: chi_ele(1:dimG,1:num_faces)
 
 complex(kind(0d0)) :: DF_eta(1:NMAT,1:NMAT,1:num_sites)
 complex(kind(0d0)) :: DF_lambda(1:NMAT,1:NMAT,1:num_links)
@@ -135,7 +135,7 @@ complex(kind(0d0)) :: r_face(1:dimG,1:num_faces)
 
 complex(kind(0d0)) :: Uinv(1:NMAT,1:NMAT,1:num_links)
 complex(kind(0d0)) :: Uf(1:NMAT,1:NMAT,1:num_faces),Ufm(1:NMAT,1:NMAT,1:num_faces)
-complex(kind(0d0)) :: diff_Omega(1:NMAT,1:NMAT,1:dimG)
+!complex(kind(0d0)) :: diff_Omega(1:NMAT,1:NMAT,1:dimG)
 
 complex(kind(0d0)) :: tmpmat1(1:NMAT,1:NMAT)
 complex(kind(0d0)) :: tmpmat2(1:NMAT,1:NMAT)
@@ -158,36 +158,17 @@ integer :: a,b,c
 integer :: r
 
 !! for test
-complex(kind(0d0)) :: tmp_diff_Omega(1:NMAT,1:NMAT,1:dimG)
-complex(kind(0d0)) :: tmp_diff_Omega2(1:NMAT,1:NMAT,1:dimG)
+!complex(kind(0d0)) :: tmp_diff_Omega(1:NMAT,1:NMAT,1:dimG)
+!complex(kind(0d0)) :: tmp_diff_Omega2(1:NMAT,1:NMAT,1:dimG)
 integer :: ii,jj
 
 !! preparation
 D_vec=(0d0,0d0)
-r_site=(0d0,0d0)
-r_link=(0d0,0d0)
-r_face=(0d0,0d0)
+!r_site=(0d0,0d0)
+!r_link=(0d0,0d0)
+!r_face=(0d0,0d0)
 
-do s=1,num_sites
-  do a=1,dimG
-    eta_ele(a,s)=vec(site_index(a,s))
-  enddo
-  call make_traceless_matrix_from_modes(eta_mat(:,:,s),NMAT,eta_ele(:,s))
-enddo
-
-do l=1,num_links
-  do a=1,dimG
-    lambda_ele(a,l)=vec(link_index(a,l))
-  enddo
-  call make_traceless_matrix_from_modes(lambda_mat(:,:,l),NMAT,lambda_ele(:,l))
-enddo
-
-do f=1,num_faces
-  do a=1,dimG
-    chi_ele(a,f)=vec(face_index(a,f))
-  enddo
-  call make_traceless_matrix_from_modes(chi_mat(:,:,f),NMAT,chi_ele(:,f))
-enddo
+call vec_to_mat(eta_mat,lambda_mat,chi_mat,vec)
 
 do s=1,num_sites
   do i=1,NMAT
@@ -203,60 +184,6 @@ DF_eta=(0d0,0d0)
 DF_lambda=(0d0,0d0)
 DF_chi=(0d0,0d0)
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!! (0) fermion mass
-do l=1,num_links
-  do a=1,dimG
-    r_link(a,l)=r_link(a,l) + (0d0,0.5d0)*mass_f & 
-      * ( eta_ele( a, link_tip(l) ) - eta_ele( a, link_org(l) ) )
-  enddo
-enddo 
-
-do s=1,num_sites
-  do a=1,dimG
-    do i=1,linkorg_to_s(s)%num_
-      l=linkorg_to_s(s)%labels_(i)
-      r_site(a,s)=r_site(a,s) - (0d0,0.5d0)*mass_f &
-        * lambda_ele(a,l)
-    enddo
-    do i=1,linktip_from_s(s)%num_
-      l=linktip_from_s(s)%labels_(i)
-      r_site(a,s)=r_site(a,s) + (0d0,0.5d0)*mass_f &
-        * lambda_ele(a,l)
-    enddo
-  enddo
-enddo
-
-do f=1,num_faces
-  do a=1,dimG
-    do i=1,links_in_f(f)%num_
-      l=links_in_f(f)%link_labels_(i)
-      r_face(a,f) = r_face(a,f) + (0d0,0.5d0)*mass_f &
-        * lambda_ele(a,l)
-    enddo
-  enddo
-enddo
-
-do l=1,num_links
-  do a=1,dimG
-    do i=1,face_in_l(l)%num_       
-      f=face_in_l(l)%label_(i)
-      r_link(a,l) = r_link(a,l) - (0d0,0.5d0)*mass_f &
-        * chi_ele(a,f) 
-    enddo
-  enddo
-enddo
-
-!! preparation
-!do l=1,num_links
-!  do i=1,NMAT
-!    do j=1,NMAT
-!      Uinv(i,j,l)=dconjg(UMAT(j,i,l))
-!    enddo
-!  enddo
-!enddo
-
-
 if ( p1 == 0 ) then 
     !write(*,*) p1
 !! (1) site action 
@@ -264,14 +191,6 @@ do s=1,num_sites
   call matrix_commutator(tmpmat1,PhiMat(:,:,s),eta_mat(:,:,s))
   DF_eta(:,:,s)=DF_eta(:,:,s) &
       +dcmplx(alpha_s(s))*(-0.5d0,0d0) *overall_factor*tmpmat1
-!  do r=1,NZF
-!    a=NZF_index(1,r)
-!    b=NZF_index(2,r)
-!    c=NZF_index(3,r)
-!    D_vec(site_index(a,s))=D_vec(site_index(a,s)) & 
-!      +dcmplx(alpha_s(s))*(0d0,-0.5d0)*NZF_value(r) &
-!        *Phi(b,s)*vec(site_index(c,s))*overall_factor
-!  enddo
 enddo
 
 endif
@@ -297,11 +216,6 @@ do s=1,num_sites
   enddo
   DF_eta(:,:,s)=DF_eta(:,:,s) &
     + overall_factor * tmpmat2
-  !do a=1,dimG
-    !call trace_MTa(trace,tmpmat2,a,NMAT)
-    !D_vec(site_index(a,s))=D_vec(site_index(a,s)) &
-      !+ trace *overall_factor
-  !enddo
   !!!
   do k=1,linktip_from_s(s)%num_
     l=linktip_from_s(s)%labels_(k)
@@ -408,28 +322,6 @@ do f=1,num_faces
         * cmplx(alpha_f(f)*beta_f(f)) * (line1-line2)
   enddo
 enddo
-!  do a=1,dimG
-!    call trace_MTa(trace,DF_chi(:,:,f),a,NMAT)
-!    D_vec(face_index(a,f))=D_vec(face_index(a,f))+trace
-!  enddo
-!enddo
-
-!do f=1,num_faces
-!  tmpmat1=(0d0,0d0)
-!  do i=1,links_in_f(f)%num_
-!    l=links_in_f(f)%link_labels_(i)
-!    call calc_diff_omega(diff_Omega(:,:,:),Uf(:,:,f),Ufm(:,:,f),f,l,UMAT)
-!    
-!    do b=1,dimG
-!      tmpmat1=tmpmat1+lambda_ele(b,l)*diff_Omega(:,:,b)
-!    enddo
-!  enddo  
-!  do a=1,dimG
-!    call trace_MTa(trace,tmpmat1,a,NMAT)
-!    D_vec(face_index(a,f))=D_vec(face_index(a,f)) &
-!      +(0d0,1d0)*dcmplx(alpha_f(f)*beta_f(f))*trace*overall_factor
-!  enddo
-!enddo
 
 do l=1,num_links
   do i=1,face_in_l(l)%num_       
@@ -469,42 +361,9 @@ do l=1,num_links
         * cmplx(alpha_f(f)*beta_f(f)) * acomm
   enddo
 enddo
-
-
-!    call calc_diff_omega(diff_Omega(:,:,:),Uf(:,:,f),Ufm(:,:,f),f,l,UMAT)
-!    do a=1,dimG
-!      tmp=(0d0,0d0)
-!      do j=1,NMAT
-!        do k=1,NMAT
-!          tmp=tmp+chi_mat(j,k,f)*diff_Omega(k,j,a)
-!        enddo
-!      enddo
-!
-!      D_vec(link_index(a,l))=D_vec(link_index(a,l)) &
-!        +(0d0,-1d0)*dcmplx(alpha_f(f)*beta_f(f))*tmp*overall_factor
-!    enddo
-  !enddo
-!enddo
 endif
 
-do s=1,num_sites
-  do a=1,dimG
-    call trace_MTa(trace,DF_eta(:,:,s),a,NMAT)
-    D_vec(site_index(a,s))=D_vec(site_index(a,s))+trace
-  enddo
-enddo
-do l=1,num_links
-  do a=1,dimG
-    call trace_MTa(trace,DF_lambda(:,:,l),a,NMAT)
-    D_vec(link_index(a,l))=D_vec(link_index(a,l))+trace
-  enddo
-enddo
-do f=1,num_faces
-  do a=1,dimG
-    call trace_MTa(trace,DF_chi(:,:,f),a,NMAT)
-    D_vec(face_index(a,f))=D_vec(face_index(a,f))+trace
-  enddo
-enddo
+call mat_to_vec(D_vec,DF_eta,DF_lambda,DF_chi)
 !! (T1) test action
 !do f=1,num_faces
 !  call Make_face_variable(Uf(:,:,f),f,UMAT) 

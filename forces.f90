@@ -400,18 +400,22 @@ complex(kind(0d0)), intent(out) :: dSdPhi_fermion(1:dimG,1:num_sites)
 double precision, intent(out) :: dSdA_fermion(1:dimG,1:num_links)
 integer, intent(inout) :: info
 
-! chi_r = (D\dagger D + \beta_r)^{-1} F
-complex(kind(0d0)) :: chi(1:sizeD,1:N_Remez4)
-! Dchi_r = D.chi_r
-complex(kind(0d0)) :: Dchi(1:sizeD,1:N_Remez4)
-! [\frac{dD^\dagger D}{dPhi_s^a}]_{ij} \chi_j
-!complex(kind(0d0)) :: dDdagD_dPhi_chi(1:sizeD, 1:dimG,1:num_sites,1:N_Remez4)
-! [\frac{dD^\dagger D}{dA_l^a}]_{ij} \chi_j
-!complex(kind(0d0)) :: dDdagD_dA_chi(1:sizeD, 1:dimG,1:num_links,1:N_Remez4)
+! vec_r = (D\dagger D + \beta_r)^{-1} F
+complex(kind(0d0)) :: vec(1:sizeD,1:N_Remez4)
+! Dvec_r = D.vec_r
+complex(kind(0d0)) :: Dvec(1:sizeD,1:N_Remez4)
+! [\frac{dD^\dagger D}{dPhi_s^a}]_{ij} \vec_j
+!complex(kind(0d0)) :: dDdagD_dPhi_vec(1:sizeD, 1:dimG,1:num_sites,1:N_Remez4)
+! [\frac{dD^\dagger D}{dA_l^a}]_{ij} \vec_j
+!complex(kind(0d0)) :: dDdagD_dA_vec(1:sizeD, 1:dimG,1:num_links,1:N_Remez4)
 ! 
-complex(kind(0d0)) :: dDdPhi_chi(1:sizeD,1:dimG,1:num_sites,1:N_Remez4)
-complex(kind(0d0)) :: dDdbPhi_chi(1:sizeD,1:dimG,1:num_sites,1:N_Remez4)
-complex(kind(0d0)) :: dDdA_chi(1:sizeD,1:dimG,1:num_links,1:N_Remez4)
+complex(kind(0d0)) :: dDdPhi_vec(1:sizeD,1:dimG,1:num_sites,1:N_Remez4)
+complex(kind(0d0)) :: dDdbPhi_vec(1:sizeD,1:dimG,1:num_sites,1:N_Remez4)
+complex(kind(0d0)) :: dDdA_vec(1:sizeD,1:dimG,1:num_links,1:N_Remez4)
+
+complex(kind(0d0)) :: eta(1:NMAT,1:NMAT,1:num_sites)
+complex(kind(0d0)) :: lambda(1:NMAT,1:NMAT,1:num_links)
+complex(kind(0d0)) :: chi(1:NMAT,1:NMAT,1:num_faces)
 
 complex(kind(0d0)) :: tmp
 integer :: CGite
@@ -421,7 +425,7 @@ integer :: r,i,s,l,a,b
 !! for test
 !complex(kind(0d0)) :: DdagD(1:sizeD,1:sizeD)
 !complex(kind(0d0)) :: tmpmat(1:sizeD,1:sizeD)
-!complex(kind(0d0)) :: chi_direct(1:sizeD,1:N_Remez4)
+!complex(kind(0d0)) :: vec_direct(1:sizeD,1:N_Remez4)
 !double precision :: distance
 !integer :: j
 
@@ -431,19 +435,21 @@ dSdA_fermion=0d0
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ! comutation by CG
-! compute chi_r(i,r) =  (D^\dagger D + \beta_r)^{-1} F(i)
+! compute vec_r(i,r) =  (D^\dagger D + \beta_r)^{-1} F(i)
 !write(*,*) "   mmBiCG start"
 !call check_Dirac(UMAT,Phi)
-call mmBiCG( chi, PF, Remez_beta4, sizeD, N_Remez4, epsilon, &
+call mmBiCG( vec, PF, Remez_beta4, sizeD, N_Remez4, epsilon, &
              CG_max, info, CGite, UMAT, PhiMat, Prod_DdagD )
 !write(*,*) "   mmBiCG end", cgite
 do r=1,N_Remez4
-  call prod_Dirac(Dchi(:,r),chi(:,r),sizeD,UMAT,PhiMat)
+  call vec_to_mat(eta,lambda,chi,vec(:,r))
+  call prod_Dirac(Dvec(:,r),vec(:,r),sizeD,UMAT,PhiMat)
   
-  call prod_dDdPhi(dDdPhi_chi(:,:,:,r),chi(:,r),UMAT)
-  call prod_dDdbPhi(dDdbPhi_chi(:,:,:,r),chi(:,r),UMAT)
+  !call prod_dDdPhi(dDdPhi_vec(:,:,:,r),vec(:,r),UMAT)
+  call prod_dDdPhi(dDdPhi_vec(:,:,:,r),eta,chi,UMAT)
+  call prod_dDdbPhi(dDdbPhi_vec(:,:,:,r),lambda,UMAT)
   
-  call prod_dDdA(dDdA_chi(:,:,:,r),chi(:,r),UMAT,PhiMat)
+  call prod_dDdA(dDdA_vec(:,:,:,r),eta,lambda,chi,UMAT,PhiMat)
 enddo
 
 do s=1,num_sites
@@ -452,8 +458,8 @@ do s=1,num_sites
       do i=1,sizeD
         dSdPhi_fermion(a,s)=dSdPhi_fermion(a,s) & 
           - dcmplx(Remez_alpha4(r)) &
-            * ( dconjg( Dchi(i,r) ) * dDdPhi_chi(i,a,s,r) &
-               + dconjg( dDdbPhi_chi(i,a,s,r) ) * Dchi(i,r) )
+            * ( dconjg( Dvec(i,r) ) * dDdPhi_vec(i,a,s,r) &
+               + dconjg( dDdbPhi_vec(i,a,s,r) ) * Dvec(i,r) )
       enddo
     enddo
   enddo
@@ -465,11 +471,11 @@ do l=1,num_links
       do i=1,sizeD
         dSdA_fermion(a,l)=dSdA_fermion(a,l) & 
           - Remez_alpha4(r)   &
-            *dble( dconjg( Dchi(i,r) ) * dDdA_chi(i,a,l,r) &
-                   + dconjg( dDdA_chi(i,a,l,r) ) * Dchi(i,r) ) 
+            *dble( dconjg( Dvec(i,r) ) * dDdA_vec(i,a,l,r) &
+                   + dconjg( dDdA_vec(i,a,l,r) ) * Dvec(i,r) ) 
       !write(*,*) "real?", &
-      !       dconjg( Dchi(i,r) ) * dDdA_chi(i,a,l,r) &
-      !       + dconjg( dDdA_chi(i,a,l,r) ) * Dchi(i,r) 
+      !       dconjg( Dvec(i,r) ) * dDdA_vec(i,a,l,r) &
+      !       + dconjg( dDdA_vec(i,a,l,r) ) * Dvec(i,r) 
       enddo
     enddo
   enddo
