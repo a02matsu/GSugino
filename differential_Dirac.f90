@@ -11,23 +11,14 @@ contains
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! subroutine to return product of d/d\Phi D
-subroutine prod_dDdPhi(dDdPhi_vec,eta_mat,chi_mat,UMAT)
+subroutine prod_dDdPhi(dDdPhi_eta,dDdPhi_chi,eta_mat,chi_mat,UMAT)
 implicit none
 
 complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_links) 
-!complex(kind(0d0)), intent(in) :: vec(1:sizeD)
-!complex(kind(0d0)) :: eta_ele(1:dimG,1:num_sites)
 complex(kind(0d0)), intent(in) :: eta_mat(1:NMAT,1:NMAT,1:num_sites)
-!complex(kind(0d0)) :: chi_ele(1:dimG,1:num_faces)
 complex(kind(0d0)), intent(in) :: chi_mat(1:NMAT,1:NMAT,1:num_faces)
-! dDdPhi_chi(a,s,i) = \frac{d}{d\Phi_{s,a}} ( D \Psi )_i
-complex(kind(0d0)), intent(out) :: dDdPhi_vec(1:sizeD, 1:dimG,1:num_sites)
-complex(kind(0d0)) :: dDdPhi_eta(1:NMAT,1:NMAT,1:num_sites,1:NMAT,1:NMAT,1:num_sites)
-complex(kind(0d0)) :: dDdPhi_chi(1:NMAT,1:NMAT,1:num_faces,1:NMAT,1:NMAT,1:num_sites)
-! d/dA_{ll,ii,jj} (Ta)_{ji} (D\Psi)_{s,i,j}=tmpdDdA_eta(ii,jj,ll,a,s)
-complex(kind(0d0)) :: tmpdDdPhi_eta(1:NMAT,1:NMAT,1:num_sites,1:dimG,1:num_sites)
-! d/dA_{ll,ii,jj} (Ta)_{ji} (D\Psi)_{f,i,j}=tmpdDdA_chi(ii,jj,ll,a,f)
-complex(kind(0d0)) :: tmpdDdPhi_chi(1:NMAT,1:NMAT,1:num_sites,1:dimG,1:num_faces)
+complex(kind(0d0)), intent(out) :: dDdPhi_eta(1:NMAT,1:NMAT,1:num_sites,1:NMAT,1:NMAT,1:num_sites)
+complex(kind(0d0)), intent(out) :: dDdPhi_chi(1:NMAT,1:NMAT,1:num_faces,1:NMAT,1:NMAT,1:num_sites)
 
 
 complex(kind(0d0)) :: tmp
@@ -38,7 +29,7 @@ integer :: a,b,c,r
 !! link: (l,a) <--> r=a+dimG*(num_sites + l -1)
 !! face: (f,a) <--> r=a+dimG*(num_sites + num_links + f -1 )
 !! preparation
-dDdPhi_vec=(0d0,0d0)
+!dDdPhi_vec=(0d0,0d0)
 dDdPhi_eta=(0d0,0d0)
 dDdPhi_chi=(0d0,0d0)
 
@@ -66,19 +57,6 @@ do s=1,num_sites
     enddo
   enddo
 enddo
-
-
-!do s=1,num_sites
-!  do r=1,NZF
-!    a=NZF_index(1,r)
-!    b=NZF_index(2,r)
-!    c=NZF_index(3,r)
-!    j=a+dimG*(s-1) ! j <=> (a,s)
-!    dDdPhi_chi(j,b,s)=dDdPhi_chi(j,b,s)& 
-!      +(0d0,-0.5d0)*dcmplx(alpha_s(s))*NZF_value(r) &
-!      * vec(c+dimG*(s-1)) * overall_factor ! \eta_{s,c}
-!  enddo
-!enddo
 endif
 
 !! (2) Dirac from link 1
@@ -110,70 +88,22 @@ do f=1,num_faces
       enddo
     enddo
   enddo
-!  do r=1,NZF
-!    a=NZF_index(1,r)
-!    b=NZF_index(2,r)
-!    c=NZF_index(3,r)
-!    dDdPhi_vec(face_index(a,f),b,s)= dDdPhi_vec(face_index(a,f),b,s) &
-!      +(0d0,-2d0)*dcmplx(alpha_f(f))*NZF_value(r)*chi_ele(c,f)*overall_factor
-!  enddo
 enddo
 endif
 
-do s=1,num_sites
-  do ii=1,NMAT
-    do jj=1,NMAT
-      !!!!!!!!!!!
-        do a=1,dimG
-          call trace_MTa(tmpdDdPhi_eta(ii,jj,s,a,s),dDdPhi_eta(:,:,s,ii,jj,s),a,NMAT)
-        enddo
-      !!!!!!!!!!!
-      do f=1,num_faces
-        do a=1,dimG
-          call trace_MTa(tmpdDdPhi_chi(ii,jj,s,a,f),dDdPhi_chi(:,:,f,ii,jj,s),a,NMAT)
-        enddo
-      enddo
-    enddo
-  enddo
-enddo
-do s=1,num_sites
-  do a=1,dimG
-      do b=1,dimG
-        call trace_MTa(tmp,tmpdDdPhi_eta(:,:,s,a,s),b,NMAT)
-        dDdPhi_vec(site_index(a,s),b,s) &
-          = dDdPhi_vec(site_index(a,s),b,s) +  tmp
-      enddo
-  enddo
-enddo
-do f=1,num_faces
-  do a=1,dimG
-    do s=1,num_sites
-      do b=1,dimG
-        call trace_MTa(tmp,tmpdDdPhi_chi(:,:,s,a,f),b,NMAT)
-        dDdPhi_vec(face_index(a,f),b,s) &
-          = dDdPhi_vec(face_index(a,f),b,s) + tmp
-      enddo
-    enddo
-  enddo
-enddo
-!dDdPhi_chi=dDdPhi_chi*overall_factor
-  
 
 end subroutine prod_dDdPhi
 
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! subroutine to return product of d/d\Phi D^\dagger
-subroutine prod_dDdbPhi(dDdbPhi_vec,lambda_mat,UMAT)
+subroutine prod_dDdbPhi(dDdbPhi_lambda,lambda_mat,UMAT)
 implicit none
 
 complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_links) 
-!complex(kind(0d0)), intent(in) :: vec(1:sizeD)
 complex(kind(0d0)), intent(in) :: lambda_mat(1:NMAT,1:NMAT,1:num_links)
-complex(kind(0d0)), intent(out) :: dDdbPhi_vec(1:sizeD,1:dimG,1:num_sites)
-complex(kind(0d0)) :: dDdbPhi_lambda(1:NMAT,1:NMAT,1:num_links,1:NMAT,1:NMAT,1:num_sites)
-! d/dA_{ll,ii,jj} (Ta)_{ji} (D\Psi)_{f,i,j}=tmpdDdA_chi(ii,jj,ll,a,f)
-complex(kind(0d0)) :: tmpdDdbPhi_lambda(1:NMAT,1:NMAT,1:num_sites,1:dimG,1:num_links)
+complex(kind(0d0)), intent(out) :: dDdbPhi_lambda(1:NMAT,1:NMAT,1:num_links,1:NMAT,1:NMAT,1:num_sites)
+complex(kind(0d0)) :: dDdbPhi_vec(1:sizeD,1:dimG,1:num_sites)
 
 
 complex(kind(0d0)) :: tmpmat1(1:NMAT,1:NMAT)
@@ -222,30 +152,6 @@ do l=1,num_links
                  * lambda_mat(i,jj,l)
           endif
         enddo
-      enddo
-    enddo
-  enddo
-enddo
-
-do s=1,num_sites
-  do ii=1,NMAT
-    do jj=1,NMAT
-      !!!!!!!!!!!
-      do l=1,num_links
-        do a=1,dimG
-          call trace_MTa(tmpdDdbPhi_lambda(ii,jj,s,a,l),dDdbPhi_lambda(:,:,l,ii,jj,s),a,NMAT)
-        enddo
-      enddo
-    enddo
-  enddo
-enddo
-do l=1,num_links
-  do a=1,dimG
-    do s=1,num_sites
-      do b=1,dimG
-        call trace_MTa(tmp,tmpdDdbPhi_lambda(:,:,s,a,l),b,NMAT)
-        dDdbPhi_vec(link_index(a,l),b,s) &
-          = dDdbPhi_vec(link_index(a,l),b,s) + tmp
       enddo
     enddo
   enddo

@@ -36,7 +36,7 @@ double precision :: dSdA_boson_link(1:dimG,1:num_links)
 double precision :: dSdA_boson_face(1:dimG,1:num_links)
 double precision :: dSdA_fermion(1:dimG,1:num_links)
 
-integer :: s,a!,l
+integer :: s,a,ii,jj
 !do s=1,num_sites
   !do a=1,dimG
     !call trace_MTa(Phi(a,s),PhiMat(:,:,s),a,NMAT)
@@ -397,6 +397,7 @@ complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_links)
 complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_sites)
 complex(kind(0d0)), intent(in) :: PF(1:sizeD)
 complex(kind(0d0)), intent(out) :: dSdPhi_fermion(1:dimG,1:num_sites)
+complex(kind(0d0)) :: dSdPhi_fermion_org(1:NMAT,1:NMAT,1:num_sites)
 double precision, intent(out) :: dSdA_fermion(1:dimG,1:num_links)
 integer, intent(inout) :: info
 
@@ -404,6 +405,9 @@ integer, intent(inout) :: info
 complex(kind(0d0)) :: vec(1:sizeD,1:N_Remez4)
 ! Dvec_r = D.vec_r
 complex(kind(0d0)) :: Dvec(1:sizeD,1:N_Remez4)
+complex(kind(0d0)) :: dvec_eta(1:NMAT,1:NMAT,1:num_sites,1:N_Remez4)
+complex(kind(0d0)) :: dvec_lambda(1:NMAT,1:NMAT,1:num_links,1:N_Remez4)
+complex(kind(0d0)) :: dvec_chi(1:NMAT,1:NMAT,1:num_faces,1:N_Remez4)
 ! [\frac{dD^\dagger D}{dPhi_s^a}]_{ij} \vec_j
 !complex(kind(0d0)) :: dDdagD_dPhi_vec(1:sizeD, 1:dimG,1:num_sites,1:N_Remez4)
 ! [\frac{dD^\dagger D}{dA_l^a}]_{ij} \vec_j
@@ -412,14 +416,23 @@ complex(kind(0d0)) :: Dvec(1:sizeD,1:N_Remez4)
 complex(kind(0d0)) :: dDdPhi_vec(1:sizeD,1:dimG,1:num_sites,1:N_Remez4)
 complex(kind(0d0)) :: dDdbPhi_vec(1:sizeD,1:dimG,1:num_sites,1:N_Remez4)
 complex(kind(0d0)) :: dDdA_vec(1:sizeD,1:dimG,1:num_links,1:N_Remez4)
+!!
+complex(kind(0d0)) :: dDdPhi_eta(1:NMAT,1:NMAT,1:num_sites,1:NMAT,1:NMAT,1:num_sites,1:N_Remez4)
+complex(kind(0d0)) :: dDdPhi_lambda(1:NMAT,1:NMAT,1:num_links,1:NMAT,1:NMAT,1:num_sites,1:N_Remez4)
+complex(kind(0d0)) :: dDdPhi_chi(1:NMAT,1:NMAT,1:num_faces,1:NMAT,1:NMAT,1:num_sites,1:N_Remez4)
+complex(kind(0d0)) :: dDdbPhi_lambda(1:NMAT,1:NMAT,1:num_links,1:NMAT,1:NMAT,1:num_sites,1:N_Remez4)
+complex(kind(0d0)) :: dDdA_eta(1:NMAT,1:NMAT,1:num_sites,1:dimG,1:num_links,1:N_Remez4)
+complex(kind(0d0)) :: dDdA_lambda(1:NMAT,1:NMAT,1:num_links,1:dimG,1:num_links,1:N_Remez4)
+complex(kind(0d0)) :: dDdA_chi(1:NMAT,1:NMAT,1:num_faces,1:dimG,1:num_links,1:N_Remez4)
 
 complex(kind(0d0)) :: eta(1:NMAT,1:NMAT,1:num_sites)
 complex(kind(0d0)) :: lambda(1:NMAT,1:NMAT,1:num_links)
 complex(kind(0d0)) :: chi(1:NMAT,1:NMAT,1:num_faces)
 
 complex(kind(0d0)) :: tmp
+double precision :: rtmp
 integer :: CGite
-integer :: r,i,s,l,a,b
+integer :: r,i,j,s,l,a,b,ss,f,ll,ii,jj
 
 
 !! for test
@@ -431,6 +444,7 @@ integer :: r,i,s,l,a,b
 
 
 dSdPhi_fermion=(0d0,0d0)
+dSdPhi_fermion_org=(0d0,0d0)
 dSdA_fermion=0d0
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -446,37 +460,134 @@ do r=1,N_Remez4
   call prod_Dirac(Dvec(:,r),vec(:,r),sizeD,UMAT,PhiMat)
   
   !call prod_dDdPhi(dDdPhi_vec(:,:,:,r),vec(:,r),UMAT)
-  call prod_dDdPhi(dDdPhi_vec(:,:,:,r),eta,chi,UMAT)
-  call prod_dDdbPhi(dDdbPhi_vec(:,:,:,r),lambda,UMAT)
+  call prod_dDdPhi(dDdPhi_eta(:,:,:,:,:,:,r),&
+    dDdPhi_chi(:,:,:,:,:,:,r), &
+    eta,chi,UMAT)
+  call prod_dDdbPhi(dDdbPhi_lambda(:,:,:,:,:,:,r),lambda,UMAT)
   
   call prod_dDdA(dDdA_vec(:,:,:,r),eta,lambda,chi,UMAT,PhiMat)
 enddo
 
+do r=1,N_Remez4
+  !do s=1,num_sites
+    !do a=1,dimG
+      !call vec_to_mat(&
+        !dDdPhi_lambda(:,:,:,a,s,r), &
+        !dDdPhi_chi(:,:,:,a,s,r), &
+        !dDdPhi_vec(:,a,s,r))
+      !call vec_to_mat(&
+        !dDdbPhi_eta(:,:,:,a,s,r), &
+        !dDdbPhi_lambda(:,:,:,a,s,r), &
+        !dDdbPhi_chi(:,:,:,a,s,r), &
+        !dDdbPhi_vec(:,a,s,r))
+    !enddo
+  !enddo
+  do l=1,num_links
+    do a=1,dimG
+      call vec_to_mat(&
+        dDdA_eta(:,:,:,a,l,r), &
+        dDdA_lambda(:,:,:,a,l,r), &
+        dDdA_chi(:,:,:,a,l,r), &
+        dDdA_vec(:,a,l,r))
+    enddo
+  enddo
+  call vec_to_mat( &
+    Dvec_eta(:,:,:,r),&
+    Dvec_lambda(:,:,:,r),&
+    Dvec_chi(:,:,:,r), &
+    Dvec(:,r) )
+enddo
+
 do s=1,num_sites
-  do a=1,dimG
-    do r=1,N_Remez4
-      do i=1,sizeD
-        dSdPhi_fermion(a,s)=dSdPhi_fermion(a,s) & 
-          - dcmplx(Remez_alpha4(r)) &
-            * ( dconjg( Dvec(i,r) ) * dDdPhi_vec(i,a,s,r) &
-               + dconjg( dDdbPhi_vec(i,a,s,r) ) * Dvec(i,r) )
+  do ii=1,NMAT
+    do jj=1,NMAT
+      do r=1,N_Remez4
+!      do i=1,sizeD
+!        dSdPhi_fermion(a,s)=dSdPhi_fermion(a,s) & 
+!          - dcmplx(Remez_alpha4(r)) &
+!            * ( dconjg( Dvec(i,r) ) * dDdPhi_vec(i,a,s,r) &
+!               + dconjg( dDdbPhi_vec(i,a,s,r) ) * Dvec(i,r) )
+!      enddo
+        tmp=(0d0,0d0)
+        do ss=1,num_sites
+          do i=1,NMAT
+            do j=1,NMAT
+              tmp=tmp&
+                +conjg( Dvec_eta(i,j,ss,r) )*dDdPhi_eta(i,j,ss,ii,jj,s,r) !&
+                !+conjg( dDdbPhi_eta(i,j,ss,ii,jj,s,r) )*Dvec_eta(i,j,ss,r)
+            enddo
+          enddo
+        enddo
+        do l=1,num_links
+          do i=1,NMAT
+            do j=1,NMAT
+              tmp=tmp&
+                !+conjg( Dvec_lambda(i,j,l,r) )*dDdPhi_lambda(i,j,l,ii,jj,s,r) &
+                +conjg( dDdbPhi_lambda(i,j,l,jj,ii,s,r) )*Dvec_lambda(i,j,l,r)
+            enddo
+          enddo
+        enddo
+        do f=1,num_faces
+          do i=1,NMAT
+            do j=1,NMAT
+              tmp=tmp&
+                +conjg( Dvec_chi(i,j,f,r) )*dDdPhi_chi(i,j,f,ii,jj,s,r)! &
+                !+conjg( dDdbPhi_chi(i,j,f,ii,jj,s,r) )*Dvec_chi(i,j,f,r)
+            enddo
+          enddo
+        enddo
+        dSdPhi_fermion_org(ii,jj,s)=dSdPhi_fermion_org(ii,jj,s) &
+          - dcmplx(Remez_alpha4(r))*tmp
       enddo
     enddo
   enddo
 enddo
 
+do s=1,num_sites
+  do a=1,dimG
+    call trace_MTa(dSdPhi_fermion(a,s),dSdPhi_fermion_org(:,:,s),a,NMAT)
+  enddo
+enddo
+
+
 do l=1,num_links
   do a=1,dimG
     do r=1,N_Remez4
-      do i=1,sizeD
-        dSdA_fermion(a,l)=dSdA_fermion(a,l) & 
-          - Remez_alpha4(r)   &
-            *dble( dconjg( Dvec(i,r) ) * dDdA_vec(i,a,l,r) &
-                   + dconjg( dDdA_vec(i,a,l,r) ) * Dvec(i,r) ) 
-      !write(*,*) "real?", &
-      !       dconjg( Dvec(i,r) ) * dDdA_vec(i,a,l,r) &
-      !       + dconjg( dDdA_vec(i,a,l,r) ) * Dvec(i,r) 
+!      do i=1,sizeD
+!        dSdA_fermion(a,l)=dSdA_fermion(a,l) & 
+!          - Remez_alpha4(r)   &
+!            *dble( dconjg( Dvec(i,r) ) * dDdA_vec(i,a,l,r) &
+!                   + dconjg( dDdA_vec(i,a,l,r) ) * Dvec(i,r) ) 
+      rtmp=0d0
+      do ss=1,num_sites
+        do i=1,NMAT
+          do j=1,NMAT
+            rtmp=rtmp &
+              +dble( conjg( Dvec_eta(i,j,ss,r) ) * dDdA_eta(i,j,ss,a,l,r) &
+                + conjg( dDdA_eta(i,j,ss,a,l,r) ) * Dvec_eta(i,j,ss,r) )
+          enddo
+        enddo
       enddo
+      do ll=1,num_links
+        do i=1,NMAT
+          do j=1,NMAT
+            rtmp=rtmp &
+              +dble( conjg( Dvec_lambda(i,j,ll,r) ) * dDdA_lambda(i,j,ll,a,l,r) &
+                + conjg( dDdA_lambda(i,j,ll,a,l,r) ) * Dvec_lambda(i,j,ll,r) )
+          enddo
+        enddo
+      enddo
+      do f=1,num_faces
+        do i=1,NMAT
+          do j=1,NMAT
+            rtmp=rtmp &
+              +dble( conjg( Dvec_chi(i,j,f,r) ) * dDdA_chi(i,j,f,a,l,r) &
+                + conjg( dDdA_chi(i,j,f,a,l,r) ) * Dvec_chi(i,j,f,r) )
+          enddo
+        enddo
+      enddo
+      dSdA_fermion(a,l)=dSdA_fermion(a,l) & 
+        - Remez_alpha4(r) * rtmp
     enddo
   enddo
 enddo
