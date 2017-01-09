@@ -168,41 +168,26 @@ end subroutine prod_dDdbPhi
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! subroutine to return product of d/dA D . vec
-subroutine prod_dDdA(dDdA_vec,eta_mat,lambda_mat,chi_mat,UMAT,PhiMat)
+subroutine prod_dDdA(dDdA_eta,dDdA_lambda,dDdA_chi,&
+    eta_mat,lambda_mat,chi_mat,UMAT,PhiMat)
 implicit none
+
+! d/dA_{ll,ii,jj} (D\Psi)_{s,i,j}=dDdA_eta(i,j,s,ii,jj,ll)
+complex(kind(0d0)), intent(inout) :: dDdA_eta(1:NMAT,1:NMAT,1:num_sites,1:NMAT,1:NMAT,1:num_links)
+! d/dA_{ll,ii,jj} (D\Psi)_{l,i,j}=dDdA_lambda(i,j,l,ii,jj,ll)
+complex(kind(0d0)), intent(inout) :: dDdA_lambda(1:NMAT,1:NMAT,1:num_links,1:NMAT,1:NMAT,1:num_links)
+! d/dA_{ll,ii,jj} (D\Psi)_{f,i,j}=dDdA_chi(i,j,f,ii,jj,ll)
+complex(kind(0d0)),intent(inout) :: dDdA_chi(1:NMAT,1:NMAT,1:num_faces,1:NMAT,1:NMAT,1:num_links)
 
 complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_links) 
 complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_sites)
-!complex(kind(0d0)), intent(in) :: vec(1:sizeD)
-complex(kind(0d0)), intent(out) :: dDdA_vec(1:sizeD, 1:dimG,1:num_links)
-
 complex(kind(0d0)), intent(in) :: eta_mat(1:NMAT,1:NMAT,1:num_sites)
 complex(kind(0d0)), intent(in) :: lambda_mat(1:NMAT,1:NMAT,1:num_links)
 complex(kind(0d0)), intent(in) :: chi_mat(1:NMAT,1:NMAT,1:num_faces)
 
-! d/dA_{ll,ii,jj} (D\Psi)_{s,i,j}=dDdA_eta(i,j,s,ii,jj,ll)
-complex(kind(0d0)) :: dDdA_eta(1:NMAT,1:NMAT,1:num_sites,1:NMAT,1:NMAT,1:num_links)
-! d/dA_{ll,ii,jj} (D\Psi)_{l,i,j}=dDdA_lambda(i,j,l,ii,jj,ll)
-complex(kind(0d0)) :: dDdA_lambda(1:NMAT,1:NMAT,1:num_links,1:NMAT,1:NMAT,1:num_links)
-! d/dA_{ll,ii,jj} (D\Psi)_{f,i,j}=dDdA_chi(i,j,f,ii,jj,ll)
-complex(kind(0d0)) :: dDdA_chi(1:NMAT,1:NMAT,1:num_faces,1:NMAT,1:NMAT,1:num_links)
-
-! d/dA_{ll,ii,jj} (Ta)_{ji} (D\Psi)_{s,i,j}=tmpdDdA_eta(ii,jj,ll,a,s)
-complex(kind(0d0)) :: tmpdDdA_eta(1:NMAT,1:NMAT,1:num_links,1:dimG,1:num_sites)
-! d/dA_{ll,ii,jj} (Ta)_{ji} (D\Psi)_{l,i,j}=tmpdDdA_lambda(ii,jj,ll,a,l)
-complex(kind(0d0)) :: tmpdDdA_lambda(1:NMAT,1:NMAT,1:num_links,1:dimG,1:num_links)
-! d/dA_{ll,ii,jj} (Ta)_{ji} (D\Psi)_{f,i,j}=tmpdDdA_chi(ii,jj,ll,a,f)
-complex(kind(0d0)) :: tmpdDdA_chi(1:NMAT,1:NMAT,1:num_links,1:dimG,1:num_faces)
-
-!complex(kind(0d0)) :: Uinv(1:NMAT,1:NMAT,1:num_links)
-!complex(kind(0d0)) :: diffdiff_Omega(1:NMAT,1:NMAT,1:dimG,1:dimG)
-!complex(kind(0d0)) :: diffdiff_Omega_lambda(1:NMAT,1:NMAT,1:dimG) 
-
 complex(kind(0d0)) :: trace,tmp
 complex(kind(0d0)) :: tmpmat1(1:NMAT,1:NMAT),tmpmat2(1:NMAT,1:NMAT)
 complex(kind(0d0)) :: tmpmat3(1:NMAT,1:NMAT),tmpmat4(1:NMAT,1:NMAT)
-complex(kind(0d0)) :: comm(1:NMAT,1:NMAT)
-complex(kind(0d0)) :: FF_MAT(1:NMAT,1:NMAT) ! part of fermion force
 
 !for test
 !complex(kind(0d0)) :: T(1:NMAT,1:NMAT,1:dimG)
@@ -230,7 +215,7 @@ integer :: a,b,c,d,e
 !enddo
 
 !! preparation
-dDdA_vec=(0d0,0d0)
+!dDdA_vec=(0d0,0d0)
 dDdA_eta=(0d0,0d0)
 dDdA_lambda=(0d0,0d0)
 dDdA_chi=(0d0,0d0)
@@ -288,9 +273,6 @@ if ( p3==0 ) then
 !! (3) Dirac from link 2
 do l=1,num_links
   s=link_tip(l)
-! d/dA_{ll,ii,jj} (D\Psi)_{s,i,j}=dDdA_eta(i,j,s,ii,jj,ll)
-! d/dA_{ll,ii,jj} (D\Psi)_{l,i,j}=dDdA_lambda(i,j,l,ii,jj,ll)
-! d/dA_{ll,ii,jj} (D\Psi)_{f,i,j}=dDdA_chi(i,j,f,ii,jj,ll)
 
   ! tmpmat1 = Ul.\bar\Phi.Ul^{-1}
   ! tmpmat2 = Ul.\bar\Phi.Ul^{-1}.lambda_l
@@ -321,13 +303,6 @@ do l=1,num_links
 enddo
 endif
 
-      
-! d/dA_{ll,ii,jj} (Ta)_{ji} (D\Psi)_{s,i,j}=tmpdDdA_eta(ii,jj,ll,a,s)
-! d/dA_{ll,ii,jj} (Ta)_{ji} (D\Psi)_{l,i,j}=tmpdDdA_lambda(ii,jj,ll,a,l)
-! d/dA_{ll,ii,jj} (Ta)_{ji} (D\Psi)_{f,i,j}=tmpdDdA_chi(ii,jj,ll,a,f)
-
-
-      
 !! (4) Dirac from face 1
 !   no contribution
 
@@ -337,135 +312,10 @@ if( p5 == 0 ) then
   call calc_fermion_force_from_omega&
       (dDdA_lambda,dDdA_chi,UMAT,lambda_mat,chi_mat)
 endif 
+dDdA_eta=dDdA_eta*cmplx(overall_factor)
+dDdA_lambda=dDdA_lambda*cmplx(overall_factor)
+dDdA_chi=dDdA_chi*cmplx(overall_factor)
 
-do ll=1,num_links
-  do ii=1,NMAT
-    do jj=1,NMAT
-      !!!!!!!!!!!
-      do s=1,num_sites
-        do a=1,dimG
-          call trace_MTa(tmpdDdA_eta(ii,jj,ll,a,s),dDdA_eta(:,:,s,ii,jj,ll),a,NMAT)
-        enddo
-      enddo
-      !!!!!!!!!!!
-      do l=1,num_links
-        do a=1,dimG
-          call trace_MTa(tmpdDdA_lambda(ii,jj,ll,a,l),dDdA_lambda(:,:,l,ii,jj,ll),a,NMAT)
-        enddo
-      enddo
-      !!!!!!!!!!!
-      do f=1,num_faces
-        do a=1,dimG
-          call trace_MTa(tmpdDdA_chi(ii,jj,ll,a,f),dDdA_chi(:,:,f,ii,jj,ll),a,NMAT)
-        enddo
-      enddo
-    enddo
-  enddo
-enddo
-do s=1,num_sites
-  do a=1,dimG
-    do ll=1,num_links
-      do b=1,dimG
-        call trace_MTa(tmp,tmpdDdA_eta(:,:,ll,a,s),b,NMAT)
-        dDdA_vec(site_index(a,s),b,ll) &
-          = dDdA_vec(site_index(a,s),b,ll) + overall_factor * tmp
-      enddo
-    enddo
-  enddo
-enddo
-do l=1,num_links
-  do a=1,dimG
-    do ll=1,num_links
-      do b=1,dimG
-        call trace_MTa(tmp,tmpdDdA_lambda(:,:,ll,a,l),b,NMAT)
-        dDdA_vec(link_index(a,l),b,ll) &
-          = dDdA_vec(link_index(a,l),b,ll) + overall_factor * tmp
-      enddo
-    enddo
-  enddo
-enddo
-do f=1,num_faces
-  do a=1,dimG
-    do ll=1,num_links
-      do b=1,dimG
-        call trace_MTa(tmp,tmpdDdA_chi(:,:,ll,a,f),b,NMAT)
-        dDdA_vec(face_index(a,f),b,ll) &
-          = dDdA_vec(face_index(a,f),b,ll) + overall_factor * tmp
-      enddo
-    enddo
-  enddo
-enddo
-
-
-!do f=1,num_faces
-!  do j=1,links_in_f(f)%num_
-!    ll=links_in_f(f)%link_labels_(j)
-!    do i=1,links_in_f(f)%num_
-!      l=links_in_f(f)%link_labels_(i)
-!      call calc_diffdiff_Omega(&
-!        diffdiff_Omega2(f)%val(:,:,:,:,i,j),&
-!        Uf(:,:,f),Ufm(:,:,f),f,l,ll,UMAT)
-!    enddo
-!  enddo
-!enddo
-
-!do f=1,num_faces
-!  do i=1,links_in_f(f)%num_
-!    l=links_in_f(f)%link_labels_(i)
-!
-!    diffdiff_Omega_lambda=(0d0,0d0)
-!    do j=1,links_in_f(f)%num_
-!      ll=links_in_f(f)%link_labels_(j)
-!
-!      do c=1,dimG
-!        diffdiff_Omega_lambda(:,:,:) = diffdiff_Omega_lambda(:,:,:) &
-!          +diffdiff_Omega2(f)%val(:,:,:,c,i,j) * lambda_ele(c,ll)
-!       enddo
-!    enddo
-!
-!    do b=1,dimG
-!      do a=1,dimG
-!        call trace_MTa(trace,diffdiff_Omega_lambda(:,:,b),a,NMAT)
-!        dDdA_vec(face_index(a,f),b,l)= dDdA_vec(face_index(a,f),b,l) &
-!          + (0d0,1d0)*dcmplx(alpha_f(f)*beta_f(f))*trace*overall_factor
-!      enddo
-!    enddo
-!
-!  enddo
-!enddo
-!
-!
-!do l=1,num_links
-!  do i=1,face_in_l(l)%num_
-!    f=face_in_l(l)%label_(i)
-!    do k=1,links_in_f(f)%num_
-!      if ( links_in_f(f)%link_labels_(k) == l ) then 
-!        exit
-!      endif
-!    enddo
-!    do j=1,links_in_f(f)%num_
-!      ll=links_in_f(f)%link_labels_(j)
-!
-!      do a=1,dimG
-!        do b=1,dimG
-!          tmp=(0d0,0d0)
-!          do ii=1,NMAT
-!            do jj=1,NMAT
-!              tmp=tmp+chi_mat(ii,jj,f)&
-!                *diffdiff_Omega2(f)%val(jj,ii,b,a,j,k)
-!            enddo
-!          enddo
-!          dDdA_vec(link_index(a,l),b,ll)= dDdA_vec(link_index(a,l),b,ll) &
-!              -(0d0,1d0)*dcmplx(alpha_f(f)*beta_f(f))*tmp*overall_factor
-!        enddo
-!      enddo
-!
-!    enddo
-!  enddo
-!enddo
-
-
-!dDdA_chi=dDdA_chi*overall_factor
 
 !! (T1) test action
 !do f=1,num_faces
