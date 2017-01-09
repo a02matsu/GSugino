@@ -11,7 +11,7 @@ contains
 !! dS/Dphi 
 !complex(kind(0d0)) function dSdPhi(a,s)
 !subroutine Make_bosonic_force_Phi(dSdPhi_boson)
-subroutine Make_force(dSdPhi,dSdA,UMAT,PhiMat,PF,info)
+subroutine Make_force(dSdPhi_org,dSdA,UMAT,PhiMat,PF,info)
 use SUN_generators, only : trace_mta
 implicit none
 
@@ -19,17 +19,18 @@ complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_links)
 complex(kind(0d0)) :: Phi(1:dimG,1:num_sites)
 complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_sites)
 complex(kind(0d0)), intent(in) :: PF(1:sizeD)
-complex(kind(0d0)), intent(out) :: dSdPhi(1:dimG,1:num_sites)
+complex(kind(0d0)), intent(out) :: dSdPhi_org(1:dimG,1:num_sites)
+complex(kind(0d0)) :: dSdPhi(1:NMAT,1:NMAT,1:num_sites)
 double precision, intent(out) :: dSdA(1:dimG,1:num_links)
 integer, intent(inout) :: info
 
-complex(kind(0d0)) :: dSdPhi_boson_mass_org(1:dimG,1:num_sites)
-complex(kind(0d0)) :: dSdPhi_boson_site_org(1:dimG,1:num_sites)
-complex(kind(0d0)) :: dSdPhi_boson_link_org(1:dimG,1:num_sites)
+!complex(kind(0d0)) :: dSdPhi_boson_mass_org(1:dimG,1:num_sites)
+!complex(kind(0d0)) :: dSdPhi_boson_site_org(1:dimG,1:num_sites)
+!complex(kind(0d0)) :: dSdPhi_boson_link_org(1:dimG,1:num_sites)
 complex(kind(0d0)) :: dSdPhi_boson_mass(1:NMAT,1:NMAT,1:num_sites)
 complex(kind(0d0)) :: dSdPhi_boson_site(1:NMAT,1:NMAT,1:num_sites)
 complex(kind(0d0)) :: dSdPhi_boson_link(1:NMAT,1:NMAT,1:num_sites)
-complex(kind(0d0)) :: dSdPhi_fermion(1:dimG,1:num_sites)
+complex(kind(0d0)) :: dSdPhi_fermion(1:NMAT,1:NMAT,1:num_sites)
 !!!
 !double precision :: dSdA_boson_test(1:dimG,1:num_links)
 double precision :: dSdA_boson_link(1:dimG,1:num_links)
@@ -56,35 +57,41 @@ dSdA_fermion=0d0
 call Make_bosonic_force_Phi_mass(dSdPhi_boson_mass,PhiMat)
 call Make_bosonic_force_Phi_site(dSdPhi_boson_site,PhiMat)
 call Make_bosonic_force_Phi_link(dSdPhi_boson_link,UMAT,PhiMat)
+!! force from fermion
+!write(*,*) "1"
+call Make_fermionic_force(dSdPhi_fermion,dSdA_fermion,UMAT,PhiMat,PF,info)
 
 !! 戻す
-do s=1,num_sites
-  do a=1,dimG
-    call trace_MTa(dSdPhi_boson_mass_org(a,s),dSdPhi_boson_mass(:,:,s),a,NMAT)
-    call trace_MTa(dSdPhi_boson_site_org(a,s),dSdPhi_boson_site(:,:,s),a,NMAT)
-    call trace_MTa(dSdPhi_boson_link_org(a,s),dSdPhi_boson_link(:,:,s),a,NMAT)
-  enddo
-enddo
+!do s=1,num_sites
+  !do a=1,dimG
+    !call trace_MTa(dSdPhi_boson_mass_org(a,s),dSdPhi_boson_mass(:,:,s),a,NMAT)
+    !call trace_MTa(dSdPhi_boson_site_org(a,s),dSdPhi_boson_site(:,:,s),a,NMAT)
+    !call trace_MTa(dSdPhi_boson_link_org(a,s),dSdPhi_boson_link(:,:,s),a,NMAT)
+  !enddo
+!enddo
 
 !! force for A from boson
 call Make_bosonic_force_A_link(dSdA_boson_link,UMAT,PhiMat)
 call Make_bosonic_force_A_face(dSdA_boson_face,UMAT)
 !call Make_bosonic_force_A_test(dSdA_boson_test,UMAT)
 
-!! force from fermion
-!write(*,*) "1"
-call Make_fermionic_force(dSdPhi_fermion,dSdA_fermion,UMAT,PhiMat,PF,info)
 !write(*,*) "2"
 !write(*,*) dSdA_fermion
 
-dSdPhi= dSdPhi_boson_mass_org  ! mass part
-dSdPhi= dSdPhi + dSdPhi_boson_site_org  ! site part
-dSdPhi= dSdPhi + dSdPhi_boson_link_org   ! link part
-dSdPhi= dSdPhi + dSdPhi_fermion   ! link part
+dSdPhi= dSdPhi_boson_mass &   ! mass part
++ dSdPhi_boson_site  & ! site part
++ dSdPhi_boson_link  &  ! link part
++ dSdPhi_fermion   ! link part
 
-dSdA = dSdA_boson_link 
-dSdA = dSdA + dSdA_boson_face 
-dSdA = dSdA + dSdA_fermion
+do s=1,num_sites
+  do a=1,dimG
+    call trace_MTa(dSdPhi_org(a,s),dSdPhi(:,:,s),a,NMAT)
+  enddo
+enddo
+
+dSdA = dSdA_boson_link  &
++ dSdA_boson_face &
++ dSdA_fermion
 !dSdA = dSdA + dSdA_boson_test &
 
 
@@ -396,8 +403,8 @@ implicit none
 complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_links)
 complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_sites)
 complex(kind(0d0)), intent(in) :: PF(1:sizeD)
-complex(kind(0d0)), intent(out) :: dSdPhi_fermion(1:dimG,1:num_sites)
-complex(kind(0d0)) :: dSdPhi_fermion_org(1:NMAT,1:NMAT,1:num_sites)
+complex(kind(0d0)), intent(out) :: dSdPhi_fermion(1:NMAT,1:NMAT,1:num_sites)
+!complex(kind(0d0)) :: dSdPhi_fermion_org(1:NMAT,1:NMAT,1:num_sites)
 double precision, intent(out) :: dSdA_fermion(1:dimG,1:num_links)
 complex(kind(0d0)) :: dSdA_fermion_org(1:NMAT,1:NMAT,1:num_links)
 integer, intent(inout) :: info
@@ -445,7 +452,7 @@ integer :: r,i,j,s,l,a,b,ss,f,ll,ii,jj
 
 
 dSdPhi_fermion=(0d0,0d0)
-dSdPhi_fermion_org=(0d0,0d0)
+!dSdPhi_fermion_org=(0d0,0d0)
 dSdA_fermion=0d0
 dSdA_fermion_org=(0d0,0d0)
 
@@ -526,7 +533,7 @@ do s=1,num_sites
             enddo
           enddo
         enddo
-        dSdPhi_fermion_org(ii,jj,s)=dSdPhi_fermion_org(ii,jj,s) &
+        dSdPhi_fermion(ii,jj,s)=dSdPhi_fermion(ii,jj,s) &
           - dcmplx(Remez_alpha4(r))*tmp
       enddo
     enddo
@@ -579,11 +586,11 @@ do ll=1,num_links
   enddo
 enddo
 
-do s=1,num_sites
-  do a=1,dimG
-    call trace_MTa(dSdPhi_fermion(a,s),dSdPhi_fermion_org(:,:,s),a,NMAT)
-  enddo
-enddo
+!do s=1,num_sites
+  !do a=1,dimG
+    !call trace_MTa(dSdPhi_fermion(a,s),dSdPhi_fermion_org(:,:,s),a,NMAT)
+  !enddo
+!enddo
 do l=1,num_links
   do a=1,dimG
     call trace_MTa(tmp,dSdA_fermion_org(:,:,l),a,NMAT)

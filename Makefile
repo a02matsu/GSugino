@@ -1,7 +1,7 @@
 VER=01
 VER_CALCOBS=02
-#FC=gfortran
-FC=ifort
+FC=gfortran
+#FC=ifort
 FLAGS_IFORT=-mkl -CB -traceback -g 
 #FLAGS_IFORT=-mkl -parallel -ipo
 #FLAGS_IFORT=-mkl -O2 
