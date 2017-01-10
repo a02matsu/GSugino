@@ -134,11 +134,6 @@ open(unit=OUTPUT_FILE,status='replace',file=Foutput,action='write')
 write(*,*) "# start Monte Carlo simulation"
 
 accept=0
-  do s=1,num_sites
-    do a=1,dimG
-      call trace_MTa(Phi(a,s),PhiMat(:,:,s),a,NMAT)
-    enddo
-  enddo
 call write_header(seed,UMAT,PhiMat)
 !! measure the time used in this simulation
 call system_clock(t_start)
@@ -155,9 +150,6 @@ do ite=total_ite+1,total_ite+num_ite
   UMAT_BAK=UMAT
   !! molecular evolution
   call molecular_evolution_Omelyan(UMAT,PhiMat,PF,P_A,P_PhiMat,info)
-  !do s=1,num_sites
-  !call make_traceless_matrix_from_modes(PhiMat(:,:,s),NMAT,Phi(:,s))
-  !enddo
   if( info == 1 ) then
     PhiMat=PhiMat_BAK
     !Phi=Phi_BAK
@@ -172,11 +164,6 @@ do ite=total_ite+1,total_ite+num_ite
     call Metropolice_test(Hnew-Hold,PhiMat_Bak,UMAT_BAK,PhiMat,UMAT,accept)
   endif
   !! write out the configuration
-  !do s=1,num_sites
-    !do a=1,dimG
-      !call trace_MTa(Phi(a,s),PhiMat(:,:,s),a,NMAT)
-    !enddo
-  !enddo
    if ( mod(ite,config_step) == 0 ) then
        write(MED_CONF_FILE) ite
        write(MED_CONF_FILE) UMAT
@@ -401,15 +388,11 @@ implicit none
 
 double precision, parameter :: lambda=0.1931833275d0
 complex(kind(0d0)), intent(inout) :: UMAT(1:NMAT,1:NMAT,1:num_links)
-complex(kind(0d0)) :: Phi(1:dimG,1:num_sites)
 complex(kind(0d0)), intent(inout) :: PhiMat(1:NMAT,1:NMAT,1:num_sites)
 complex(kind(0d0)), intent(in) :: PF(1:sizeD)
-double precision, intent(inout) :: P_A(1:dimG,1:num_links)
 complex(kind(0d0)), intent(inout) :: P_PhiMat(1:NMAT,1:NMAT,1:num_sites)
-complex(kind(0d0)) :: P_Phi(1:dimG,1:num_sites)
+double precision, intent(inout) :: P_A(1:dimG,1:num_links)
 integer, intent(inout) :: info
-complex(kind(0d0)) :: dSdPhi(1:dimG,1:num_sites)
-double precision :: dSdA(1:dimG,1:num_links)
 
 integer :: s,l,f,a
 integer :: i
@@ -417,16 +400,9 @@ integer :: j,k,ii
 
 complex(kind(0d0)) :: minimal, maximal
 
-do s=1,num_sites
-  do a=1,dimG
-    call trace_MTa(Phi(a,s),PhiMat(:,:,s),a,NMAT)
-    call Trace_MTa( P_Phi(a,s),P_PhiMat(:,:,s),a,NMAT)
-  enddo
-enddo
-
 !! first step
 ! momentum
-call update_momentum(P_Phi,P_A,PhiMat,UMAT,PF,info,Dtau_phi*lambda,Dtau_A*lambda)
+call update_momentum(P_PhiMat,P_A,PhiMat,UMAT,PF,info,Dtau_phi*lambda,Dtau_A*lambda)
 if( info == 1 ) return
 
 !! main steps 
@@ -435,38 +411,33 @@ if( info == 1 ) return
 !!    --> Val:Dtau/2
 !!    --> Mom:Dtau*2\lambda*Dtau
 do i=1, Ntau-1
-  !write(*,*) "i= ",i
 ! variables
-  call update_PhiMat(PhiMat,Phi,P_phi,Dtau_phi*0.5d0)
+  call update_PhiMat(PhiMat,P_phiMat,Dtau_phi*0.5d0)
   call update_UMAT(UMAT,P_A,0.5d0*Dtau_A)
 ! momentum
-  call update_momentum(P_Phi,P_A,PhiMat,UMAT,PF,info,Dtau_phi*(1d0-2d0*lambda),Dtau_A*(1d0-2d0*lambda))
+  call update_momentum(P_PhiMat,P_A,PhiMat,UMAT,PF,info,Dtau_phi*(1d0-2d0*lambda),Dtau_A*(1d0-2d0*lambda))
   if( info == 1 ) return
 ! variables
-  call update_PhiMat(PhiMat,Phi,P_phi,Dtau_phi*0.5d0)
+  call update_PhiMat(PhiMat,P_phimat,Dtau_phi*0.5d0)
   call update_UMAT(UMAT,P_A,0.5d0*Dtau_A)
 ! momentum
-  call update_momentum(P_Phi,P_A,PhiMat,UMAT,PF,info,Dtau_phi*2d0*lambda,Dtau_A*2d0*lambda)
+  call update_momentum(P_PhiMat,P_A,PhiMat,UMAT,PF,info,Dtau_phi*2d0*lambda,Dtau_A*2d0*lambda)
   if ( info == 1 ) return
 enddo
 
 !! final step
 ! variables
-call update_PhiMat(PhiMat,Phi,P_phi,Dtau_phi*0.5d0)
+call update_PhiMat(PhiMat,P_phimat,Dtau_phi*0.5d0)
 call update_UMAT(UMAT,P_A,Dtau_A*0.5d0)
 ! momentum
-call update_momentum(P_Phi,P_A,PhiMat,UMAT,PF,info,Dtau_phi*(1d0-2d0*lambda),Dtau_A*(1d0-2d0*lambda))
+call update_momentum(P_PhiMat,P_A,PhiMat,UMAT,PF,info,Dtau_phi*(1d0-2d0*lambda),Dtau_A*(1d0-2d0*lambda))
 if ( info == 1 ) return 
 ! variables
-call update_PhiMat(PhiMat,Phi,P_phi,Dtau_phi*0.5d0)
+call update_PhiMat(PhiMat,P_phimat,Dtau_phi*0.5d0)
 call update_UMAT(UMAT,P_A,Dtau_A*0.5d0)
 ! momentum
-call update_momentum(P_Phi,P_A,PhiMat,UMAT,PF,info,Dtau_phi*(lambda),Dtau_A*(lambda))
+call update_momentum(P_PhiMat,P_A,PhiMat,UMAT,PF,info,Dtau_phi*(lambda),Dtau_A*(lambda))
 if ( info == 1 ) return
-
-do s=1,num_sites
-call make_traceless_matrix_from_modes( P_PhiMat(:,:,s), NMAT, P_Phi(:,s)) 
-enddo
 
 end subroutine molecular_evolution_Omelyan
 
@@ -567,6 +538,7 @@ implicit none
 
 complex(kind(0d0)),intent(inout) :: UMAT(1:NMAT,1:NMAT,1:num_links)
 double precision,intent(in) :: P_A(1:dimG,1:num_links)
+complex(kind(0d0)) :: P_AMat(1:NMAT,1:NMAT,1:num_links)
 double precision, intent(in) :: Dtau
 complex(kind(0d0)) :: Plmat(1:NMAT,1:NMAT)
 complex(kind(0d0)) :: dU(1:NMAT,1:NMAT)
@@ -574,9 +546,10 @@ complex(kind(0d0)) :: tmpmat(1:NMAT,1:NMAT)
 integer :: l
 
 do l=1,num_links
-  !write(*,*) "test000"
-  call Make_traceless_matrix_from_modes(tmpmat, NMAT, dcmplx(P_A(:,l)))
-  Plmat=(0d0,1d0)*Dtau*tmpmat
+  call Make_traceless_matrix_from_modes(P_Amat(:,:,l), NMAT, dcmplx(P_A(:,l)))
+enddo
+do l=1,num_links
+  Plmat=(0d0,1d0)*Dtau*P_Amat(:,:,l)
   !write(*,*) "test001"
   !call MATRIX_EXP(NMAT,Plmat,dU)
   call MATRIX_EXP(dU,Plmat)
@@ -594,49 +567,51 @@ end subroutine update_UMAT
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! update PhiMat
-subroutine update_PhiMat(PhiMat,Phi,P_phi,Dtau)
+subroutine update_PhiMat(PhiMat,P_phimat,Dtau)
 use SUN_generators, only : make_traceless_matrix_from_modes
 implicit none
 
 complex(kind(0d0)),intent(inout) :: PhiMAT(1:NMAT,1:NMAT,1:num_links)
-complex(kind(0d0)),intent(inout) :: Phi(1:dimG,1:num_links)
-complex(kind(0d0)),intent(in) :: P_Phi(1:dimG,1:num_links)
+!complex(kind(0d0)),intent(inout) :: Phi(1:dimG,1:num_links)
+complex(kind(0d0)),intent(in) :: P_PhiMat(1:NMAT,1:NMAT,1:num_links)
 double precision, intent(in) :: Dtau
-integer :: s,a
+integer :: s,i,j
 
 do s=1,num_sites
-  do a=1,dimG
-    Phi(a,s)=Phi(a,s) + Dtau * dconjg( P_phi(a,s) )
+  !do a=1,dimG
+  do j=1,NMAT
+    do i=1,NMAT
+      PhiMat(i,j,s)=PhiMat(i,j,s)+Dtau*dconjg( P_PhiMat(j,i,s) )
+      !Phi(a,s)=Phi(a,s) + Dtau * dconjg( P_phi(a,s) )
+    enddo
   enddo
 enddo
-do s=1,num_sites
-  call make_traceless_matrix_from_modes(PhiMat(:,:,s),NMAT,Phi(:,s))
-enddo
+!do s=1,num_sites
+  !call make_traceless_matrix_from_modes(PhiMat(:,:,s),NMAT,Phi(:,s))
+!enddo
 
 end subroutine update_PhiMat
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! update momentum
-subroutine update_momentum(P_Phi,P_A,PhiMat,UMAT,PF,info,deltaPPhi,deltaA)
+subroutine update_momentum(P_PhiMat,P_A,PhiMat,UMAT,PF,info,deltaPPhi,deltaA)
 implicit none
 
 double precision, intent(inout) :: P_A(1:dimG,1:num_links)
-complex(kind(0d0)), intent(inout) :: P_Phi(1:dimG,1:num_sites)
+complex(kind(0d0)), intent(inout) :: P_PhiMat(1:NMAT,1:NMAT,1:num_sites)
 complex(kind(0d0)), intent(inout) :: UMAT(1:NMAT,1:NMAT,1:num_links)
 complex(kind(0d0)), intent(inout) :: PhiMat(1:NMAT,1:NMAT,1:num_sites)
 complex(kind(0d0)), intent(in) :: PF(1:sizeD)
 double precision, intent(in) :: deltaPPhi,deltaA
 integer, intent(out) :: info
 
-complex(kind(0d0)) :: dSdPhi(1:dimG,1:num_sites)
+complex(kind(0d0)) :: dSdPhi(1:NMAT,1:NMAT,1:num_sites)
 double precision :: dSdA(1:dimG,1:num_links)
 integer :: s,a,l
 
 call Make_force(dSdPhi,dSdA,UMAT,PhiMat,PF,info)
 if( info == 1) return
 do s=1,num_sites
-  do a=1,dimG
-    P_Phi(a,s)=P_Phi(a,s) - dSdPhi(a,s) * deltaPPhi 
-  enddo
+  P_PhiMat(:,:,s)=P_PhiMat(:,:,s) - dSdPhi(:,:,s) * deltaPPhi
 enddo
 do l=1,num_links
   do a=1,dimG
