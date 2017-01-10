@@ -11,6 +11,7 @@ implicit none
 contains
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 subroutine test_hamiltonian(UMAT,PhiMat)
+use SUN_generators, only : make_traceless_matrix_from_modes
 use mt95
 use Dirac_operator
 implicit none
@@ -20,6 +21,7 @@ complex(kind(0d0)) :: Phi(1:dimG,1:num_sites)
 complex(kind(0d0)), intent(inout) :: PhiMat(1:NMAT,1:NMAT,1:num_sites)
 
 complex(kind(0d0)) :: P_Phi(1:dimG,1:num_sites)
+complex(kind(0d0)) :: P_PhiMat(1:NMAT,1:NMAT,1:num_sites)
 double precision :: P_A(1:dimG,1:num_links)
 complex(kind(0d0)) :: PF(1:sizeD)
 !complex(kind(0d0)) :: Phi_BAK(1:dimG,1:num_sites)
@@ -27,7 +29,7 @@ complex(kind(0d0)) :: PhiMat_BAK(1:NMAT,1:NMAT,1:num_sites)
 complex(kind(0d0)) :: UMAT_BAK(1:NMAT,1:NMAT,1:num_links)
 double precision :: Hold,Hnew
 integer :: n
-integer :: seed,CGite,info
+integer :: seed,CGite,info,s
 type(genrand_state) :: state
 type(genrand_srepr) :: srepr
 
@@ -57,14 +59,14 @@ Dtau_A=Dtau_A/2d0
 call genrand_init( put=state )
 !endif
 !! set random momentum
-call set_randomP(P_A,P_Phi)
+call set_randomP(P_A,P_PhiMat)
 ! produce pseudo-fermion
 call make_pseudo_fermion(PF,UMAT,PhiMat)
 !! calculate Hamiltonian 
-call Make_Hamiltonian(Hold,CGite,info,UMAT,PhiMat,PF,P_A,P_Phi)
+call Make_Hamiltonian(Hold,CGite,info,UMAT,PhiMat,PF,P_A,P_PhiMat)
 !! molecular evolution
 !call molecular_evolution(UMAT,Phi,PF,P_A,P_Phi,info)
-call molecular_evolution_Omelyan(UMAT,PhiMat,PF,P_A,P_Phi,info)
+call molecular_evolution_Omelyan(UMAT,PhiMat,PF,P_A,P_PhiMat,info)
   !write(*,*) UMAT-UMAT_BAK
   !write(*,*) "!!!"
   !write(*,*) Phi-Phi_BAK
@@ -73,7 +75,7 @@ call molecular_evolution_Omelyan(UMAT,PhiMat,PF,P_A,P_Phi,info)
 !do s=1,num_sites
 !call make_traceless_matrix_from_modes(PhiMat(:,:,s),NMAT,Phi(:,s))
 !enddo
-call Make_Hamiltonian(Hnew,CGite,info,UMAT,PhiMat,PF,P_A,P_Phi)
+call Make_Hamiltonian(Hnew,CGite,info,UMAT,PhiMat,PF,P_A,P_PhiMat)
 !! metropolice
 write(*,'(I5,e20.10)') Ntau, dabs(Hnew-Hold)!, Hold, Hnew
 !! return to the original values
@@ -142,10 +144,7 @@ call write_header(seed,UMAT,PhiMat)
 call system_clock(t_start)
 do ite=total_ite+1,total_ite+num_ite
   !! set random momentuet
-  call set_randomP(P_A,P_Phi)
-  do s=1,num_sites
-    call make_traceless_matrix_from_modes(P_PhiMat(:,:,s),NMAT,P_Phi(:,s))
-  enddo
+  call set_randomP(P_A,P_PhiMat)
   !! produce pseudo-fermion
   call make_pseudo_fermion(PF,UMAT,PhiMat)
   !! calculate Hamiltonian 
@@ -155,7 +154,7 @@ do ite=total_ite+1,total_ite+num_ite
   !Phi_BAK=Phi
   UMAT_BAK=UMAT
   !! molecular evolution
-  call molecular_evolution_Omelyan(UMAT,PhiMat,PF,P_A,P_Phi,info)
+  call molecular_evolution_Omelyan(UMAT,PhiMat,PF,P_A,P_PhiMat,info)
   !do s=1,num_sites
   !call make_traceless_matrix_from_modes(PhiMat(:,:,s),NMAT,Phi(:,s))
   !enddo
@@ -168,9 +167,6 @@ do ite=total_ite+1,total_ite+num_ite
     !! check distance of Uf from the origin
     !call check_vacuum(UMAT)
     !! calculate Hamiltonian 
-  do s=1,num_sites
-    call make_traceless_matrix_from_modes(P_PhiMat(:,:,s),NMAT,P_Phi(:,s))
-  enddo
     call Make_Hamiltonian(Hnew,CGite2,info2,UMAT,PhiMat,PF,P_A,P_PhiMat)
     !! metropolice
     call Metropolice_test(Hnew-Hold,PhiMat_Bak,UMAT_BAK,PhiMat,UMAT,accept)
@@ -362,11 +358,13 @@ enddo
 end subroutine writedown_config_action_and_fores
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-subroutine set_randomP(P_A,P_Phi)
+subroutine set_randomP(P_A,P_PhiMat)
+use SUN_generators, only : make_traceless_matrix_from_modes
 implicit none
 
 double precision, intent(inout) :: P_A(1:dimG,1:num_links)
-complex(kind(0d0)), intent(inout) :: P_Phi(1:dimG,1:num_sites)
+complex(kind(0d0)), intent(inout) :: P_PhiMat(1:NMAT,1:NMAT,1:num_sites)
+complex(kind(0d0)) :: P_Phi(1:dimG)
 double precision, allocatable :: gauss(:)
 integer s,l,f,a
 integer i
@@ -376,10 +374,12 @@ call BoxMuller(gauss,(dimG)*num_sites)
 do s=1,num_sites
   do a=1,dimG
     i=dimG*(s-1)+a
-    P_Phi(a,s)=dcmplx(dsqrt(0.5d0)*gauss(2*i-1)) &
+    P_Phi(a)=dcmplx(dsqrt(0.5d0)*gauss(2*i-1)) &
         + im_unit*dcmplx(dsqrt(0.5d0)*gauss(2*i))
   enddo
+  call make_traceless_matrix_from_modes(P_PhiMat(:,:,s),NMAT,P_Phi)
 enddo
+
 call BoxMuller( gauss,(dimG*num_links+1)/2 )
 do l=1,num_links
   do a=1,dimG
@@ -393,7 +393,7 @@ end subroutine set_randomP
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! Molecular Evolution by Omelyan integrator
-subroutine molecular_evolution_Omelyan(UMAT,PhiMat,PF,P_A,P_Phi,info)
+subroutine molecular_evolution_Omelyan(UMAT,PhiMat,PF,P_A,P_PhiMat,info)
 use SUN_generators, only : make_traceless_matrix_from_modes, trace_mta
 !use matrix_functions, only : MATRIX_EXP
 !use observables, only : calc_min_and_max_of_eigenvalues_Dirac
@@ -405,7 +405,8 @@ complex(kind(0d0)) :: Phi(1:dimG,1:num_sites)
 complex(kind(0d0)), intent(inout) :: PhiMat(1:NMAT,1:NMAT,1:num_sites)
 complex(kind(0d0)), intent(in) :: PF(1:sizeD)
 double precision, intent(inout) :: P_A(1:dimG,1:num_links)
-complex(kind(0d0)), intent(inout) :: P_Phi(1:dimG,1:num_sites)
+complex(kind(0d0)), intent(inout) :: P_PhiMat(1:NMAT,1:NMAT,1:num_sites)
+complex(kind(0d0)) :: P_Phi(1:dimG,1:num_sites)
 integer, intent(inout) :: info
 complex(kind(0d0)) :: dSdPhi(1:dimG,1:num_sites)
 double precision :: dSdA(1:dimG,1:num_links)
@@ -419,6 +420,7 @@ complex(kind(0d0)) :: minimal, maximal
 do s=1,num_sites
   do a=1,dimG
     call trace_MTa(Phi(a,s),PhiMat(:,:,s),a,NMAT)
+    call Trace_MTa( P_Phi(a,s),P_PhiMat(:,:,s),a,NMAT)
   enddo
 enddo
 
@@ -461,6 +463,10 @@ call update_UMAT(UMAT,P_A,Dtau_A*0.5d0)
 ! momentum
 call update_momentum(P_Phi,P_A,PhiMat,UMAT,PF,info,Dtau_phi*(lambda),Dtau_A*(lambda))
 if ( info == 1 ) return
+
+do s=1,num_sites
+call make_traceless_matrix_from_modes( P_PhiMat(:,:,s), NMAT, P_Phi(:,s)) 
+enddo
 
 end subroutine molecular_evolution_Omelyan
 
