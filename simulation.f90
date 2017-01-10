@@ -221,15 +221,15 @@ double precision :: SB_S,SB_L,SB_F,SB_M, SF,SB
 complex(kind(0d0)) :: dSdPhiMat(1:NMAT,1:NMAT,1:num_sites)
 complex(kind(0d0)) :: dSdPhiMat_final(1:NMAT,1:NMAT,1:num_sites)
 complex(kind(0d0)) :: dSdPhi(1:dimG,1:num_sites)
-double precision :: dSdA(1:dimG,1:num_links)
-double precision :: dSdA_final(1:dimG,1:num_links)
+double precision :: dSdA_org(1:dimG,1:num_links)
+double precision :: dSdA_final_org(1:dimG,1:num_links)
 complex(kind(0d0)) :: tmp
 integer :: info,CGIte
 integer :: i,j,a,s,l
 
 dSdPhiMat_final=(0d0,0d0)
 dSdPhi=(0d0,0d0)
-dSdA_final=0d0
+dSdA_final_org=0d0
 !! write down UMAT
 write(*,*) "# link, i, j, UMAT(i,j,link)"
 do l=1,num_links
@@ -308,23 +308,23 @@ do s=1,num_sites
   enddo
 enddo
 
-dSdA=0d0
-call Make_bosonic_force_A_link(dSdA,UMAT,PhiMat)
-dSdA_final=dSdA_final+dSdA
-dSdA=0d0
-call Make_bosonic_force_A_face(dSdA,UMAT)
-dSdA_final=dSdA_final+dSdA
+dSdA_org=0d0
+call Make_bosonic_force_A_link(dSdA_org,UMAT,PhiMat)
+dSdA_final_org=dSdA_final_org+dSdA_org
+dSdA_org=0d0
+call Make_bosonic_force_A_face(dSdA_org,UMAT)
+dSdA_final_org=dSdA_final_org+dSdA_org
 write(*,*) "##############################"
 write(*,*) "#link,a,dSdA from SB"
 do l=1,num_links
   do a=1,dimG
-    write(*,*) l,a,dSdA_final(a,l)
+    write(*,*) l,a,dSdA_final_org(a,l)
   enddo
 enddo
 
 dSdPhi=(0d0,0d0)
-dSdA=0d0
-call Make_fermionic_force(dSdPhi,dSdA,UMAT,PhiMat,PF,info)
+dSdA_org=0d0
+call Make_fermionic_force(dSdPhi,dSdA_org,UMAT,PhiMat,PF,info)
 write(*,*) "##############################"
 write(*,*) "#site,a,dSdPhi from SF"
 do s=1,num_sites
@@ -336,7 +336,7 @@ write(*,*) "##############################"
 write(*,*) "#link,a,dSdA from SF"
 do l=1,num_links
   do a=1,dimG
-    write(*,*) l,a,dSdA(a,l)
+    write(*,*) l,a,dSdA_org(a,l)
   enddo
 enddo
 
@@ -444,90 +444,90 @@ end subroutine molecular_evolution_Omelyan
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! Molecular Evolution by Leap Frog integrator
-subroutine molecular_evolution(UMAT,Phi,PF,P_A,P_Phi,info)
+!subroutine molecular_evolution(UMAT,Phi,PF,P_A,P_Phi,info)
 !use matrix_functions, only : MATRIX_EXP
-implicit none
-
-complex(kind(0d0)), intent(inout) :: UMAT(1:NMAT,1:NMAT,1:num_links)
-complex(kind(0d0)), intent(inout) :: Phi(1:dimG,1:num_sites)
-complex(kind(0d0)), intent(in) :: PF(1:sizeD)
-double precision, intent(inout) :: P_A(1:dimG,1:num_links)
-complex(kind(0d0)), intent(inout) :: P_Phi(1:dimG,1:num_sites)
-integer, intent(inout) :: info
-
-complex(kind(0d0)) :: dSdPhi(1:dimG,1:num_sites)
-double precision :: dSdA(1:dimG,1:num_links)
-integer :: s,l,f,a
-integer :: i
-integer :: j,k,ii
-
-
-
-!! freeze UMAT 
-!P_A=0d0   !<== これを入れるとダメになる。なぜ？？
-
-
-!! first step
-! momentum
-call Make_force(dSdPhi,dSdA,UMAT,Phi,PF,info)
-if( info == 1 ) return
-do s=1,num_sites
-  do a=1,dimG
-    P_Phi(a,s)=P_Phi(a,s) - (0.5d0,0d0) * Dtau_phi * dSdPhi(a,s)
-  enddo
-enddo
-do l=1,num_links
-  do a=1,dimG
-    P_A(a,l)=P_A(a,l) - 0.5d0 * Dtau_A * dSdA(a,l)
-  enddo
-enddo
-
-!! main steps
-do i=1, Ntau-1
-! variables
-  do s=1,num_sites
-    do a=1,dimG
-      Phi(a,s)=Phi(a,s) + Dtau_phi * dconjg( P_phi(a,s) )
-    enddo
-  enddo
-  call update_UMAT(UMAT,P_A,Dtau_A)
-! momentum
-  call Make_force(dSdPhi,dSdA,UMAT,Phi,PF,info)
-  if( info == 1 ) return
-  do s=1,num_sites
-    do a=1,dimG
-      P_Phi(a,s)=P_Phi(a,s) -  Dtau_phi * dSdPhi(a,s)
-    enddo
-  enddo
-  do l=1,num_links
-    do a=1,dimG
-      P_A(a,l)=P_A(a,l) - Dtau_A * dSdA(a,l)
-    enddo
-  enddo
-enddo
-
-!! final step
-! variables
-do s=1,num_sites
-  do a=1,dimG
-    Phi(a,s)=Phi(a,s) + Dtau_phi * dconjg( P_phi(a,s) )
-  enddo
-enddo
-call update_UMAT(UMAT,P_A,Dtau_A)
-! momentum
-call Make_force(dSdPhi,dSdA,UMAT,Phi,PF,info)
-if( info == 1 ) return
-do s=1,num_sites
-  do a=1,dimG
-    P_Phi(a,s)=P_Phi(a,s) - 0.5d0 * Dtau_phi * dSdPhi(a,s)
-  enddo
-enddo
-do l=1,num_links
-  do a=1,dimG
-    P_A(a,l)=P_A(a,l) - 0.5d0 * Dtau_A * dSdA(a,l)
-  enddo
-enddo
-end subroutine molecular_evolution
+!implicit none
+!
+!complex(kind(0d0)), intent(inout) :: UMAT(1:NMAT,1:NMAT,1:num_links)
+!complex(kind(0d0)), intent(inout) :: Phi(1:dimG,1:num_sites)
+!complex(kind(0d0)), intent(in) :: PF(1:sizeD)
+!double precision, intent(inout) :: P_A(1:dimG,1:num_links)
+!complex(kind(0d0)), intent(inout) :: P_Phi(1:dimG,1:num_sites)
+!integer, intent(inout) :: info
+!
+!complex(kind(0d0)) :: dSdPhi(1:dimG,1:num_sites)
+!double precision :: dSdA(1:dimG,1:num_links)
+!integer :: s,l,f,a
+!integer :: i
+!integer :: j,k,ii
+!
+!
+!
+!!! freeze UMAT 
+!!P_A=0d0   !<== これを入れるとダメになる。なぜ？？
+!
+!
+!!! first step
+!! momentum
+!call Make_force(dSdPhi,dSdA,UMAT,Phi,PF,info)
+!if( info == 1 ) return
+!do s=1,num_sites
+!  do a=1,dimG
+!    P_Phi(a,s)=P_Phi(a,s) - (0.5d0,0d0) * Dtau_phi * dSdPhi(a,s)
+!  enddo
+!enddo
+!do l=1,num_links
+!  do a=1,dimG
+!    P_A(a,l)=P_A(a,l) - 0.5d0 * Dtau_A * dSdA(a,l)
+!  enddo
+!enddo
+!
+!!! main steps
+!do i=1, Ntau-1
+!! variables
+!  do s=1,num_sites
+!    do a=1,dimG
+!      Phi(a,s)=Phi(a,s) + Dtau_phi * dconjg( P_phi(a,s) )
+!    enddo
+!  enddo
+!  call update_UMAT(UMAT,P_A,Dtau_A)
+!! momentum
+!  call Make_force(dSdPhi,dSdA,UMAT,Phi,PF,info)
+!  if( info == 1 ) return
+!  do s=1,num_sites
+!    do a=1,dimG
+!      P_Phi(a,s)=P_Phi(a,s) -  Dtau_phi * dSdPhi(a,s)
+!    enddo
+!  enddo
+!  do l=1,num_links
+!    do a=1,dimG
+!      P_A(a,l)=P_A(a,l) - Dtau_A * dSdA(a,l)
+!    enddo
+!  enddo
+!enddo
+!
+!!! final step
+!! variables
+!do s=1,num_sites
+!  do a=1,dimG
+!    Phi(a,s)=Phi(a,s) + Dtau_phi * dconjg( P_phi(a,s) )
+!  enddo
+!enddo
+!call update_UMAT(UMAT,P_A,Dtau_A)
+!! momentum
+!call Make_force(dSdPhi,dSdA,UMAT,Phi,PF,info)
+!if( info == 1 ) return
+!do s=1,num_sites
+!  do a=1,dimG
+!    P_Phi(a,s)=P_Phi(a,s) - 0.5d0 * Dtau_phi * dSdPhi(a,s)
+!  enddo
+!enddo
+!do l=1,num_links
+!  do a=1,dimG
+!    P_A(a,l)=P_A(a,l) - 0.5d0 * Dtau_A * dSdA(a,l)
+!  enddo
+!enddo
+!end subroutine molecular_evolution
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! update UMAT
@@ -605,17 +605,17 @@ double precision, intent(in) :: deltaPPhi,deltaA
 integer, intent(out) :: info
 
 complex(kind(0d0)) :: dSdPhi(1:NMAT,1:NMAT,1:num_sites)
-double precision :: dSdA(1:dimG,1:num_links)
+double precision :: dSdA_org(1:dimG,1:num_links)
 integer :: s,a,l
 
-call Make_force(dSdPhi,dSdA,UMAT,PhiMat,PF,info)
+call Make_force(dSdPhi,dSdA_org,UMAT,PhiMat,PF,info)
 if( info == 1) return
 do s=1,num_sites
   P_PhiMat(:,:,s)=P_PhiMat(:,:,s) - dSdPhi(:,:,s) * deltaPPhi
 enddo
 do l=1,num_links
   do a=1,dimG
-    P_A(a,l)=P_A(a,l) - dSdA(a,l) * deltaA
+    P_A(a,l)=P_A(a,l) - dSdA_org(a,l) * deltaA
   enddo
 enddo
 

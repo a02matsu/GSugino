@@ -11,7 +11,7 @@ contains
 !! dS/Dphi 
 !complex(kind(0d0)) function dSdPhi(a,s)
 !subroutine Make_bosonic_force_Phi(dSdPhi_boson)
-subroutine Make_force(dSdPhi,dSdA,UMAT,PhiMat,PF,info)
+subroutine Make_force(dSdPhi,dSdA_org,UMAT,PhiMat,PF,info)
 use SUN_generators, only : trace_mta
 implicit none
 
@@ -20,7 +20,7 @@ complex(kind(0d0)) :: Phi(1:dimG,1:num_sites)
 complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_sites)
 complex(kind(0d0)), intent(in) :: PF(1:sizeD)
 complex(kind(0d0)), intent(out) :: dSdPhi(1:NMAT,1:NMAT,1:num_sites)
-double precision, intent(out) :: dSdA(1:dimG,1:num_links)
+double precision, intent(out) :: dSdA_org(1:dimG,1:num_links)
 integer, intent(inout) :: info
 
 complex(kind(0d0)) :: dSdPhi_boson_mass(1:NMAT,1:NMAT,1:num_sites)
@@ -29,9 +29,9 @@ complex(kind(0d0)) :: dSdPhi_boson_link(1:NMAT,1:NMAT,1:num_sites)
 complex(kind(0d0)) :: dSdPhi_fermion(1:NMAT,1:NMAT,1:num_sites)
 !!!
 !double precision :: dSdA_boson_test(1:dimG,1:num_links)
-double precision :: dSdA_boson_link(1:dimG,1:num_links)
-double precision :: dSdA_boson_face(1:dimG,1:num_links)
-double precision :: dSdA_fermion(1:dimG,1:num_links)
+double precision :: dSdA_boson_link_org(1:dimG,1:num_links)
+double precision :: dSdA_boson_face_org(1:dimG,1:num_links)
+double precision :: dSdA_fermion_org(1:dimG,1:num_links)
 
 integer :: s,a,ii,jj
 
@@ -40,22 +40,22 @@ dSdPhi_boson_mass=(0d0,0d0)
 dSdPhi_boson_site=(0d0,0d0)
 dSdPhi_boson_link=(0d0,0d0)
 dSdPhi_fermion=(0d0,0d0)
-dSdA=0d0
-dSdA_boson_link=0d0
-dSdA_boson_face=0d0
-dSdA_fermion=0d0
+dSdA_org=0d0
+dSdA_boson_link_org=0d0
+dSdA_boson_face_org=0d0
+dSdA_fermion_org=0d0
 !! force for Phi from boson
 call Make_bosonic_force_Phi_mass(dSdPhi_boson_mass,PhiMat)
 call Make_bosonic_force_Phi_site(dSdPhi_boson_site,PhiMat)
 call Make_bosonic_force_Phi_link(dSdPhi_boson_link,UMAT,PhiMat)
 !! force from fermion
 !write(*,*) "1"
-call Make_fermionic_force(dSdPhi_fermion,dSdA_fermion,UMAT,PhiMat,PF,info)
+call Make_fermionic_force(dSdPhi_fermion,dSdA_fermion_org,UMAT,PhiMat,PF,info)
 
 
 !! force for A from boson
-call Make_bosonic_force_A_link(dSdA_boson_link,UMAT,PhiMat)
-call Make_bosonic_force_A_face(dSdA_boson_face,UMAT)
+call Make_bosonic_force_A_link(dSdA_boson_link_org,UMAT,PhiMat)
+call Make_bosonic_force_A_face(dSdA_boson_face_org,UMAT)
 !call Make_bosonic_force_A_test(dSdA_boson_test,UMAT)
 
 
@@ -65,9 +65,9 @@ dSdPhi= dSdPhi_boson_mass &   ! mass part
 + dSdPhi_fermion   ! link part
 
 
-dSdA = dSdA_boson_link  &
-+ dSdA_boson_face &
-+ dSdA_fermion
+dSdA_org = dSdA_boson_link_org  &
++ dSdA_boson_face_org &
++ dSdA_fermion_org
 !dSdA = dSdA + dSdA_boson_test &
 
 
