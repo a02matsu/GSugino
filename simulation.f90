@@ -627,15 +627,15 @@ double precision :: dSdA_org(1:dimG,1:num_links)
 complex(kind(0d0)) :: dSdA(1:NMAT,1:NMAT,1:num_links)
 integer :: s,a,l
 
-call Make_force(dSdPhi,dSdA_org,UMAT,PhiMat,PF,info)
+call Make_force(dSdPhi,dSdA,UMAT,PhiMat,PF,info)
 if( info == 1) return
 do s=1,num_sites
   P_PhiMat(:,:,s)=P_PhiMat(:,:,s) - dSdPhi(:,:,s) * deltaPPhi
 enddo
 
-do l=1,num_links
-  call make_traceless_matrix_from_modes(dSdA(:,:,l),NMAT,dcmplx( dSdA_org(:,l) ))
-enddo
+!do l=1,num_links
+  !call make_traceless_matrix_from_modes(dSdA(:,:,l),NMAT,dcmplx( dSdA_org(:,l) ))
+!enddo
 do l=1,num_links
     P_AMat(:,:,l) = P_AMat(:,:,l) - dSdA(:,:,l) * dcmplx(deltaA)
 enddo
