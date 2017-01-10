@@ -82,10 +82,10 @@ allocate( PHIMAT(1:NMAT,1:NMAT, 1:num_sites) )
 !call make_traceless_matrix_from_modes(PhiMat(:,:,s),NMAT,Phi(:,s))
 !enddo
 
-  if (writedown_mode==1) then
-    call writedown_config_action_and_fores(UMAT,PhiMat,seed)
-    stop
-  endif
+  !if (writedown_mode==1) then
+    !call writedown_config_action_and_fores(UMAT,PhiMat,seed)
+    !stop
+  !endif
 
   if (test_mode==1) then
     !call check_Dirac(UMAT,Phi)

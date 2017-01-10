@@ -209,142 +209,142 @@ close( OUTPUT_FILE )
 end subroutine HybridMonteCarlo
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-subroutine writedown_config_action_and_fores(UMAT,PhiMat,seed)
-use hamiltonian
-use SUN_generators, only : make_traceless_matrix_from_modes,trace_MTa
-implicit none
-
-complex(kind(0d0)), intent(inout) :: UMAT(1:NMAT,1:NMAT,1:num_links)
-complex(kind(0d0)), intent(inout) :: PhiMat(1:NMAT,1:NMAT,1:num_sites)
-integer, intent(inout) :: seed
-
-complex(kind(0d0)) :: PF(1:sizeD)
-double precision :: SB_S,SB_L,SB_F,SB_M, SF,SB
-complex(kind(0d0)) :: dSdPhiMat(1:NMAT,1:NMAT,1:num_sites)
-complex(kind(0d0)) :: dSdPhiMat_final(1:NMAT,1:NMAT,1:num_sites)
-complex(kind(0d0)) :: dSdPhi(1:dimG,1:num_sites)
-double precision :: dSdA_org(1:dimG,1:num_links)
-double precision :: dSdA_final_org(1:dimG,1:num_links)
-complex(kind(0d0)) :: tmp
-integer :: info,CGIte
-integer :: i,j,a,s,l
-
-dSdPhiMat_final=(0d0,0d0)
-dSdPhi=(0d0,0d0)
-dSdA_final_org=0d0
-!! write down UMAT
-write(*,*) "# link, i, j, UMAT(i,j,link)"
-do l=1,num_links
-  do i=1,NMAT
-    do j=1,NMAT
-      write(*,*) l,i,j,UMAT(i,j,l)
-    enddo
-  enddo
-enddo
-write(*,*)
-write(*,*) "###################"
-write(*,*) "# site, a, Phi(a,site) (a=1..dim(G))"
-do s=1,num_sites
-  do a=1,dimG
-    call trace_MTa(tmp,PhiMat(:,:,s),a,NMAT)
-    write(*,*) s,a,tmp
-  enddo
-enddo
-!! produce pseudo-fermion
-call make_pseudo_fermion(PF,UMAT,PhiMat)
-write(*,*) "###################"
-write(*,*) "# I, PseudoFermion (eta_{s,a},lambda_{l,a},chi_{f,a}の順番, a=1..dim(G))"
-do a=1,sizeD
-    write(*,*) a, PF(a)
-enddo
-
-
- 
-CGite=0
-info=0
-!SB_T=0d0
-SB_M=0d0
-SB_S=0d0
-SB_L=0d0
-SB_F=0d0
-SB=0d0
-SF=0d0
-
-!! actions
-call bosonic_action_mass(SB_M,PhiMat)
-call bosonic_action_site(SB_S,PhiMat)
-call bosonic_action_link(SB_L,UMAT,PhiMat)
-call bosonic_action_face(SB_F,UMAT)
-SB=SB_M+SB_S+SB_F
-call fermionic_action(SF,CGite,info,UMAT,PhiMat,PF)
-
-write(*,'(a)',advance='no') "SB_mass = "
-write(*,*) SB_M
-write(*,'(a)',advance='no') "SB_site = "
-write(*,*) SB_S
-write(*,'(a)',advance='no') "SB_link = "
-write(*,*) SB_L
-write(*,'(a)',advance='no') "SB_face = "
-write(*,*) SB_F
-write(*,'(a)',advance='no') "S_fermion = "
-write(*,*) SF
-
-
-!call Make_force(dSdPhi,dSdA,UMAT,Phi,PF,info)
-
-dSdPhiMat=(0d0,0d0)
-call Make_bosonic_force_Phi_mass(dSdPhiMat,PhiMat)
-dSdPhiMat_final=dSdPhiMat_final+dSdPhiMat
-dSdPhiMat=(0d0,0d0)
-call Make_bosonic_force_Phi_site(dSdPhiMat,PhiMat)
-dSdPhiMat_final=dSdPhiMat_final+dSdPhiMat
-dSdPhiMat=(0d0,0d0)
-call Make_bosonic_force_Phi_link(dSdPhiMat,UMAT,PhiMat)
-dSdPhiMat_final=dSdPhiMat_final+dSdPhiMat
-write(*,*) "##############################"
-write(*,*) "#site,a,dSdPhi from SB"
-do s=1,num_sites
-  do a=1,dimG
-    call trace_MTa(tmp,dSdPhiMat_final(:,:,s),a,NMAT)
-    write(*,*) s,a,2d0*conjg(tmp)
-  enddo
-enddo
-
-dSdA_org=0d0
-call Make_bosonic_force_A_link(dSdA_org,UMAT,PhiMat)
-dSdA_final_org=dSdA_final_org+dSdA_org
-dSdA_org=0d0
-call Make_bosonic_force_A_face(dSdA_org,UMAT)
-dSdA_final_org=dSdA_final_org+dSdA_org
-write(*,*) "##############################"
-write(*,*) "#link,a,dSdA from SB"
-do l=1,num_links
-  do a=1,dimG
-    write(*,*) l,a,dSdA_final_org(a,l)
-  enddo
-enddo
-
-dSdPhi=(0d0,0d0)
-dSdA_org=0d0
-call Make_fermionic_force(dSdPhi,dSdA_org,UMAT,PhiMat,PF,info)
-write(*,*) "##############################"
-write(*,*) "#site,a,dSdPhi from SF"
-do s=1,num_sites
-  do a=1,dimG
-    write(*,*) s,a,2d0*conjg(dSdPhi(a,s))
-  enddo
-enddo
-write(*,*) "##############################"
-write(*,*) "#link,a,dSdA from SF"
-do l=1,num_links
-  do a=1,dimG
-    write(*,*) l,a,dSdA_org(a,l)
-  enddo
-enddo
-
-
-
-end subroutine writedown_config_action_and_fores
+!subroutine writedown_config_action_and_fores(UMAT,PhiMat,seed)
+!use hamiltonian
+!use SUN_generators, only : make_traceless_matrix_from_modes,trace_MTa
+!implicit none
+!
+!complex(kind(0d0)), intent(inout) :: UMAT(1:NMAT,1:NMAT,1:num_links)
+!complex(kind(0d0)), intent(inout) :: PhiMat(1:NMAT,1:NMAT,1:num_sites)
+!integer, intent(inout) :: seed
+!
+!complex(kind(0d0)) :: PF(1:sizeD)
+!double precision :: SB_S,SB_L,SB_F,SB_M, SF,SB
+!complex(kind(0d0)) :: dSdPhiMat(1:NMAT,1:NMAT,1:num_sites)
+!complex(kind(0d0)) :: dSdPhiMat_final(1:NMAT,1:NMAT,1:num_sites)
+!complex(kind(0d0)) :: dSdPhi(1:dimG,1:num_sites)
+!double precision :: dSdA_org(1:dimG,1:num_links)
+!double precision :: dSdA_final_org(1:dimG,1:num_links)
+!complex(kind(0d0)) :: tmp
+!integer :: info,CGIte
+!integer :: i,j,a,s,l
+!
+!dSdPhiMat_final=(0d0,0d0)
+!dSdPhi=(0d0,0d0)
+!dSdA_final_org=0d0
+!!! write down UMAT
+!write(*,*) "# link, i, j, UMAT(i,j,link)"
+!do l=1,num_links
+!  do i=1,NMAT
+!    do j=1,NMAT
+!      write(*,*) l,i,j,UMAT(i,j,l)
+!    enddo
+!  enddo
+!enddo
+!write(*,*)
+!write(*,*) "###################"
+!write(*,*) "# site, a, Phi(a,site) (a=1..dim(G))"
+!do s=1,num_sites
+!  do a=1,dimG
+!    call trace_MTa(tmp,PhiMat(:,:,s),a,NMAT)
+!    write(*,*) s,a,tmp
+!  enddo
+!enddo
+!!! produce pseudo-fermion
+!call make_pseudo_fermion(PF,UMAT,PhiMat)
+!write(*,*) "###################"
+!write(*,*) "# I, PseudoFermion (eta_{s,a},lambda_{l,a},chi_{f,a}の順番, a=1..dim(G))"
+!do a=1,sizeD
+!    write(*,*) a, PF(a)
+!enddo
+!
+!
+! 
+!CGite=0
+!info=0
+!!SB_T=0d0
+!SB_M=0d0
+!SB_S=0d0
+!SB_L=0d0
+!SB_F=0d0
+!SB=0d0
+!SF=0d0
+!
+!!! actions
+!call bosonic_action_mass(SB_M,PhiMat)
+!call bosonic_action_site(SB_S,PhiMat)
+!call bosonic_action_link(SB_L,UMAT,PhiMat)
+!call bosonic_action_face(SB_F,UMAT)
+!SB=SB_M+SB_S+SB_F
+!call fermionic_action(SF,CGite,info,UMAT,PhiMat,PF)
+!
+!write(*,'(a)',advance='no') "SB_mass = "
+!write(*,*) SB_M
+!write(*,'(a)',advance='no') "SB_site = "
+!write(*,*) SB_S
+!write(*,'(a)',advance='no') "SB_link = "
+!write(*,*) SB_L
+!write(*,'(a)',advance='no') "SB_face = "
+!write(*,*) SB_F
+!write(*,'(a)',advance='no') "S_fermion = "
+!write(*,*) SF
+!
+!
+!!call Make_force(dSdPhi,dSdA,UMAT,Phi,PF,info)
+!
+!dSdPhiMat=(0d0,0d0)
+!call Make_bosonic_force_Phi_mass(dSdPhiMat,PhiMat)
+!dSdPhiMat_final=dSdPhiMat_final+dSdPhiMat
+!dSdPhiMat=(0d0,0d0)
+!call Make_bosonic_force_Phi_site(dSdPhiMat,PhiMat)
+!dSdPhiMat_final=dSdPhiMat_final+dSdPhiMat
+!dSdPhiMat=(0d0,0d0)
+!call Make_bosonic_force_Phi_link(dSdPhiMat,UMAT,PhiMat)
+!dSdPhiMat_final=dSdPhiMat_final+dSdPhiMat
+!write(*,*) "##############################"
+!write(*,*) "#site,a,dSdPhi from SB"
+!do s=1,num_sites
+!  do a=1,dimG
+!    call trace_MTa(tmp,dSdPhiMat_final(:,:,s),a,NMAT)
+!    write(*,*) s,a,2d0*conjg(tmp)
+!  enddo
+!enddo
+!
+!dSdA_org=0d0
+!call Make_bosonic_force_A_link(dSdA_org,UMAT,PhiMat)
+!dSdA_final_org=dSdA_final_org+dSdA_org
+!dSdA_org=0d0
+!call Make_bosonic_force_A_face(dSdA_org,UMAT)
+!dSdA_final_org=dSdA_final_org+dSdA_org
+!write(*,*) "##############################"
+!write(*,*) "#link,a,dSdA from SB"
+!do l=1,num_links
+!  do a=1,dimG
+!    write(*,*) l,a,dSdA_final_org(a,l)
+!  enddo
+!enddo
+!
+!dSdPhi=(0d0,0d0)
+!dSdA_org=0d0
+!call Make_fermionic_force(dSdPhi,dSdA_org,UMAT,PhiMat,PF,info)
+!write(*,*) "##############################"
+!write(*,*) "#site,a,dSdPhi from SF"
+!do s=1,num_sites
+!  do a=1,dimG
+!    write(*,*) s,a,2d0*conjg(dSdPhi(a,s))
+!  enddo
+!enddo
+!write(*,*) "##############################"
+!write(*,*) "#link,a,dSdA from SF"
+!do l=1,num_links
+!  do a=1,dimG
+!    write(*,*) l,a,dSdA_org(a,l)
+!  enddo
+!enddo
+!
+!
+!
+!end subroutine writedown_config_action_and_fores
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 subroutine set_randomP(P_AMat,P_PhiMat)
