@@ -18,20 +18,26 @@ contains
 !!  D_{AB}=-D_{BA}
 !! Make sure that the fermionic action includes 
 !! the prefactor 1/2.
-subroutine Make_Hamiltonian(Htotal,CGite,info,UMAT,PhiMat,PF,P_A,P_Phi)
+subroutine Make_Hamiltonian(Htotal,CGite,info,UMAT,PhiMat,PF,P_A,P_PhiMat)
 !use SUN_generators, only : make_traceless_matrix_from_modes
 implicit none
 
 complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_links)
 complex(kind(0d0)), intent(in) :: PhiMAT(1:NMAT,1:NMAT,1:num_sites)
 complex(kind(0d0)), intent(in) :: PF(1:sizeD)
-complex(kind(0d0)), intent(in) :: P_Phi(1:dimG,1:num_sites)
+!complex(kind(0d0)), intent(in) :: P_Phi(1:dimG,1:num_sites)
+complex(kind(0d0)), intent(in) :: P_PhiMat(1:NMAT,1:NMAT,1:num_sites)
 double precision, intent(in) :: P_A(1:dimG,1:num_links)
 integer, intent(inout) :: CGite,info
 
 double precision, intent(out) :: Htotal
-integer a,s,l
+integer a,s,l,i,j
 double precision :: SB_S,SB_L,SB_F,SB_M, SF !,SB_T
+
+!do s=1,num_sites
+  !call make_traceless_matrix_from_modes(P_PhiMat(:,:,s),NMAT,P_Phi(:,s))
+!enddo
+
 
 CGite=0
 info=0
@@ -59,9 +65,13 @@ Htotal = Htotal+SF
 Htotal = Htotal 
 
 do s=1,num_sites
-  do a=1,dimG
-    Htotal = Htotal &
-      + dble(P_phi(a,s)*dconjg(P_phi(a,s)))
+  !do a=1,dimG
+  do j=1,NMAT
+    do i=1,NMAT
+      Htotal = Htotal &
+        + dble( conjg(P_PhiMat(i,j,s)) * P_PhiMat(i,j,s) )
+        !+ dble(P_phi(a,s)*dconjg(P_phi(a,s)))
+    enddo
   enddo
 enddo
 

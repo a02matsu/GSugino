@@ -91,7 +91,7 @@ end subroutine test_hamiltonian
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 subroutine HybridMonteCarlo(UMAT,PhiMat,seed,total_ite)
 use output
-!use SUN_generators, only : make_traceless_matrix_from_modes,trace_MTa
+use SUN_generators, only : make_traceless_matrix_from_modes,trace_MTa
 use SUN_generators, only : trace_MTa
 implicit none
 
@@ -104,6 +104,7 @@ integer, intent(inout) :: total_ite
 !complex(kind(0d0)) :: P_A(1:dimG,1:num_links)
 double precision :: P_A(1:dimG,1:num_links)
 complex(kind(0d0)) :: P_Phi(1:dimG,1:num_sites)
+complex(kind(0d0)) :: P_PhiMat(1:NMAT,1:NMAT,1:num_sites)
 complex(kind(0d0)) :: PF(1:sizeD)
 
 !complex(kind(0d0)) Phi_BAK(1:dimG,1:num_sites)
@@ -121,10 +122,6 @@ double precision :: diff
 
 integer s,a
 
-!do s=1,num_sites
-!call make_traceless_matrix_from_modes(PhiMat(:,:,s),NMAT,Phi(:,s))
-!enddo
-
 !! prepare intermediate file
 open(unit=MED_CONF_FILE,status='replace',file=Fmedconf,action='write',form='unformatted')
 call write_basic_info_to_medfile(MED_CONF_FILE)
@@ -140,16 +137,19 @@ accept=0
       call trace_MTa(Phi(a,s),PhiMat(:,:,s),a,NMAT)
     enddo
   enddo
-call write_header(seed,UMAT,Phi)
+call write_header(seed,UMAT,PhiMat)
 !! measure the time used in this simulation
 call system_clock(t_start)
 do ite=total_ite+1,total_ite+num_ite
   !! set random momentuet
   call set_randomP(P_A,P_Phi)
+  do s=1,num_sites
+    call make_traceless_matrix_from_modes(P_PhiMat(:,:,s),NMAT,P_Phi(:,s))
+  enddo
   !! produce pseudo-fermion
   call make_pseudo_fermion(PF,UMAT,PhiMat)
   !! calculate Hamiltonian 
-  call Make_Hamiltonian(Hold,CGite1,info1,UMAT,PhiMat,PF,P_A,P_Phi)
+  call Make_Hamiltonian(Hold,CGite1,info1,UMAT,PhiMat,PF,P_A,P_PhiMat)
   !! backup
   PhiMat_BAK=PhiMat
   !Phi_BAK=Phi
@@ -168,7 +168,10 @@ do ite=total_ite+1,total_ite+num_ite
     !! check distance of Uf from the origin
     !call check_vacuum(UMAT)
     !! calculate Hamiltonian 
-    call Make_Hamiltonian(Hnew,CGite2,info2,UMAT,PhiMat,PF,P_A,P_Phi)
+  do s=1,num_sites
+    call make_traceless_matrix_from_modes(P_PhiMat(:,:,s),NMAT,P_Phi(:,s))
+  enddo
+    call Make_Hamiltonian(Hnew,CGite2,info2,UMAT,PhiMat,PF,P_A,P_PhiMat)
     !! metropolice
     call Metropolice_test(Hnew-Hold,PhiMat_Bak,UMAT_BAK,PhiMat,UMAT,accept)
   endif
