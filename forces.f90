@@ -377,7 +377,7 @@ end subroutine Make_bosonic_force_A_face
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! dS/dPhi and dS/dA from fermion part
-subroutine Make_fermionic_force(dSdPhi_fermion,dSdA_fermion,UMAT,Phimat,PF,info)
+subroutine Make_fermionic_force(dSdPhi_fermion,dSdA_fermion_org,UMAT,Phimat,PF,info)
 use rational_algorithm
 use Dirac_operator
 use differential_Dirac
@@ -388,8 +388,8 @@ complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_sites)
 complex(kind(0d0)), intent(in) :: PF(1:sizeD)
 complex(kind(0d0)), intent(out) :: dSdPhi_fermion(1:NMAT,1:NMAT,1:num_sites)
 !complex(kind(0d0)) :: dSdPhi_fermion_org(1:NMAT,1:NMAT,1:num_sites)
-double precision, intent(out) :: dSdA_fermion(1:dimG,1:num_links)
-complex(kind(0d0)) :: dSdA_fermion_org(1:NMAT,1:NMAT,1:num_links)
+double precision, intent(out) :: dSdA_fermion_org(1:dimG,1:num_links)
+complex(kind(0d0)) :: dSdA_fermion(1:NMAT,1:NMAT,1:num_links)
 integer, intent(inout) :: info
 
 ! vec_r = (D\dagger D + \beta_r)^{-1} F
@@ -436,8 +436,8 @@ integer :: r,i,j,s,l,a,b,ss,f,ll,ii,jj
 
 dSdPhi_fermion=(0d0,0d0)
 !dSdPhi_fermion_org=(0d0,0d0)
-dSdA_fermion=0d0
-dSdA_fermion_org=(0d0,0d0)
+dSdA_fermion_org=0d0
+dSdA_fermion=(0d0,0d0)
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ! comutation by CG
@@ -468,15 +468,6 @@ do r=1,N_Remez4
 enddo
 
 do r=1,N_Remez4
-  !do l=1,num_links
-    !do a=1,dimG
-      !call vec_to_mat(&
-        !dDdA_eta(:,:,:,a,l,r), &
-        !dDdA_lambda(:,:,:,a,l,r), &
-        !dDdA_chi(:,:,:,a,l,r), &
-        !dDdA_vec(:,a,l,r))
-    !enddo
-  !enddo
   call vec_to_mat( &
     Dvec_eta(:,:,:,r),&
     Dvec_lambda(:,:,:,r),&
@@ -529,11 +520,6 @@ do ll=1,num_links
   do ii=1,NMAT
     do jj=1,NMAT
       do r=1,N_Remez4
-!      do i=1,sizeD
-!        dSdA_fermion(a,l)=dSdA_fermion(a,l) & 
-!          - Remez_alpha4(r)   &
-!            *dble( dconjg( Dvec(i,r) ) * dDdA_vec(i,a,l,r) &
-!                   + dconjg( dDdA_vec(i,a,l,r) ) * Dvec(i,r) ) 
         tmp=(0d0,0d0)
         do ss=1,num_sites
           do i=1,NMAT
@@ -562,22 +548,17 @@ do ll=1,num_links
             enddo
           enddo
         enddo
-        dSdA_fermion_org(ii,jj,ll)=dSdA_fermion_org(ii,jj,ll) & 
+        dSdA_fermion(ii,jj,ll)=dSdA_fermion(ii,jj,ll) & 
           - Remez_alpha4(r) * tmp 
       enddo
     enddo
   enddo
 enddo
 
-!do s=1,num_sites
-  !do a=1,dimG
-    !call trace_MTa(dSdPhi_fermion(a,s),dSdPhi_fermion_org(:,:,s),a,NMAT)
-  !enddo
-!enddo
 do l=1,num_links
   do a=1,dimG
-    call trace_MTa(tmp,dSdA_fermion_org(:,:,l),a,NMAT)
-    dSdA_fermion(a,l)=dble(tmp)
+    call trace_MTa(tmp,dSdA_fermion(:,:,l),a,NMAT)
+    dSdA_fermion_org(a,l)=dble(tmp)
   enddo
 enddo
 end subroutine Make_fermionic_force
