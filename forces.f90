@@ -38,6 +38,7 @@ complex(kind(0d0)) :: dSdA_boson_face(1:NMAT,1:NMAT,1:num_links)
 complex(kind(0d0)) :: dSdA_fermion(1:NMAT,1:NMAT,1:num_links)
 
 integer :: s,a,ii,jj,l
+complex(kind(0d0)) :: tmp
 
 dSdPhi=(0d0,0d0)
 dSdPhi_boson_mass=(0d0,0d0)
@@ -54,7 +55,13 @@ call Make_bosonic_force_Phi_site(dSdPhi_boson_site,PhiMat)
 call Make_bosonic_force_Phi_link(dSdPhi_boson_link,UMAT,PhiMat)
 !! force from fermion
 !write(*,*) "1"
-call Make_fermionic_force(dSdPhi_fermion,dSdA_fermion_org,UMAT,PhiMat,PF,info)
+call Make_fermionic_force(dSdPhi_fermion,dSdA_fermion,UMAT,PhiMat,PF,info)
+do l=1,num_links
+  do a=1,dimG
+    call trace_MTa(tmp,dSdA_fermion(:,:,l),a,NMAT)
+    dSdA_fermion_org(a,l)=dble(tmp)
+  enddo
+enddo
 
 
 !! force for A from boson
@@ -269,13 +276,14 @@ end subroutine Make_bosonic_force_Phi_link
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! dS/DA from link action
-subroutine Make_bosonic_force_A_link(dSdA_boson_link,UMAT,PhiMat)
+subroutine Make_bosonic_force_A_link(dSdA_boson_link_org,UMAT,PhiMat)
 use SUN_generators, only : trace_MTa, make_traceless_matrix_from_modes
+use matrix_functions, only : matrix_3_product, matrix_commutator
 implicit none
 
 complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_links)
 complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_sites)
-double precision, intent(out) :: dSdA_boson_link(1:dimG,1:num_links)
+double precision, intent(out) :: dSdA_boson_link_org(1:dimG,1:num_links)
 complex(kind(0d0)) :: tmpmat(1:NMAT,1:NMAT)
 complex(kind(0d0)) :: dPhi(1:NMAT,1:NMAT)
 complex(kind(0d0)) :: Phi_tip(1:NMAT,1:NMAT)
@@ -284,45 +292,27 @@ complex(kind(0d0)) :: Comm(1:NMAT,1:NMAT)
 complex(kind(0d0)) :: tmp
 integer :: a,l,i,j
 
-!integer :: b,c,d,i
-!double precision :: f_cad
-!complex(kind(0d0)) :: trace
-
-dSdA_boson_link=0d0
+dSdA_boson_link_org=0d0
 do l=1,num_links
   call Make_diff_PhiMAT(dPhi, l,UMAT,PhiMat)
 
-  Phi_tip=PhiMat(:,:,link_tip(l))
-  !call Make_traceless_matrix_from_modes(Phi_tip,NMAT,Phi(:,link_tip(l)))
+  Phi_tip=(0d0,1d0)*PhiMat(:,:,link_tip(l))
 
   ! U_l.Phi_tip
-  call ZGEMM('N','N',NMAT,NMAT,NMAT,(1d0,0d0), &
-    UMAT(:,:,l), NMAT, &
-    Phi_tip, NMAT, &
-    (0d0,0d0), tmpmat, NMAT)
-  ! U_l.Phi_tip.U_l^\dagger
-  call ZGEMM('N','C',NMAT,NMAT,NMAT,(1d0,0d0), &
-    tmpmat, NMAT, &
-    UMAT(:,:,l), NMAT, &
-    (0d0,0d0), UPhiUinv, NMAT)
+!  ! i*U_l.Phi_tip.U_l^\dagger
+  call matrix_3_product(UPhiUinv,UMAT(:,:,l),Phi_tip,UMAT(:,:,l),'N','N','C')
 
   ! i[ UPhiUinv, dSPhi^\dagger ]
-  call ZGEMM('N','C',NMAT,NMAT,NMAT,(0d0,1d0), &
-    UPhiUinv, NMAT, &
-    dPhi, NMAT, &
-    (0d0,0d0), Comm, NMAT)
-  call ZGEMM('C','N',NMAT,NMAT,NMAT,(0d0,-1d0), &
-    dPhi, NMAT, &
-    UPhiUinv, NMAT, &
-    (1d0,0d0), Comm, NMAT)
+  call matrix_commutator(Comm,UPhiUinv,dPhi,'N','C')
 
   do a=1,dimG
     call Trace_MTa( tmp, Comm, a, NMAT )
-    dSdA_boson_link(a,l) = alpha_l(l) * dble( tmp + dconjg(tmp) )
+    !write(*,*) tmp
+    dSdA_boson_link_org(a,l) = alpha_l(l) * dble( tmp + dconjg(tmp) )
   enddo
 enddo
 
-dSdA_boson_link=dSdA_boson_link * overall_factor !*one_ov_2g2N
+dSdA_boson_link_org=dSdA_boson_link_org * overall_factor !*one_ov_2g2N
 
 end subroutine Make_bosonic_force_A_link
 
@@ -377,7 +367,7 @@ end subroutine Make_bosonic_force_A_face
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! dS/dPhi and dS/dA from fermion part
-subroutine Make_fermionic_force(dSdPhi_fermion,dSdA_fermion_org,UMAT,Phimat,PF,info)
+subroutine Make_fermionic_force(dSdPhi_fermion,dSdA_fermion,UMAT,Phimat,PF,info)
 use rational_algorithm
 use Dirac_operator
 use differential_Dirac
@@ -388,8 +378,8 @@ complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_sites)
 complex(kind(0d0)), intent(in) :: PF(1:sizeD)
 complex(kind(0d0)), intent(out) :: dSdPhi_fermion(1:NMAT,1:NMAT,1:num_sites)
 !complex(kind(0d0)) :: dSdPhi_fermion_org(1:NMAT,1:NMAT,1:num_sites)
-double precision, intent(out) :: dSdA_fermion_org(1:dimG,1:num_links)
-complex(kind(0d0)) :: dSdA_fermion(1:NMAT,1:NMAT,1:num_links)
+!double precision, intent(out) :: dSdA_fermion_org(1:dimG,1:num_links)
+complex(kind(0d0)), intent(out) :: dSdA_fermion(1:NMAT,1:NMAT,1:num_links)
 integer, intent(inout) :: info
 
 ! vec_r = (D\dagger D + \beta_r)^{-1} F
@@ -436,7 +426,7 @@ integer :: r,i,j,s,l,a,b,ss,f,ll,ii,jj
 
 dSdPhi_fermion=(0d0,0d0)
 !dSdPhi_fermion_org=(0d0,0d0)
-dSdA_fermion_org=0d0
+!dSdA_fermion_org=0d0
 dSdA_fermion=(0d0,0d0)
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -555,12 +545,12 @@ do ll=1,num_links
   enddo
 enddo
 
-do l=1,num_links
-  do a=1,dimG
-    call trace_MTa(tmp,dSdA_fermion(:,:,l),a,NMAT)
-    dSdA_fermion_org(a,l)=dble(tmp)
-  enddo
-enddo
+!do l=1,num_links
+  !do a=1,dimG
+    !call trace_MTa(tmp,dSdA_fermion(:,:,l),a,NMAT)
+    !dSdA_fermion_org(a,l)=dble(tmp)
+  !enddo
+!enddo
 end subroutine Make_fermionic_force
 
 end module forces
