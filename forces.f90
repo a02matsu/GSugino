@@ -20,7 +20,6 @@ complex(kind(0d0)) :: Phi(1:dimG,1:num_sites)
 complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_sites)
 complex(kind(0d0)), intent(in) :: PF(1:sizeD)
 complex(kind(0d0)), intent(out) :: dSdPhi(1:NMAT,1:NMAT,1:num_sites)
-double precision :: dSdA_org(1:dimG,1:num_links)
 complex(kind(0d0)), intent(out) :: dSdA(1:NMAT,1:NMAT,1:num_links)
 integer, intent(inout) :: info
 
@@ -30,9 +29,13 @@ complex(kind(0d0)) :: dSdPhi_boson_link(1:NMAT,1:NMAT,1:num_sites)
 complex(kind(0d0)) :: dSdPhi_fermion(1:NMAT,1:NMAT,1:num_sites)
 !!!
 !double precision :: dSdA_boson_test(1:dimG,1:num_links)
+double precision :: dSdA_org(1:dimG,1:num_links)
 double precision :: dSdA_boson_link_org(1:dimG,1:num_links)
 double precision :: dSdA_boson_face_org(1:dimG,1:num_links)
 double precision :: dSdA_fermion_org(1:dimG,1:num_links)
+complex(kind(0d0)) :: dSdA_boson_link(1:NMAT,1:NMAT,1:num_links)
+complex(kind(0d0)) :: dSdA_boson_face(1:NMAT,1:NMAT,1:num_links)
+complex(kind(0d0)) :: dSdA_fermion(1:NMAT,1:NMAT,1:num_links)
 
 integer :: s,a,ii,jj,l
 
