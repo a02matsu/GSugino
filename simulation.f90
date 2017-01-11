@@ -40,7 +40,11 @@ type(genrand_srepr) :: srepr
 !enddokk
 
 call check_Dirac(UMAT,PhiMat)
-write(*,*) "# test hamiltonian"
+write(*,'(a)') " # test hamiltonian"
+write(*,'(a,I8)') " # NMAT=",NMAT
+write(*,'(a,I4)') " # fix_seed=",fix_seed
+write(*,'(a,I2)') " # read_alpha=",read_alpha
+write(*,'(a,I5)') " # m_omega=",m_omega
 write(*,*) "# Ntau*Dtau=",Ntau*Dtau
 
 !! backup

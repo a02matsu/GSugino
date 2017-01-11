@@ -479,6 +479,7 @@ complex(kind(0d0)) :: tmpmat4(1:NMAT,1:NMAT)
 complex(kind(0d0)) :: line(1:NMAT,1:NMAT,1:NMAT,1:NMAT)
 integer :: l_label,ll_label,k,l,ll
 integer :: i,j,ii,jj,f
+complex(kind(0d0)) :: trace
 
 ! label of face
 do f=1,num_faces
@@ -567,14 +568,35 @@ do l_label=1,links_in_f(f)%num_
       enddo ! ii
       enddo ! jj
     enddo ! k
+    
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    ! make traceless for (ii,jj)
+    tmpmat1=(0d0,0d0)
+    do ii=1,NMAT
+      tmpmat1=tmpmat1+line(:,:,ii,ii)
+    enddo
+    do ii=1,NMAT
+      line(:,:,ii,ii)=line(:,:,ii,ii)-tmpmat1/cmplx(dble(NMAT))
+    enddo
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     do jj=1,NMAT
       do ii=1,NMAT
         dDdA_chi(:,:,f,ii,jj,ll)=dDdA_chi(:,:,f,ii,jj,ll) &
           + cmplx(dble(links_in_f(f)%link_dirs_(l_label) ))*(0d0,1d0) &
            * cmplx( alpha_f(f)*beta_f(f)/dble(m_omega) ) &
            * line(:,:,ii,jj)
-       enddo
-     enddo
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        ! make traceless for (i,j)
+        trace=(0d0,0d0)
+        do j=1,NMAT
+          trace=trace+dDdA_chi(j,j,l,ii,jj,ll)
+        enddo
+        do j=1,NMAT
+          dDdA_chi(j,j,l,ii,jj,ll)=dDdA_chi(j,j,l,ii,jj,ll)-trace/cmplx(dble(NMAT))
+        enddo
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      enddo
+    enddo
   enddo ! ll
 enddo ! l
 enddo ! f
@@ -667,14 +689,36 @@ do i=1,face_in_l(l)%num_
       enddo ! jj
     enddo ! k
 
+    ! make traceless for (ii,jj)
+    tmpmat1=(0d0,0d0)
+    do ii=1,NMAT
+      tmpmat1=tmpmat1+line(:,:,ii,ii)
+    enddo
+    do ii=1,NMAT
+      line(:,:,ii,ii)=line(:,:,ii,ii)-tmpmat1/cmplx(dble(NMAT))
+    enddo
+
+
     do jj=1,NMAT
       do ii=1,NMAT
          dDdA_lambda(:,:,l,ii,jj,ll)=dDdA_lambda(:,:,l,ii,jj,ll) &
             - cmplx(dble(links_in_f(f)%link_dirs_(l_label) ))*(0d0,1d0) &
              * cmplx( alpha_f(f)*beta_f(f)/dble(m_omega) ) &
              * line(:,:,ii,jj)
+         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+         ! make traceless for (i,j)
+         trace=(0d0,0d0)
+         do j=1,NMAT
+           trace=trace+dDdA_lambda(j,j,l,ii,jj,ll)
+         enddo
+         do j=1,NMAT
+           dDdA_lambda(j,j,l,ii,jj,ll)=dDdA_lambda(j,j,l,ii,jj,ll)-trace/cmplx(dble(NMAT))
+         enddo
+         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       enddo
     enddo
+
+
 
   enddo ! ll
 enddo ! f

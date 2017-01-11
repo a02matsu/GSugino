@@ -299,7 +299,7 @@ use matrix_functions, only : matrix_power,matrix_product
 !use diferential_Dirac, only :  calc_dCosUinvdA_dSinUdA
 implicit none
 complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_links)
-!double precision dSdA_boson_face_org(1:dimG,1:num_links)
+double precision dSdA_boson_face_org(1:dimG,1:num_links)
 complex(kind(0d0)), intent(out) :: dSdA_boson_face(1:NMAT,1:NMAT,1:num_links)
 complex(kind(0d0)) :: Uf(1:NMAT,1:NMAT,1:num_faces), Ufm(1:NMAT,1:NMAT,1:num_faces)
 complex(kind(0d0)) :: Omega(1:NMAT,1:NMAT,1:num_faces)
@@ -316,13 +316,12 @@ complex(kind(0d0)) :: dSinUdA(1:NMAT,1:NMAT,1:NMAT,1:NMAT)
 !integer, allocatable :: faces_l(:)
 complex(kind(0d0)) :: trace,tmp
 complex(kind(0d0)) :: tmpmat(1:NMAT,1:NMAT)
-complex(kind(0d0)) :: test(1:NMAT,1:NMAT)
-integer :: a,l,f
+!complex(kind(0d0)) :: tmp2(1:dimG)
+!complex(kind(0d0)) :: comp(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:num_faces,1:num_links)
+integer :: a,l,f!,ll
 integer :: l_label
 integer :: i,j,k,ii,jj
 
-!dSdA_boson_face_org=0d0
-dSdA_boson_face=(0d0,0d0)
 !Omega=(0d0,0d0)
 sinU=(0d0,0d0)
 cosUinv=(0d0,0d0)
@@ -333,8 +332,8 @@ do f=1,num_faces
   call calc_sinU_and_cosUinv(sinU(:,:,f),cosUinv(:,:,f),Ufm(:,:,f))
 enddo
 
+dSdA_boson_face=(0d0,0d0)
 do l=1,num_links
-  !call get_faces_in_link_sc(sc,l,faces_l)
   do k=1,face_in_l(l)%num_
     f=face_in_l(l)%label_(k)
     do l_label=1,links_in_f(f)%num_
@@ -348,23 +347,34 @@ do l=1,num_links
       cosUinv(:,:,f),Uf(:,:,f),UMAT,f,l_label)
 
     diff_Omega=(0d0,0d0)
+    tmpmat=(0d0,0d0)
     do jj=1,NMAT
       do ii=1,NMAT
-        call matrix_product(&
-          diff_Omega(:,:,ii,jj),dSinUdA(:,:,ii,jj),cosUinv(:,:,f))
-        call zgemm('N','N',NMAT,NMAT,NMAT,(0d0,-1d0), &
-          SinU(:,:,f), NMAT, &
-          dCosUinvdA(:,:,ii,jj), NMAT, &
-          (0d0,-1d0), diff_Omega(:,:,ii,jj), NMAT)
-        call zgemm('N','N',NMAT,NMAT,NMAT,(0d0,-1d0), &
-          dCosUinvdA(:,:,ii,jj), NMAT, &
-          SinU(:,:,f), NMAT, &
-          (1d0,0d0), diff_Omega(:,:,ii,jj), NMAT)
-        call zgemm('N','N',NMAT,NMAT,NMAT,(0d0,-1d0), &
-          CosUinv(:,:,f), NMAT, &
-          dSinUdA(:,:,ii,jj), NMAT, &
-          (1d0,0d0), diff_Omega(:,:,ii,jj), NMAT)
-
+         call matrix_product(&
+           diff_Omega(:,:,ii,jj),dSinUdA(:,:,ii,jj),cosUinv(:,:,f))
+         call zgemm('N','N',NMAT,NMAT,NMAT,(0d0,-1d0), &
+           SinU(:,:,f), NMAT, &
+           dCosUinvdA(:,:,ii,jj), NMAT, &
+           (0d0,-1d0), diff_Omega(:,:,ii,jj), NMAT)
+         call zgemm('N','N',NMAT,NMAT,NMAT,(0d0,-1d0), &
+           dCosUinvdA(:,:,ii,jj), NMAT, &
+           SinU(:,:,f), NMAT, &
+           (1d0,0d0), diff_Omega(:,:,ii,jj), NMAT)
+         call zgemm('N','N',NMAT,NMAT,NMAT,(0d0,-1d0), &
+           CosUinv(:,:,f), NMAT, &
+           dSinUdA(:,:,ii,jj), NMAT, &
+           (1d0,0d0), diff_Omega(:,:,ii,jj), NMAT)
+         if( ii==jj ) then
+           tmpmat=tmpmat+diff_Omega(:,:,ii,ii)
+         endif
+       enddo
+     enddo
+     ! make diff_Omega traceless
+     do ii=1,NMAT
+       diff_Omega(:,:,ii,ii)=diff_Omega(:,:,ii,ii)-tmpmat/cmplx(dble( NMAT ))
+     enddo
+     do jj=1,NMAT
+       do ii=1,NMAT
         !!!!!!!!!!!!!!!!!!!!!
         ! make traceless
         if( NMAT > 2 ) then
@@ -380,10 +390,6 @@ do l=1,num_links
         !!!!!!!!!!!!!!!!!!!!!
       enddo
     enddo
-    !do a=1,dimG
-    !call trace_MTA(tmp,test,a,NMAT)
-    !write(*,*) tmp
-    !enddo
     
     do jj=1,NMAT
       do ii=1,NMAT
@@ -394,40 +400,62 @@ do l=1,num_links
                 *cmplx( overall_factor * alpha_f(f)*beta_f(f)*beta_f(f) / dble(m_omega)) &
                 *diff_Omega(i,j,ii,jj) *  Omega(j,i,f) 
                     !+  Omega(i,j,f) *  diff_Omega(j,i,ii,jj) )
+            !comp(i,j,ii,jj,f,l)=diff_Omega(i,j,ii,jj)
           enddo
         enddo
       enddo
     enddo
-
-!!!!!!!!!!! OLD !!!!!!!!!!!
-   !call calc_diff_omega(diff_Omega_org(:,:,:),Uf(:,:,f),Ufm(:,:,f),f,l,UMAT)
-   !do a=1,dimG
-     !trace=(0d0,0d0)
-     !do i=1,NMAT
-       !trace=trace+diff_Omega_org(i,i,a)
-     !enddo
-     !write(*,*) trace
-   !enddo
-      !trace=(0d0,0d0)
-      !do i=1,NMAT
-        !do j=1,NMAT
-          !trace=trace+Omega(i,j,f)*diff_Omega(j,i,a)
-        !enddo
-      !enddo
-      !dSdA_boson_face_org(a,l)=dSdA_boson_face_org(a,l) & 
-        !+ 0.5d0*alpha_f(f)*beta_f(f)*beta_f(f)*dble(trace)
-    !enddo
   enddo
 enddo
-!!!!!!!!!!!!!!!!!!!!!!!!!
 
+!!!!!!!!!!! OLD !!!!!!!!!!!
+!dSdA_boson_face_org=0d0
+!do l=1,num_links
+!  !call get_faces_in_link_sc(sc,l,faces_l)
+!  do k=1,face_in_l(l)%num_
+!    f=face_in_l(l)%label_(k)
+!    do l_label=1,links_in_f(f)%num_
+!      if ( l == links_in_f(f)%link_labels_(l_label) ) exit
+!    enddo
+!
+!    call calc_diff_omega(diff_Omega_org(:,:,:),Uf(:,:,f),Ufm(:,:,f),f,l,UMAT)
+!    !!!!!!!!!!!!!!!!!!
+!    do j=1,NMAT
+!      do i=1,NMAT
+!        do a=1,dimG
+!          tmp2(a)=diff_omega_org(i,j,a)
+!        enddo
+!        call make_traceless_matrix_from_modes(tmpmat,NMAT,tmp2)
+!        do jj=1,NMAT
+!          do ii=1,NMAT
+!            write(*,*) f,l,i,j,ii,jj,tmpmat(ii,jj)-comp(i,j,ii,jj,f,l)
+!          enddo
+!        enddo
+!      enddo
+!    enddo
+!    !!!!!!!!!!!!!!!!!!
+!    do a=1,dimG
+!    trace=(0d0,0d0)
+!    do i=1,NMAT
+!      do j=1,NMAT
+!        trace=trace+Omega(i,j,f)*diff_Omega_org(j,i,a)
+!      enddo
+!    enddo
+!    dSdA_boson_face_org(a,l)=dSdA_boson_face_org(a,l) & 
+!      + 0.5d0*alpha_f(f)*beta_f(f)*beta_f(f)*dble(trace)
+!    enddo
+!  enddo
+!enddo
+!!!!!!!!!!!!!!!!!!!!!!!!!!
+!stop
+!
 !dSdA_boson_face_org=dSdA_boson_face_org * overall_factor !*one_ov_2g2N
 !do l=1,num_links
-  !do a=1,dimG
-    !call trace_MTa(tmp,dSdA_boson_face(:,:,l),a,NMAT)
-    !write(*,*) tmp
-  !call make_traceless_matrix_from_modes(dSdA_boson_face(:,:,l),NMAT,dcmplx( dSdA_boson_face_org(:,l)) )
-  !enddo
+!  !do a=1,dimG
+!    !call trace_MTa(tmp,dSdA_boson_face(:,:,l),a,NMAT)
+!    !write(*,*) tmp
+!  !enddo
+!  call make_traceless_matrix_from_modes(dSdA_boson_face(:,:,l),NMAT,dcmplx( dSdA_boson_face_org(:,l)) )
 !enddo
 
 

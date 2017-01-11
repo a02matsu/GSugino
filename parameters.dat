@@ -6,11 +6,11 @@ ab_tetra2.dat	! data of alpha and beta
 1				! new_config ; 0:Old Config 1:New Config
 2				! fix_seed ; 0:previous value 1:fix 2:system time
 0				! reset_ite ; 0:continue total ite, 1:reset total ite
-0				! read_alpha; 0:alpha,beta=1d0 1:read alpha/beta from file
+1				! read_alpha; 0:alpha,beta=1d0 1:read alpha/beta from file
 1				! config_step; step to write out configuration
 1				! obs_step; step to compute observables
 42342			! seed (works when fix_seed=1)
-1				! m_omega ;integer to avoid vacuum degeneracy (mm>=NMAT/4)
+2				! m_omega ;integer to avoid vacuum degeneracy (mm>=NMAT/4)
 0.1d0 			! mass_square_phi 
 1d-1       	! mass_f; fermion mass
 1d5		        ! Remez_factor4 ; range of remez approx( min*factor .. max*factor) 

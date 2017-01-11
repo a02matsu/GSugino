@@ -319,6 +319,16 @@ do f=1,num_faces
         * cmplx(overall_factor) / cmplx(dble(m_omega))&
         * cmplx(alpha_f(f)*beta_f(f)) * (line1-line2)
   enddo
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  ! make traceless for (i,j)
+  trace=(0d0,0d0)
+  do j=1,NMAT
+    trace=trace+DF_chi(j,j,f)
+  enddo
+  do j=1,NMAT
+    DF_chi(j,j,f)=DF_chi(j,j,f)-trace/cmplx(dble(NMAT))
+  enddo
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 enddo
 
 do l=1,num_links
@@ -356,6 +366,16 @@ do l=1,num_links
         * cmplx(-overall_factor) / cmplx(dble(m_omega))&
         * cmplx(alpha_f(f)*beta_f(f)) * acomm
   enddo
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+   ! make traceless for (i,j)
+   trace=(0d0,0d0)
+   do j=1,NMAT
+     trace=trace+DF_lambda(j,j,l)
+   enddo
+   do j=1,NMAT
+     DF_lambda(j,j,l)=DF_lambda(j,j,l)-trace/cmplx(dble(NMAT))
+   enddo
+   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 enddo
 endif
 
