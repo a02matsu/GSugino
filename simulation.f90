@@ -64,9 +64,6 @@ call genrand_init( put=state )
 call set_randomP(P_AMat,P_PhiMat)
 ! produce pseudo-fermion
 call make_pseudo_fermion(PF,UMAT,PhiMat)
-!do l=1,num_links
-  !call Make_traceless_matrix_from_modes(P_Amat(:,:,l), NMAT, dcmplx(P_A(:,l)))
-!enddo
 !! calculate Hamiltonian 
 call Make_Hamiltonian(Hold,CGite,info,UMAT,PhiMat,PF,P_AMat,P_PhiMat)
 !! molecular evolution

@@ -1,4 +1,4 @@
-2			! NMAT
+3			! NMAT
 2.667d0					! lattice spacing
 tetra.dat		! data of the simplicial complex
 ab_tetra2.dat	! data of alpha and beta
@@ -19,10 +19,10 @@ ab_tetra2.dat	! data of alpha and beta
 10000	    	! CG_max ; maximum number of CG iteration
 10     	! num_ite ; number of iterations
 5		! NTAU
-0.1d0			! DTAU base
+0.05d0			! DTAU base
 6d0				! R_phi ; Dtau_phi=R_phi * Dtau
 1d0				! R_A   ; Dtau_A=R_A * Dtau
-conSU2m1a1.0M0.1MF0.0_000.dat ! input configuration 
-outSU2m1a1.0M0.1MF0.0_001.dat		! output file
-conSU2m1a1.0M0.1MF0.0_001.dat		! output configuration
-medSU2m1a1.0M0.1MF0.0_001.dat		! intermediate configuration
+conSU3m1a1.0M0.1MF0.0_000.dat ! input configuration 
+outSU3m1a1.0M0.1MF0.0_000.dat		! output file
+conSU3m1a1.0M0.1MF0.0_000.dat		! output configuration
+medSU3m1a1.0M0.1MF0.0_000.dat		! intermediate configuration

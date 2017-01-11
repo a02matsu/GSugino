@@ -349,7 +349,7 @@ do l=1,num_links
     dSinUdA=(0d0,0d0)
     call calc_dCosUinvdA_dSinUdA(&
       dCosUinvdA(:,:,:,:),dSinUdA(:,:,:,:),&
-      cosUinv(:,:,f),sinU(:,:,f),Uf(:,:,f),UMAT,f,l_label)
+      cosUinv(:,:,f),Uf(:,:,f),UMAT,f,l_label)
 
     diff_Omega=(0d0,0d0)
     do jj=1,NMAT
@@ -360,12 +360,6 @@ do l=1,num_links
           SinU(:,:,f), NMAT, &
           dCosUinvdA(:,:,ii,jj), NMAT, &
           (0d0,-1d0), diff_Omega(:,:,ii,jj), NMAT)
-!        do j=1,NMAT
-!          do i=1,NMAT
-!            diff_Omega(i,j,ii,jj)=tmpmat(i,j)-conjg(tmpmat(j,i))
-!          enddo
-!        enddo
-        
         call zgemm('N','N',NMAT,NMAT,NMAT,(0d0,-1d0), &
           dCosUinvdA(:,:,ii,jj), NMAT, &
           SinU(:,:,f), NMAT, &

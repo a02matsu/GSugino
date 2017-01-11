@@ -44,6 +44,9 @@ integer, parameter :: p3=0
 integer, parameter :: p4=0
 integer, parameter :: p5=0
 
+
+
+
 ! writedown_mode=1 : write down config, hamiltonian and forces
 integer, parameter :: writedown_mode=0
 
