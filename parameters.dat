@@ -12,7 +12,7 @@ ab_tetra2.dat	! data of alpha and beta
 42342			! seed (works when fix_seed=1)
 1				! m_omega ;integer to avoid vacuum degeneracy (mm>=NMAT/4)
 0.1d0 			! mass_square_phi 
-0d-1       	! mass_f; fermion mass
+1d-1       	! mass_f; fermion mass
 1d5		        ! Remez_factor4 ; range of remez approx( min*factor .. max*factor) 
 1d5		        ! Remez_factor8 ; range of remez approx( min*factor .. max*factor) 
 1d-12	    	! epsilon ; range to stop CG solver

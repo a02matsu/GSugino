@@ -685,60 +685,6 @@ enddo ! l
 
 end subroutine calc_fermion_force_from_omega
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!! subroutine to return product of d/dA D . vec
-subroutine calc_dCosUinvdA_dSinUdA(dCosUinvdA,dSinUdA,&
-    cosUinv,sinU,Uf,UMAT,f,ll_label)
-use Dirac_operator, only : calc_Amat, calc_Bmat
-implicit none
-
-! for given f and ll
-! d cosUinv(i,j,f) / dA_{ii,jj,ll)
-complex(kind(0d0)), intent(out) :: dCosUinvdA(1:NMAT,1:NMAT,1:NMAT,1:NMAT)
-complex(kind(0d0)), intent(out) :: dSinUdA(1:NMAT,1:NMAT,1:NMAT,1:NMAT)
-complex(kind(0d0)), intent(in) :: sinU(1:NMAT,1:NMAT)
-complex(kind(0d0)), intent(in) :: cosUinv(1:NMAT,1:NMAT)
-complex(kind(0d0)), intent(in) :: Uf(1:NMAT,1:NMAT)
-complex(kind(0d0)), intent(in) :: UMat(1:NMAT,1:NMAT,1:num_links)
-integer, intent(in) :: f,ll_label
-
-complex(kind(0d0)) :: Amat(1:NMAT,1:NMAT)
-complex(kind(0d0)) :: Bmat(1:NMAT,1:NMAT)
-complex(kind(0d0)) :: UinvA(1:NMAT,1:NMAT), BUinv(1:NMAT,1:NMAT)
-
-integer :: k,i,j,ii,jj
-complex(kind(0d0)) :: factor
-
-dCosUinvdA=(0d0,0d0)
-dSinUdA=(0d0,0d0)
-do k=1,m_omega
-  call calc_Amat(Amat,f,ll_label,k,Uf,Umat)
-  call calc_Bmat(Bmat,f,ll_label,k,Uf,Umat)
-
-  call matrix_product(UinvA,cosUinv,Amat)
-  call matrix_product(BUinv,Bmat,cosUinv)
-
-  do jj=1,NMAT
-    do ii=1,NMAT
-      do j=1,NMAT
-        do i=1,NMAT
-          dCosUinvdA(i,j,ii,jj)=dCosUinvdA(i,j,ii,jj) &
-            + UinvA(i,jj)*BUinv(ii,j) &
-            - conjg( BUinv(jj,i) ) * conjg( UinvA(j,ii) )
-          dSinUdA(i,j,ii,jj)=dSinUdA(i,j,ii,jj) &
-            + Amat(i,jj)*Bmat(ii,j) &
-            + conjg(Bmat(jj,i))*conjg(Amat(j,ii))
-        enddo
-      enddo
-    enddo
-  enddo
-enddo
-
-factor=cmplx(dble(links_in_f(f)%link_dirs_(ll_label)))*(0d0,1d0)
-dCosUinvdA=dCosUinvdA*(-factor)
-dSinUdA=dSinUdA * factor
-
-end subroutine calc_dCosUinvdA_dSinUdA
 
 
 

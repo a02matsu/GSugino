@@ -45,45 +45,27 @@ dSdPhi_boson_mass=(0d0,0d0)
 dSdPhi_boson_site=(0d0,0d0)
 dSdPhi_boson_link=(0d0,0d0)
 dSdPhi_fermion=(0d0,0d0)
+dSdA=(0d0,0d0)
 dSdA_org=0d0
-dSdA_boson_link_org=0d0
-dSdA_boson_face_org=0d0
-dSdA_fermion_org=0d0
 !! force for Phi from boson
 call Make_bosonic_force_Phi_mass(dSdPhi_boson_mass,PhiMat)
 call Make_bosonic_force_Phi_site(dSdPhi_boson_site,PhiMat)
 call Make_bosonic_force_Phi_link(dSdPhi_boson_link,UMAT,PhiMat)
 !! force from fermion
-!write(*,*) "1"
 call Make_fermionic_force(dSdPhi_fermion,dSdA_fermion,UMAT,PhiMat,PF,info)
-do l=1,num_links
-  do a=1,dimG
-    call trace_MTa(tmp,dSdA_fermion(:,:,l),a,NMAT)
-    dSdA_fermion_org(a,l)=dble(tmp)
-  enddo
-enddo
-
 
 !! force for A from boson
-call Make_bosonic_force_A_link(dSdA_boson_link_org,UMAT,PhiMat)
-call Make_bosonic_force_A_face(dSdA_boson_face_org,UMAT)
-!call Make_bosonic_force_A_test(dSdA_boson_test,UMAT)
-
+call Make_bosonic_force_A_link(dSdA_boson_link,UMAT,PhiMat)
+call Make_bosonic_force_A_face(dSdA_boson_face,UMAT)
 
 dSdPhi= dSdPhi_boson_mass &   ! mass part
 + dSdPhi_boson_site  & ! site part
 + dSdPhi_boson_link  &  ! link part
 + dSdPhi_fermion   ! link part
 
-
-dSdA_org = dSdA_boson_link_org  &
-+ dSdA_boson_face_org &
-+ dSdA_fermion_org
-!dSdA = dSdA + dSdA_boson_test &
-
-do l=1,num_links
-  call make_traceless_matrix_from_modes(dSdA(:,:,l),NMAT,dcmplx(dSdA_org(:,l)) )
-enddo
+dSdA = dSdA_boson_link  &
++ dSdA_boson_face &
++ dSdA_fermion
 
 end subroutine Make_force
 
@@ -211,6 +193,7 @@ end subroutine Make_bosonic_force_Phi_site
 !! dS/Dphi from link action
 !complex(kind(0d0)) function dSdPhi_boson_link(a,s)
 subroutine Make_bosonic_force_Phi_link(dSdPhi_boson_link,UMAT,PhiMat)
+use matrix_functions, only : matrix_3_product
 implicit none
 
 complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_links)
@@ -230,14 +213,7 @@ do l=1,num_links
 ! diff( \Phi_s ) for the link l
   call Make_diff_PhiMat(dPhi,l,UMAT,PhiMat)
 ! U_l^\dagger diff( \bar\Phi_s ) U_l for all links 
-  call ZGEMM('C','C',NMAT,NMAT,NMAT,(1d0,0d0), &
-      UMAT(:,:,l), NMAT, &
-      dPhi, NMAT, &
-      (0d0,0d0), tmpmat, NMAT)
-  call ZGEMM('N','N',NMAT,NMAT,NMAT,(1d0,0d0), &
-      tmpmat(:,:), NMAT, &
-      UMAT(:,:,l), NMAT, &
-      (0d0,0d0), Ud_dPhibar_U(:,:,l), NMAT)
+  call matrix_3_product(Ud_dPhibar_U(:,:,l),UMAT(:,:,l),dPhi,UMAT(:,:,l),'C','C','N')
 
   do j=1,NMAT
     do i=1,NMAT
@@ -276,14 +252,15 @@ end subroutine Make_bosonic_force_Phi_link
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! dS/DA from link action
-subroutine Make_bosonic_force_A_link(dSdA_boson_link_org,UMAT,PhiMat)
+subroutine Make_bosonic_force_A_link(dSdA_boson_link,UMAT,PhiMat)
 use SUN_generators, only : trace_MTa, make_traceless_matrix_from_modes
 use matrix_functions, only : matrix_3_product, matrix_commutator
 implicit none
 
 complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_links)
 complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_sites)
-double precision, intent(out) :: dSdA_boson_link_org(1:dimG,1:num_links)
+!double precision, intent(out) :: dSdA_boson_link_org(1:dimG,1:num_links)
+complex(kind(0d0)), intent(out) :: dSdA_boson_link(1:NMAT,1:NMAT,1:num_links)
 complex(kind(0d0)) :: tmpmat(1:NMAT,1:NMAT)
 complex(kind(0d0)) :: dPhi(1:NMAT,1:NMAT)
 complex(kind(0d0)) :: Phi_tip(1:NMAT,1:NMAT)
@@ -292,7 +269,7 @@ complex(kind(0d0)) :: Comm(1:NMAT,1:NMAT)
 complex(kind(0d0)) :: tmp
 integer :: a,l,i,j
 
-dSdA_boson_link_org=0d0
+dSdA_boson_link=(0d0,0d0)
 do l=1,num_links
   call Make_diff_PhiMAT(dPhi, l,UMAT,PhiMat)
 
@@ -305,14 +282,14 @@ do l=1,num_links
   ! i[ UPhiUinv, dSPhi^\dagger ]
   call matrix_commutator(Comm,UPhiUinv,dPhi,'N','C')
 
-  do a=1,dimG
-    call Trace_MTa( tmp, Comm, a, NMAT )
-    !write(*,*) tmp
-    dSdA_boson_link_org(a,l) = alpha_l(l) * dble( tmp + dconjg(tmp) )
+  do j=1,NMAT
+    do i=1,NMAT
+      dSdA_boson_link(i,j,l) = alpha_l(l) * ( Comm(i,j) + conjg( Comm(j,i)) )
+    enddo
   enddo
 enddo
 
-dSdA_boson_link_org=dSdA_boson_link_org * overall_factor !*one_ov_2g2N
+dSdA_boson_link=dSdA_boson_link * overall_factor !*one_ov_2g2N
 
 end subroutine Make_bosonic_force_A_link
 
@@ -320,48 +297,152 @@ end subroutine Make_bosonic_force_A_link
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! dS/DA from face action
 subroutine Make_bosonic_force_A_face(dSdA_boson_face,UMAT)
-use matrix_functions, only : matrix_power
+use SUN_generators, only : trace_mta, make_traceless_matrix_from_modes
+use matrix_functions, only : matrix_power,matrix_product
+!use Dirac_operator, only : calc_Sinu_and_CosUinv
+!use diferential_Dirac, only :  calc_dCosUinvdA_dSinUdA
 implicit none
 complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_links)
-double precision, intent(out) :: dSdA_boson_face(1:dimG,1:num_links)
+double precision dSdA_boson_face_org(1:dimG,1:num_links)
+complex(kind(0d0)), intent(out) :: dSdA_boson_face(1:NMAT,1:NMAT,1:num_links)
 complex(kind(0d0)) :: Uf(1:NMAT,1:NMAT,1:num_faces), Ufm(1:NMAT,1:NMAT,1:num_faces)
 complex(kind(0d0)) :: Omega(1:NMAT,1:NMAT,1:num_faces)
-complex(kind(0d0)) :: diff_Omega(1:NMAT,1:NMAT,1:dimG)
-integer :: FaceSize
-integer, allocatable :: sites(:),link_labels(:),link_dirs(:)
-integer, allocatable :: faces_l(:)
-complex(kind(0d0)) :: trace
+complex(kind(0d0)) :: diff_Omega_org(1:NMAT,1:NMAT,1:dimG)
+!!!!!!!!!
+complex(kind(0d0)) :: diff_Omega(1:NMAT,1:NMAT,1:NMAT,1:NMAT)
+complex(kind(0d0)) :: sinU(1:NMAT,1:NMAT,1:num_faces)
+complex(kind(0d0)) :: CosUinv(1:NMAT,1:NMAT,1:num_faces)
+complex(kind(0d0)) :: dCosUinvdA(1:NMAT,1:NMAT,1:NMAT,1:NMAT)
+complex(kind(0d0)) :: dSinUdA(1:NMAT,1:NMAT,1:NMAT,1:NMAT)
+!!!!!!!!!
+!integer :: FaceSize
+!integer, allocatable :: sites(:),link_labels(:),link_dirs(:)
+!integer, allocatable :: faces_l(:)
+complex(kind(0d0)) :: trace,tmp
+complex(kind(0d0)) :: tmpmat(1:NMAT,1:NMAT)
+complex(kind(0d0)) :: test(1:NMAT,1:NMAT)
 integer :: a,l,f
-integer :: l_f
-integer :: i,j,k
+integer :: l_label
+integer :: i,j,k,ii,jj
 
-dSdA_boson_face=0d0
+!dSdA_boson_face_org=0d0
+dSdA_boson_face=(0d0,0d0)
+!Omega=(0d0,0d0)
+sinU=(0d0,0d0)
+cosUinv=(0d0,0d0)
 do f=1,num_faces
   call Make_face_variable(Uf(:,:,f),f,UMAT) 
   call matrix_power(Ufm(:,:,f),Uf(:,:,f),m_omega)
   call Make_moment_map(Omega(:,:,f),Ufm(:,:,f))
+  call calc_sinU_and_cosUinv(sinU(:,:,f),cosUinv(:,:,f),Ufm(:,:,f))
 enddo
 
 do l=1,num_links
   !call get_faces_in_link_sc(sc,l,faces_l)
   do k=1,face_in_l(l)%num_
     f=face_in_l(l)%label_(k)
+    do l_label=1,links_in_f(f)%num_
+      if ( l == links_in_f(f)%link_labels_(l_label) ) exit
+    enddo
 
-    call calc_diff_omega(diff_Omega(:,:,:),Uf(:,:,f),Ufm(:,:,f),f,l,UMAT)
-    do a=1,dimG
-      trace=(0d0,0d0)
-      do i=1,NMAT
+    dCosUinvdA=(0d0,0d0)
+    dSinUdA=(0d0,0d0)
+    call calc_dCosUinvdA_dSinUdA(&
+      dCosUinvdA(:,:,:,:),dSinUdA(:,:,:,:),&
+      cosUinv(:,:,f),sinU(:,:,f),Uf(:,:,f),UMAT,f,l_label)
+
+    diff_Omega=(0d0,0d0)
+    do jj=1,NMAT
+      do ii=1,NMAT
+        call matrix_product(&
+          diff_Omega(:,:,ii,jj),dSinUdA(:,:,ii,jj),cosUinv(:,:,f))
+        call zgemm('N','N',NMAT,NMAT,NMAT,(0d0,-1d0), &
+          SinU(:,:,f), NMAT, &
+          dCosUinvdA(:,:,ii,jj), NMAT, &
+          (0d0,-1d0), diff_Omega(:,:,ii,jj), NMAT)
+!        do j=1,NMAT
+!          do i=1,NMAT
+!            diff_Omega(i,j,ii,jj)=tmpmat(i,j)-conjg(tmpmat(j,i))
+!          enddo
+!        enddo
+        
+        call zgemm('N','N',NMAT,NMAT,NMAT,(0d0,-1d0), &
+          dCosUinvdA(:,:,ii,jj), NMAT, &
+          SinU(:,:,f), NMAT, &
+          (1d0,0d0), diff_Omega(:,:,ii,jj), NMAT)
+        call zgemm('N','N',NMAT,NMAT,NMAT,(0d0,-1d0), &
+          CosUinv(:,:,f), NMAT, &
+          dSinUdA(:,:,ii,jj), NMAT, &
+          (1d0,0d0), diff_Omega(:,:,ii,jj), NMAT)
+
+        !!!!!!!!!!!!!!!!!!!!!
+        ! make traceless
+        if( NMAT > 2 ) then
+          trace=(0d0,0d0)
+          !test(ii,jj)=(0d0,0d0)
+          do i=1,NMAT
+            trace=trace+diff_Omega(i,i,ii,jj)
+            !test(ii,jj)=test(ii,jj)+diff_Omega(i,i,ii,jj)
+          enddo
+          !write(*,*)  trace
+          do i=1,NMAT
+            diff_Omega(i,i,ii,jj)=diff_Omega(i,i,ii,jj) &
+              - trace / cmplx(dble( NMAT ))
+          enddo
+        endif
+        !!!!!!!!!!!!!!!!!!!!!
+      enddo
+    enddo
+    !do a=1,dimG
+    !call trace_MTA(tmp,test,a,NMAT)
+    !write(*,*) tmp
+    !enddo
+    
+    do jj=1,NMAT
+      do ii=1,NMAT
         do j=1,NMAT
-          trace=trace+Omega(i,j,f)*diff_Omega(j,i,a)
+          do i=1,NMAT
+            dSdA_boson_face(ii,jj,l)=dSdA_boson_face(ii,jj,l) &
+              + (0.5d0,0d0) &
+                *cmplx( overall_factor * alpha_f(f)*beta_f(f)*beta_f(f) / dble(m_omega)) &
+                *diff_Omega(i,j,ii,jj) *  Omega(j,i,f) 
+                    !+  Omega(i,j,f) *  diff_Omega(j,i,ii,jj) )
+          enddo
         enddo
       enddo
-      dSdA_boson_face(a,l)=dSdA_boson_face(a,l) & 
-        + 0.5d0*alpha_f(f)*beta_f(f)*beta_f(f)*dble(trace)
     enddo
+
+!!!!!!!!!!! OLD !!!!!!!!!!!
+   !call calc_diff_omega(diff_Omega_org(:,:,:),Uf(:,:,f),Ufm(:,:,f),f,l,UMAT)
+   !do a=1,dimG
+     !trace=(0d0,0d0)
+     !do i=1,NMAT
+       !trace=trace+diff_Omega_org(i,i,a)
+     !enddo
+     !write(*,*) trace
+   !enddo
+      !trace=(0d0,0d0)
+      !do i=1,NMAT
+        !do j=1,NMAT
+          !trace=trace+Omega(i,j,f)*diff_Omega(j,i,a)
+        !enddo
+      !enddo
+      !dSdA_boson_face_org(a,l)=dSdA_boson_face_org(a,l) & 
+        !+ 0.5d0*alpha_f(f)*beta_f(f)*beta_f(f)*dble(trace)
+    !enddo
   enddo
 enddo
+!!!!!!!!!!!!!!!!!!!!!!!!!
 
-dSdA_boson_face=dSdA_boson_face * overall_factor !*one_ov_2g2N
+!dSdA_boson_face_org=dSdA_boson_face_org * overall_factor !*one_ov_2g2N
+!do l=1,num_links
+  !do a=1,dimG
+    !call trace_MTa(tmp,dSdA_boson_face(:,:,l),a,NMAT)
+    !write(*,*) tmp
+  !call make_traceless_matrix_from_modes(dSdA_boson_face(:,:,l),NMAT,dcmplx( dSdA_boson_face_org(:,l)) )
+  !enddo
+!enddo
+
 
 end subroutine Make_bosonic_force_A_face
 
