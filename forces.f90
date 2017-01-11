@@ -9,8 +9,6 @@ contains
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! dS/Dphi 
-!complex(kind(0d0)) function dSdPhi(a,s)
-!subroutine Make_bosonic_force_Phi(dSdPhi_boson)
 subroutine Make_force(dSdPhi,dSdA,UMAT,PhiMat,PF,info)
 use SUN_generators, only : trace_mta, make_traceless_matrix_from_modes
 implicit none
@@ -28,11 +26,6 @@ complex(kind(0d0)) :: dSdPhi_boson_site(1:NMAT,1:NMAT,1:num_sites)
 complex(kind(0d0)) :: dSdPhi_boson_link(1:NMAT,1:NMAT,1:num_sites)
 complex(kind(0d0)) :: dSdPhi_fermion(1:NMAT,1:NMAT,1:num_sites)
 !!!
-!double precision :: dSdA_boson_test(1:dimG,1:num_links)
-double precision :: dSdA_org(1:dimG,1:num_links)
-double precision :: dSdA_boson_link_org(1:dimG,1:num_links)
-double precision :: dSdA_boson_face_org(1:dimG,1:num_links)
-double precision :: dSdA_fermion_org(1:dimG,1:num_links)
 complex(kind(0d0)) :: dSdA_boson_link(1:NMAT,1:NMAT,1:num_links)
 complex(kind(0d0)) :: dSdA_boson_face(1:NMAT,1:NMAT,1:num_links)
 complex(kind(0d0)) :: dSdA_fermion(1:NMAT,1:NMAT,1:num_links)
@@ -46,7 +39,9 @@ dSdPhi_boson_site=(0d0,0d0)
 dSdPhi_boson_link=(0d0,0d0)
 dSdPhi_fermion=(0d0,0d0)
 dSdA=(0d0,0d0)
-dSdA_org=0d0
+dSdA_boson_face=(0d0,0d0)
+dSdA_boson_link=(0d0,0d0)
+dSdA_fermion=(0d0,0d0)
 !! force for Phi from boson
 call Make_bosonic_force_Phi_mass(dSdPhi_boson_mass,PhiMat)
 call Make_bosonic_force_Phi_site(dSdPhi_boson_site,PhiMat)
@@ -57,6 +52,7 @@ call Make_fermionic_force(dSdPhi_fermion,dSdA_fermion,UMAT,PhiMat,PF,info)
 !! force for A from boson
 call Make_bosonic_force_A_link(dSdA_boson_link,UMAT,PhiMat)
 call Make_bosonic_force_A_face(dSdA_boson_face,UMAT)
+!dSdA_boson_face=(0d0,0d0)
 
 dSdPhi= dSdPhi_boson_mass &   ! mass part
 + dSdPhi_boson_site  & ! site part
@@ -303,7 +299,7 @@ use matrix_functions, only : matrix_power,matrix_product
 !use diferential_Dirac, only :  calc_dCosUinvdA_dSinUdA
 implicit none
 complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_links)
-double precision dSdA_boson_face_org(1:dimG,1:num_links)
+!double precision dSdA_boson_face_org(1:dimG,1:num_links)
 complex(kind(0d0)), intent(out) :: dSdA_boson_face(1:NMAT,1:NMAT,1:num_links)
 complex(kind(0d0)) :: Uf(1:NMAT,1:NMAT,1:num_faces), Ufm(1:NMAT,1:NMAT,1:num_faces)
 complex(kind(0d0)) :: Omega(1:NMAT,1:NMAT,1:num_faces)
@@ -373,12 +369,9 @@ do l=1,num_links
         ! make traceless
         if( NMAT > 2 ) then
           trace=(0d0,0d0)
-          !test(ii,jj)=(0d0,0d0)
           do i=1,NMAT
             trace=trace+diff_Omega(i,i,ii,jj)
-            !test(ii,jj)=test(ii,jj)+diff_Omega(i,i,ii,jj)
           enddo
-          !write(*,*)  trace
           do i=1,NMAT
             diff_Omega(i,i,ii,jj)=diff_Omega(i,i,ii,jj) &
               - trace / cmplx(dble( NMAT ))

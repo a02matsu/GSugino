@@ -149,6 +149,9 @@ do ite=total_ite+1,total_ite+num_ite
   UMAT_BAK=UMAT
   !! molecular evolution
   call molecular_evolution_Omelyan(UMAT,PhiMat,PF,P_AMat,P_PhiMat,info)
+  do s=1,num_sites
+    call traceless_projection(PhiMat(:,:,s))
+  enddo
   if( info == 1 ) then
     PhiMat=PhiMat_BAK
     !Phi=Phi_BAK
@@ -204,6 +207,27 @@ close( MED_CONF_FILE )
 close( OUTPUT_FILE )
 
 end subroutine HybridMonteCarlo
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+subroutine traceless_projection(Mat)
+implicit none
+
+complex(kind(0d0)), intent(inout) :: MAT(:,:)
+complex(kind(0d0)) trace
+integer :: N,i
+
+N=size(MAT(:,1))
+
+trace=(0d0,0d0)
+do i=1,N
+  trace=trace+MAT(i,i)
+enddo
+do i=1,N
+  MAT(i,i)=MAT(i,i)-trace/cmplx(dble( N ))
+enddo
+
+end subroutine traceless_projection
+
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !subroutine writedown_config_action_and_fores(UMAT,PhiMat,seed)
@@ -564,6 +588,7 @@ do l=1,num_links
   Plmat=(0d0,1d0)*Dtau*P_Amat(:,:,l)
   !write(*,*) "test001"
   !call MATRIX_EXP(NMAT,Plmat,dU)
+  call traceless_projection(Plmat)
   call MATRIX_EXP(dU,Plmat)
   tmpmat=UMAT(:,:,l)
   !write(*,*) "test002"

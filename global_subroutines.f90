@@ -160,7 +160,7 @@ complex(kind(0d0)) :: trace
 do i=1,NMAT
   do j=1,NMAT
     SMAT(i,j)=-im_unit*( Ufm(i,j) - dconjg( Ufm(j,i) ) )
-    Cinv(i,j)=( Ufm(i,j) + dconjg( Ufm(j,i) ) )
+    Cinv(i,j)= Ufm(i,j) + dconjg( Ufm(j,i) ) 
   enddo
 enddo
 ! CMAT --> CMAT^{-1}
@@ -170,14 +170,18 @@ call matrix_inverse(Cinv)
 call ZGEMM('N','N',NMAT,NMAT,NMAT,(1d0,0d0),&
   SMAT,NMAT,&
   Cinv,NMAT,&
-  (0d0,0d0),tmpmat,NMAT)
+  (0d0,0d0),Omega,NMAT)
+call ZGEMM('N','N',NMAT,NMAT,NMAT,(1d0,0d0),&
+  Cinv,NMAT,&
+  SMAT,NMAT,&
+  (1d0,0d0),Omega,NMAT)
 
-Omega=(0d0,0d0)
-do i=1,NMAT
-  do j=1,NMAT
-    Omega(i,j)=tmpmat(i,j)+dconjg(tmpmat(j,i))
-  enddo
-enddo
+!Omega=(0d0,0d0)
+!do i=1,NMAT
+!  do j=1,NMAT
+!    Omega(i,j)=tmpmat(i,j)+dconjg(tmpmat(j,i))
+!  enddo
+!enddo
 
 Omega = Omega / dcmplx( dble(m_omega) )
 
