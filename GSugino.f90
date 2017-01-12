@@ -225,34 +225,6 @@ enddo
 
 end subroutine check_unitary
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!! check distance from 1 of Uf
-subroutine  check_distance(UMAT)
-use global_parameters
-use matrix_functions, only : matrix_norm, make_unit_matrix
-use global_subroutines
-implicit none
-
-complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_links)
-integer l,i,j,f
-double precision norm
-complex(kind(0d0)) UNITM(1:NMAT,1:NMAT)
-complex(kind(0d0)) tmp(1:NMAT,1:NMAT)
-complex(kind(0d0)) Uf(1:NMAT,1:NMAT)
-double precision dist(1:NMAT-1)
-
-write(*,*) "===== check distance from 1 ==========="
-write(*,*) "theoretical dist. to the nearest center=",dsin(PI/dble(NMAT))*2d0
-
-call make_unit_matrix(UNITM)
-do f=1,num_faces
-  call Make_face_variable(Uf,f,UMAT)
-  tmp=UNITM-Uf
-  call matrix_norm(norm,tmp)
-  write(*,*) f,": ||1-Uf||=",norm
-enddo
-
-end subroutine check_distance
 
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

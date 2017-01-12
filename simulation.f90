@@ -44,7 +44,7 @@ write(*,'(a)') " # test hamiltonian"
 write(*,'(a,I8)') " # NMAT=",NMAT
 write(*,'(a,I4)') " # fix_seed=",fix_seed
 write(*,'(a,I2)') " # read_alpha=",read_alpha
-write(*,'(a,I5)') " # m_omega=",m_omega
+write(*,'(a,I3)') " # m_omega=",m_omega
 write(*,*) "# Ntau*Dtau=",Ntau*Dtau
 
 !! backup
@@ -111,7 +111,7 @@ complex(kind(0d0)) :: PF(1:sizeD)
 !complex(kind(0d0)) Phi_BAK(1:dimG,1:num_sites)
 complex(kind(0d0)) PhiMat_BAK(1:NMAT,1:NMAT,1:num_sites)
 complex(kind(0d0)) UMAT_BAK(1:NMAT,1:NMAT,1:num_links)
-double precision Hold, Hnew
+double precision Hold, Hnew, ratio, ave_dHam
 integer :: ite
 integer :: accept
 type(genrand_state) :: state
@@ -133,6 +133,7 @@ open(unit=OUTPUT_FILE,status='replace',file=Foutput,action='write')
 
 write(*,*) "# start Monte Carlo simulation"
 
+ave_dHam=0d0
 accept=0
 call write_header(seed,UMAT,PhiMat)
 !! measure the time used in this simulation
@@ -162,12 +163,18 @@ do ite=total_ite+1,total_ite+num_ite
     UMAT=UMAT_BAK
     write(*,*) "### CAUTION: CG iterations reaches to the maximal."
   else
-    !! check distance of Uf from the origin
     !call check_vacuum(UMAT)
     !! calculate Hamiltonian 
     call Make_Hamiltonian(Hnew,CGite2,info2,UMAT,PhiMat,PF,P_AMat,P_PhiMat)
     !! metropolice
+    ave_dHam=ave_dHam+abs(Hnew-Hold)
     call Metropolice_test(Hnew-Hold,PhiMat_Bak,UMAT_BAK,PhiMat,UMAT,accept)
+    !!
+    !! check distance of Uf from the origin
+    call check_distance(info,ratio,UMAT)
+    if ( info .ne. 0 ) then 
+      write(*,*) "!!! CAUTION: plaquette variables are out of proper region !!!!"
+    endif
   endif
   !! write out the configuration
    if ( mod(ite,config_step) == 0 ) then
@@ -177,7 +184,7 @@ do ite=total_ite+1,total_ite+num_ite
        endif
    !! write out the observables 
    if ( mod(ite,obs_step) == 0 ) then
-       call write_observables(PhiMat,UMAT,ite,accept,Hnew-Hold,total_ite,CGite1)
+       call write_observables(PhiMat,UMAT,ite,accept,Hnew-Hold,total_ite,CGite1,ratio)
    endif
 enddo
 
@@ -188,8 +195,18 @@ if ( t_end < t_start ) then
 else
   diff = dble(t_end - t_start) / dble(t_rate)
 endif
+ave_dHam = ave_dHam/dble(num_ite)
 write(OUTPUT_FILE,*) "# Total time: ",diff,"[s]"
+write(OUTPUT_FILE,*) "# Time/ite: ",diff/dble(num_ite),"[s]"
+write(OUTPUT_FILE,*) "# Time/ite/Ntau: ",diff/dble(num_ite*Ntau),"[s]"
+write(OUTPUT_FILE,*) "# ave_dHam=",ave_dHam
+write(OUTPUT_FILE,*) "# acceptance=",dble(accept)/dble(num_ite)
 write(*,*) "# Total time: ",diff,"[s]"
+write(*,*) "# Step time: ",diff/dble(num_ite),"[s]"
+write(*,*) "# Time/ite/Ntau: ",diff/dble(num_ite*Ntau),"[s]"
+write(*,*) "# ave_dHam=",ave_dHam
+write(*,*) "# acceptance=",dble(accept)/dble(num_ite)
+
 
 
 !! write the final configuration 

@@ -101,7 +101,7 @@ integer :: i
 
 !obs_name(1)="Sb"
 
-write(output,'(a)',advance='no') "# 1) iteration, 2) delta Hamiltonian, 3) CG ite, "
+write(output,'(a)',advance='no') "# 1) iteration, 2) delta Hamiltonian, 3) max||Uf-1||/max 4) CG ite, "
 do i=1,num_obs
   write(output,'(I3,a1,a,a1)',advance='no') i+3,")",trim(obs_name(i) ),","
 enddo
@@ -110,7 +110,7 @@ write(output,'(I3,a)') num_obs+4,") acceptance rate"
 end subroutine write_observable_list
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-subroutine write_observables(PhiMat,UMAT,ite,accept,delta_Ham,total_ite,CGite)
+subroutine write_observables(PhiMat,UMAT,ite,accept,delta_Ham,total_ite,CGite,ratio)
 use observables
 use SUN_generators, only : trace_MTa
 implicit none
@@ -118,7 +118,7 @@ implicit none
 complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_links)
 complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_sites)
 complex(kind(0d0)) :: Phi(1:dimG,1:num_sites)
-double precision, intent(in) :: delta_Ham
+double precision, intent(in) :: delta_Ham, ratio
 integer, intent(in) :: ite, accept, total_ite, CGite
 integer :: output,i,s,a
 
@@ -135,23 +135,24 @@ call calc_bosonic_action(OBS(1),UMAT,PhiMat)
 call calc_TrX2(OBS(2),PhiMat)
 
 !! for standard output
-call write_observables_to(6,ite,total_ite,accept,delta_Ham,CGite)
+call write_observables_to(6,ite,total_ite,accept,delta_Ham,CGite,ratio)
 !! for output file
-call write_observables_to(OUTPUT_FILE,ite,total_ite,accept,delta_Ham,CGite)
+call write_observables_to(OUTPUT_FILE,ite,total_ite,accept,delta_Ham,CGite,ratio)
 
 end subroutine write_observables
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-subroutine write_observables_to(output,ite,total_ite,accept,delta_Ham,CGite)
+subroutine write_observables_to(output,ite,total_ite,accept,delta_Ham,CGite,ratio)
 implicit none
 
 integer, intent(in) :: output,ite,accept,total_ite
-double precision, intent(in) :: delta_Ham
+double precision, intent(in) :: delta_Ham, ratio
 integer, intent(in) :: CGite
 integer i
 
 write(output,'(I6,2X)',advance='no') ite
-write(output,'(E12.5,2X)',advance='no') delta_Ham
+write(output,'(f12.5,2X)',advance='no') delta_Ham
+write(output,'(f6.2,2X)',advance='no') ratio
 write(output,'(I6,2X)',advance='no') CGite
 do i=1,num_obs
   write(output,'(E12.5,2X)',advance='no') OBS(i)

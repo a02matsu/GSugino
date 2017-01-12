@@ -137,12 +137,15 @@ double precision :: Dtau_phi ! Dtau for Phi
 double precision :: Dtau_A   ! Dtau for A
 double precision :: R_phi    ! Dtau_phi = R_phi * Dtau
 double precision :: R_A      ! Dtau_A = R_A * Dtau
-double precision :: mass_square_phi ! mass^2 of Phi
+double precision :: phys_mass_square_phi ! mass^2 of Phi in mass-dim 2
+double precision :: mass_square_phi ! dimensionless mass^2 of Phi
 double precision :: mass_f   ! mass of fermions
 double precision :: LatticeSpacing ! lattice spacing
 
+
 double precision :: one_ov_2g2N ! 1/2g^2N=1/2a^2
 double precision :: overall_factor ! N/2g^2N=N/2a^2
+double precision :: maximal_dist ! the largest allowed value of |U_f|
 
 
 
@@ -211,7 +214,7 @@ open(PAR_FILE, file=PAR_FILE_NAME, status='old',action='READ')
   read(PAR_FILE,*) obs_step
   read(PAR_FILE,*) seed
   read(PAR_FILE,*) m_omega
-  read(PAR_FILE,*) mass_square_phi
+  read(PAR_FILE,*) phys_mass_square_phi
   read(PAR_FILE,*) mass_f
   read(PAR_FILE,*) Remez_factor4
   read(PAR_FILE,*) Remez_factor8
@@ -231,9 +234,16 @@ close(PAR_FILE)
 dimG=NMAT*NMAT-1
 Dtau_phi = R_phi * Dtau
 Dtau_A = R_A * Dtau
+mass_square_phi = phys_mass_square_phi * (LatticeSpacing*latticeSpacing)
 
 !one_ov_2g2N=1d0/(2d0*LatticeSpacing*LatticeSpacing)
 overall_factor=dble(NMAT)/(2d0*LatticeSpacing*LatticeSpacing)
+
+if (NMAT<=4) then
+  maximal_dist = 2d0*dsqrt(2d0)
+else
+  maximal_dist = 2d0*sqrt(dble(NMAT))*sin(3.1415926535898d0/dble(NMAT))
+endif
 
 end subroutine set_parameters
 

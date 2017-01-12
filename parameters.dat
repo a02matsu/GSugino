@@ -2,24 +2,24 @@
 2.667d0					! lattice spacing
 tetra.dat		! data of the simplicial complex
 ab_tetra2.dat	! data of alpha and beta
-1				! test_mode ; 0:Simulation mode 1:Test mode, 
-1				! new_config ; 0:Old Config 1:New Config
-2				! fix_seed ; 0:previous value 1:fix 2:system time
+0				! test_mode ; 0:Simulation mode 1:Test mode, 
+0				! new_config ; 0:Old Config 1:New Config
+0				! fix_seed ; 0:previous value 1:fix 2:system time
 0				! reset_ite ; 0:continue total ite, 1:reset total ite
 1				! read_alpha; 0:alpha,beta=1d0 1:read alpha/beta from file
 1				! config_step; step to write out configuration
 1				! obs_step; step to compute observables
 42342			! seed (works when fix_seed=1)
 1				! m_omega ;integer to avoid vacuum degeneracy (mm>=NMAT/4)
-0.1d0 			! mass_square_phi 
-1d-1       	! mass_f; fermion mass
+0.1d0 			! phys_mass_square_phi 
+1d-1       	! mass_f; fermion mass(dimensionless)
 1d5		        ! Remez_factor4 ; range of remez approx( min*factor .. max*factor) 
 1d5		        ! Remez_factor8 ; range of remez approx( min*factor .. max*factor) 
 1d-12	    	! epsilon ; range to stop CG solver
 10000	    	! CG_max ; maximum number of CG iteration
 10     	! num_ite ; number of iterations
 5		! NTAU
-0.1d0			! DTAU base
+0.05d0			! DTAU base
 6d0				! R_phi ; Dtau_phi=R_phi * Dtau
 1d0				! R_A   ; Dtau_A=R_A * Dtau
 conSU3m1a1.0M0.1MF0.0_000.dat ! input configuration 

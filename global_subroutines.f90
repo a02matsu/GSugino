@@ -2140,6 +2140,44 @@ do f=1,num_faces
 enddo
 end subroutine mat_to_vec
 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! check distance from 1 of Uf
+subroutine  check_distance(info,ratio,UMAT)
+use global_parameters
+use matrix_functions, only : matrix_norm, make_unit_matrix
+implicit none
+
+complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_links)
+integer, intent(out) :: info
+double precision, intent(out) :: ratio
+double precision :: distance,tmp
+integer l,i,j,f
+!double precision norm
+complex(kind(0d0)) UNITM(1:NMAT,1:NMAT)
+!complex(kind(0d0)) tmp(1:NMAT,1:NMAT)
+complex(kind(0d0)) Uf(1:NMAT,1:NMAT)
+!double precision dist(1:NMAT-1)
+
+!write(*,*) "===== check distance from 1 ==========="
+!write(*,*) "theoretical dist. to the nearest center=",dsin(PI/dble(NMAT))*2d0
+
+info=0
+ratio=0d0
+call make_unit_matrix(UNITM)
+do f=1,num_faces
+  call Make_face_variable(Uf,f,UMAT)
+  call matrix_norm(distance,UNITM-Uf)
+  tmp=distance/maximal_dist
+  if( tmp > ratio ) then 
+    ratio=tmp
+  endif
+  if ( distance > maximal_dist ) then
+    info=info+1
+  endif
+enddo
+
+end subroutine check_distance
+
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! function to obtain the argument of a complex number z
 real(8) function arg(z)
