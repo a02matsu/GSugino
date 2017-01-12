@@ -42,7 +42,7 @@ integer, parameter :: p1=0
 integer, parameter :: p2=0
 integer, parameter :: p3=0
 integer, parameter :: p4=0
-integer, parameter :: p5=1
+integer, parameter :: p5=0
 
 
 
@@ -119,9 +119,10 @@ integer :: fix_seed !! 0: use the value at the end of the previous simulation
                     !! 2: determine by the system time
 integer :: new_config !! 0: Old config, 1: New config
 integer :: read_alpha !! 0: alpha,beta=1 1: read ALPHA_BETA_FILE
-integer :: config_step !! steps to write out configurations
+integer :: save_med_step !! steps to write out configurations
 integer :: obs_step !! steps to compute observables
 integer :: reset_ite !! 0:iteration number continue, 1:iteration number reset 
+integer :: save_config_step !! save config by this step. 
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! paramaeters in simulation 
@@ -210,7 +211,8 @@ open(PAR_FILE, file=PAR_FILE_NAME, status='old',action='READ')
   read(PAR_FILE,*) fix_seed
   read(PAR_FILE,*) reset_ite
   read(PAR_FILE,*) read_alpha
-  read(PAR_FILE,*) config_step
+  read(PAR_FILE,*) save_med_step
+  read(PAR_FILE,*) save_config_step
   read(PAR_FILE,*) obs_step
   read(PAR_FILE,*) seed
   read(PAR_FILE,*) m_omega

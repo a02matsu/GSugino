@@ -157,6 +157,7 @@ integer :: s,l,f
 integer :: i,j,k
 integer :: a,b,c
 integer :: r
+integer :: label
 
 !! for test
 !complex(kind(0d0)) :: tmp_diff_Omega(1:NMAT,1:NMAT,1:dimG)
@@ -364,8 +365,8 @@ do l=1,num_links
       call matrix_3_product(tmpmat2,Amat,chi_mat(:,:,f),Bmat,'C','N','C')
 
       DF_lambda(:,:,l)=DF_lambda(:,:,l) &
-        + cmplx(dble(links_in_f(f)%link_dirs_(j)))*(0d0,1d0)&
-          * cmplx(-overall_factor) * cmplx(alpha_f(f)*beta_f(f)) &
+        + cmplx(dble(links_in_f(f)%link_dirs_(j)))*(0d0,-1d0)&
+          * cmplx(overall_factor) * cmplx(alpha_f(f)*beta_f(f)) &
           * (tmpmat1+tmpmat2)
     else
       ! tmpmat1= { (Uf+Ufinv)^{-1} , \chi_f }

@@ -24,6 +24,7 @@ read(IN_CONF_FILE) total_ite
 read(IN_CONF_FILE) UMAT
 read(IN_CONF_FILE) PHIMat
 read(IN_CONF_FILE) char_mt95
+close(IN_CONF_FILE)
 state_mt95=char_mt95
 
 end subroutine read_config
@@ -96,7 +97,11 @@ enddo
 
 
 ! random number must be sufficiently small
-rlink=rlink * ( 1d0/dble(NMAT*NMAT*m_omega) )
+if( m_omega == 0 ) then 
+  rlink=rlink * ( 1d0/dble(NMAT*NMAT) )
+else
+  rlink=rlink * ( 1d0/dble(NMAT*NMAT*m_omega) )
+endif
 AMAT=(0d0,0d0)
 do l=1,num_links
   do a=1,dimG

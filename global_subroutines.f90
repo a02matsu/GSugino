@@ -1781,7 +1781,7 @@ integer :: l,i,label
 l=links_in_f(f)%link_labels_(l_label)
 
 ! tmpmat1=U_f^{m-k-1}
-if( m_omega-k <= 0 ) then 
+if( m_omega-k >= 0 ) then 
   call matrix_power(tmpmat1,Uf,m_omega-k)
 endif
 
@@ -1793,7 +1793,7 @@ else
 endif 
 call calc_prodUl_from_n1_to_n2_in_Uf(tmpmat2,f,label,links_in_f(f)%num_ ,UMAT)
 
-if( m_omega-k <= 0 ) then 
+if( m_omega-k >= 0 ) then 
   call matrix_product(Bmat, tmpmat2, tmpmat1)
 else
   Bmat=tmpmat2
@@ -1940,7 +1940,7 @@ end subroutine calc_dCosUinvdA_dSinUdA
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! subroutine to return product of d/dA D . vec
 subroutine calc_dABmatdA(dAmatdA,dBmatdA,Uf,UMAT,ll_label,f,l_label,k)
-use matrix_functions, only : matrix_product, matrix_3_product, matrix_power
+use matrix_functions, only : matrix_product, matrix_3_product, matrix_power,make_unit_matrix
 implicit none
 
 ! for given f,l,k and ll
@@ -2049,7 +2049,8 @@ if ( m_omega > 1 ) then
 endif
 
 if ( ll_label < l_label ) then
-  call matrix_power(tmpmat2,Uf,k-1)
+  call make_unit_matrix(tmpmat2)
+  if( k-1 >= 0) call matrix_power(tmpmat2,Uf,k-1)
   call matrix_product(tmpmat1,tmpmat2,UU_initial_to_ll)
 
   do jj=1,NMAT
@@ -2066,7 +2067,8 @@ endif
 
 if (ll_label == l_label) then
   if ( links_in_f(f)%link_dirs_(ll_label) == -1 ) then
-    call matrix_power(tmpmat2,Uf,k-1)
+    call make_unit_matrix(tmpmat2)
+    if( k-1 >= 0 ) call matrix_power(tmpmat2,Uf,k-1)
     call matrix_product(tmpmat1, tmpmat2,UU_initial_to_l)
     do jj=1,NMAT
       do ii=1,NMAT
@@ -2083,10 +2085,13 @@ endif
 !!!!!!!!!!! dBmatdA !!!!!!!!!!!!!!!
 if (m_omega > 1) then
   do kk=1,m_omega-k
-    call matrix_power(tmpmat2, Uf, kk-1)
+
+    call make_unit_matrix(tmpmat2)
+    if( kk-1 > 0) call matrix_power(tmpmat2, Uf, kk-1)
     call matrix_3_product(tmpmat1,UU_l_to_n,tmpmat2,UU_initial_to_ll)
 
-    call matrix_power(tmpmat3,Uf,m_omega-k-kk)
+    call make_unit_matrix(tmpmat3)
+    if( m_omega-k-kk > 0) call matrix_power(tmpmat3,Uf,m_omega-k-kk)
     call matrix_product(tmpmat2,UU_ll_to_n,tmpmat3)
 !
     do jj=1,NMAT
@@ -2104,7 +2109,8 @@ if (m_omega > 1) then
 endif
 
 if ( ll_label > l_label) then
-  call matrix_power(tmpmat1,Uf,m_omega-k)
+  call make_unit_matrix(tmpmat1)
+  if(m_omega-k > 0) call matrix_power(tmpmat1,Uf,m_omega-k)
   call matrix_product(tmpmat2,UU_ll_to_n,tmpmat1)
 
   do jj=1,NMAT
@@ -2121,7 +2127,8 @@ endif
 
 if ( ll_label == l_label) then
   if ( links_in_f(f)%link_dirs_(ll_label) == 1) then
-    call matrix_power(tmpmat2,Uf,m_omega-k)
+    call make_unit_matrix(tmpmat2)
+    if( m_omega-k >= 0) call matrix_power(tmpmat2,Uf,m_omega-k)
     call matrix_product(tmpmat1,UU_ll_to_n,tmpmat2)
     do jj=1,NMAT
       do ii=1,NMAT

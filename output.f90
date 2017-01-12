@@ -176,7 +176,7 @@ write(MED_CONF_FILE) test_mode
 write(MED_CONF_FILE) new_config
 write(MED_CONF_FILE) fix_seed
 write(MED_CONF_FILE) read_alpha
-write(MED_CONF_FILE) config_step
+write(MED_CONF_FILE) save_med_step
 write(MED_CONF_FILE) obs_step
 write(MED_CONF_FILE) m_omega
 write(MED_CONF_FILE) mass_square_phi

@@ -177,7 +177,7 @@ do ite=total_ite+1,total_ite+num_ite
     endif
   endif
   !! write out the configuration
-   if ( mod(ite,config_step) == 0 ) then
+   if ( mod(ite,save_med_step) == 0 ) then
        write(MED_CONF_FILE) ite
        write(MED_CONF_FILE) UMAT
        write(MED_CONF_FILE) PHIMAT
@@ -186,6 +186,10 @@ do ite=total_ite+1,total_ite+num_ite
    if ( mod(ite,obs_step) == 0 ) then
        call write_observables(PhiMat,UMAT,ite,accept,Hnew-Hold,total_ite,CGite1,ratio)
    endif
+   !! write out config file
+   if ( mod(ite,save_config_step) == 0 ) then
+     call write_config_file(ite,UMAT,PhiMat,state,srepr)
+   endif 
 enddo
 
 !! write the simulation time
@@ -208,13 +212,23 @@ write(*,*) "# ave_dHam=",ave_dHam
 write(*,*) "# acceptance=",dble(accept)/dble(num_ite)
 
 
+call write_config_file(ite,UMAT,PhiMat,state,srepr)
 
-!! write the final configuration 
-  !do s=1,num_sites
-    !do a=1,dimG
-      !call trace_MTa(Phi(a,s),PhiMat(:,:,s),a,NMAT)
-    !enddo
-  !enddo
+close( MED_CONF_FILE )
+close( OUTPUT_FILE )
+
+end subroutine HybridMonteCarlo
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+subroutine write_config_file(ite,UMAT,PhiMat,state,srepr)
+implicit none
+
+integer, intent(in) :: ite
+complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_links)
+complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_sites)
+type(genrand_state), intent(inout) :: state
+type(genrand_srepr), intent(inout) :: srepr
+
 open(unit=OUT_CONF_FILE,status='replace',file=Fconfigout,action='write',form='unformatted')
 write(OUT_CONF_FILE) ite-1
 write(OUT_CONF_FILE) UMAT
@@ -222,12 +236,11 @@ write(OUT_CONF_FILE) PhiMat
 call genrand_init( get=state )
 srepr=state ! mt95では"="がassignmentされている
 write(OUT_CONF_FILE) srepr%repr
+close( OUT_CONF_FILE)
+
+end subroutine write_config_file
 
 
-close( MED_CONF_FILE )
-close( OUTPUT_FILE )
-
-end subroutine HybridMonteCarlo
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 subroutine traceless_projection(Mat)

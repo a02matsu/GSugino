@@ -78,7 +78,7 @@ read(MED_FILE) test_mode
 read(MED_FILE) new_config
 read(MED_FILE) fix_seed
 read(MED_FILE) read_alpha
-read(MED_FILE) config_step
+read(MED_FILE) save_med_step
 read(MED_FILE) obs_step
 read(MED_FILE) m_omega
 read(MED_FILE) mass_square_phi

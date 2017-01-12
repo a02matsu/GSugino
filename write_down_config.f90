@@ -66,7 +66,7 @@ read(CONFIG_IN) test_mode
 read(CONFIG_IN) new_config
 read(CONFIG_IN) fix_seed
 read(CONFIG_IN) read_alpha
-read(CONFIG_IN) config_step
+read(CONFIG_IN) save_med_step
 read(CONFIG_IN) obs_step
 read(CONFIG_IN) m_omega
 read(CONFIG_IN) mass_square_phi

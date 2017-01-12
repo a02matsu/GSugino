@@ -350,6 +350,10 @@ do l=1,num_links
     diff_Omega=(0d0,-1d0)*dSinUdA
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     ! make diff_Omega traceless
+    tmpmat=(0d0,0d0)
+    do ii=1,NMAT
+      tmpmat=tmpmat+diff_Omega(:,:,ii,ii)
+    enddo
     do ii=1,NMAT
       diff_Omega(:,:,ii,ii)=diff_Omega(:,:,ii,ii)-tmpmat/cmplx(dble( NMAT ))
     enddo

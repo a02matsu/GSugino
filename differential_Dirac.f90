@@ -545,15 +545,23 @@ do l_label=1,links_in_f(f)%num_
       
       do jj=1,NMAT
       do ii=1,NMAT
-        call matrix_3_product(prodmat1, &
+        call matrix_3_product(tmpmat1, &
           dAmatdA(:,:,ii,jj),lambda_mat(:,:,l),BMAT)
-        call matrix_product(tmpmat1,Amat,lambda_mat(:,:,l))
-        call zgemm('N','N',NMAT,NMAT,NMAT,(1d0,0d0), &
-          tmpmat1, NMAT, &
-          dBmatdA(:,:,ii,jj), NMAT, &
-          (1d0,0d0), line(:,:,ii,jj), NMAT)
+          !dAmatdA(:,:,ii,jj),lambda_mat(:,:,l),BMAT)
+        call matrix_3_product(tmpmat2, &
+          Amat,lambda_mat(:,:,l),dBmatdA(:,:,ii,jj))
+        call matrix_3_product(tmpmat3, &
+          dBmatdA(:,:,jj,ii),lambda_mat(:,:,l),Amat,'C','N','C')
+        call matrix_3_product(tmpmat4, &
+          Bmat,lambda_mat(:,:,l),dAmatdA(:,:,jj,ii),'C','N','C')
+        line(:,:,ii,jj)=tmpmat1+tmpmat2+tmpmat3+tmpmat4
       enddo
       enddo
+        !call matrix_product(tmpmat1,Amat,lambda_mat(:,:,l))
+        !call zgemm('N','N',NMAT,NMAT,NMAT,(1d0,0d0), &
+        !  tmpmat1, NMAT, &
+        !  dBmatdA(:,:,ii,jj), NMAT, &
+        !  (1d0,0d0), line(:,:,ii,jj), NMAT)
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       ! make traceless for (ii,jj)
@@ -570,7 +578,7 @@ do l_label=1,links_in_f(f)%num_
           dDdA_chi(:,:,f,ii,jj,ll)=dDdA_chi(:,:,f,ii,jj,ll) &
             + cmplx(dble(links_in_f(f)%link_dirs_(l_label) ))*(0d0,1d0) &
              * cmplx( alpha_f(f)*beta_f(f) ) &
-             * line(:,:,ii,jj)
+             * line(:,:,ii,jj) 
         enddo
       enddo
     else
@@ -696,7 +704,7 @@ do i=1,face_in_l(l)%num_
         do ii=1,NMAT
           call matrix_3_product(tmpmat1,dBmatdA(:,:,ii,jj),chi_mat(:,:,f),Amat)
           call matrix_3_product(tmpmat2,Bmat,chi_mat(:,:,f),dAmatdA(:,:,ii,jj))
-          call matrix_3_product(tmpmat3,dAmatdA(:,:,jj,ii),chi_mat(:,:,f),Bmat,'C','M','C')
+          call matrix_3_product(tmpmat3,dAmatdA(:,:,jj,ii),chi_mat(:,:,f),Bmat,'C','N','C')
           call matrix_3_product(tmpmat4,Amat,chi_mat(:,:,f),dBmatdA(:,:,jj,ii), 'C','N','C')
           line(:,:,ii,jj)=tmpmat1+tmpmat2+tmpmat3+tmpmat4
         enddo
