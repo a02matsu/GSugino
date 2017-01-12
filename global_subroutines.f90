@@ -140,6 +140,24 @@ call ZGEMM('N','C',NMAT,NMAT,NMAT,(1d0,0d0), &
 
 end subroutine Make_diff_PhiMat
 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! subroutine to make moment map \Omega(Uf)
+subroutine Make_moment_map0(Omega,Uf)
+use matrix_functions, only : matrix_inverse
+implicit none
+
+complex(kind(0d0)), intent(out) :: Omega(1:NMAT,1:NMAT)
+complex(kind(0d0)), intent(in) :: Uf(1:NMAT,1:NMAT)
+integer :: i,j
+
+do i=1,NMAT
+  do j=1,NMAT
+    Omega(i,j)=-im_unit*( Uf(i,j) - dconjg( Uf(j,i) ) )
+  enddo
+enddo
+
+end subroutine Make_moment_map0
+
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! subroutine to make moment map \Omega(Uf)
@@ -1722,7 +1740,9 @@ integer :: l,i,label
 l=links_in_f(f)%link_labels_(l_label)
 
 ! tmpmat=U_f^{k-1}
-call matrix_power(tmpmat1,Uf,k-1)
+if (k.ne.1) then
+  call matrix_power(tmpmat1,Uf,k-1)
+endif
 
 ! tmpmat2=U_f^{k-1} U_{l1}^{e1}...U_{l-1}^{el-1}
 if ( links_in_f(f)%link_dirs_(l_label) == 1 ) then
@@ -1732,7 +1752,11 @@ else
 endif 
 call calc_prodUl_from_n1_to_n2_in_Uf(tmpmat2,f,1,label,UMAT)
 
-call matrix_product(Amat,tmpmat1,tmpmat2)
+if (k.ne.1) then
+  call matrix_product(Amat,tmpmat1,tmpmat2)
+else
+  Amat=tmpmat2
+endif
 
 
 end subroutine calc_Amat
@@ -1757,7 +1781,9 @@ integer :: l,i,label
 l=links_in_f(f)%link_labels_(l_label)
 
 ! tmpmat1=U_f^{m-k-1}
-call matrix_power(tmpmat1,Uf,m_omega-k)
+if( m_omega-k .ne. 0 ) then 
+  call matrix_power(tmpmat1,Uf,m_omega-k)
+endif
 
 ! tmpmat=U_f^{k-1} U_{l1}^{e1}...U_{l-1}^{el-1}
 if ( links_in_f(f)%link_dirs_(l_label) == 1 ) then
@@ -1767,7 +1793,11 @@ else
 endif 
 call calc_prodUl_from_n1_to_n2_in_Uf(tmpmat2,f,label,links_in_f(f)%num_ ,UMAT)
 
-call matrix_product(Bmat, tmpmat2, tmpmat1)
+if( m_omega-k .ne. 0 ) then 
+  call matrix_product(Bmat, tmpmat2, tmpmat1)
+else
+  Bmat=tmpmat2
+endif 
 
 end subroutine calc_Bmat
 
@@ -1803,6 +1833,48 @@ enddo
 call matrix_inverse(cosUinv)
 
 end subroutine calc_sinU_and_cosUinv
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+subroutine calc_dSinUdA(dSinUdA, Uf,UMAT,f,ll_label)
+use matrix_functions, only : matrix_product
+!use Dirac_operator, only : calc_Amat, calc_Bmat
+implicit none
+
+! for given f and ll
+! d cosUinv(i,j,f) / dA_{ii,jj,ll)
+complex(kind(0d0)), intent(out) :: dSinUdA(1:NMAT,1:NMAT,1:NMAT,1:NMAT)
+!complex(kind(0d0)), intent(in) :: sinU(1:NMAT,1:NMAT)
+complex(kind(0d0)), intent(in) :: Uf(1:NMAT,1:NMAT)
+complex(kind(0d0)), intent(in) :: UMat(1:NMAT,1:NMAT,1:num_links)
+integer, intent(in) :: f,ll_label
+
+complex(kind(0d0)) :: Amat(1:NMAT,1:NMAT)
+complex(kind(0d0)) :: Bmat(1:NMAT,1:NMAT)
+
+integer :: k,i,j,ii,jj
+
+dSinUdA=(0d0,0d0)
+do k=1,m_omega
+  call calc_Amat(Amat,f,ll_label,1,Uf,Umat)
+  call calc_Bmat(Bmat,f,ll_label,1,Uf,Umat)
+
+  do jj=1,NMAT
+    do ii=1,NMAT
+      do j=1,NMAT
+        do i=1,NMAT
+          dSinUdA(i,j,ii,jj)=dSinUdA(i,j,ii,jj) &
+            + Amat(i,jj)*Bmat(ii,j) &
+            + conjg(Bmat(jj,i))*conjg(Amat(j,ii))
+        enddo
+      enddo
+    enddo
+  enddo
+enddo
+
+dSinUdA=dSinUdA * cmplx(dble(links_in_f(f)%link_dirs_(ll_label)))*(0d0,1d0)
+
+end subroutine calc_dSinUdA
+
 
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

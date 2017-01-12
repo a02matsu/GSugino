@@ -232,8 +232,12 @@ integer :: i,j
 SB_F=0d0
 do f=1,num_faces
   call Make_face_variable(Uf,f,UMAT)
-  call matrix_power(Ufm,Uf,m_omega)
-  call Make_moment_map(Omega,Ufm)
+  if(m_omega == 0) then 
+    call Make_moment_map0(Omega,Ufm)
+  else
+    call matrix_power(Ufm,Uf,m_omega)
+    call Make_moment_map(Omega,Ufm)
+  endif 
   tmp=(0d0,0d0)
   do j=1,NMAT
     do i=1,NMAT

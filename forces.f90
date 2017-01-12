@@ -327,9 +327,13 @@ sinU=(0d0,0d0)
 cosUinv=(0d0,0d0)
 do f=1,num_faces
   call Make_face_variable(Uf(:,:,f),f,UMAT) 
-  call matrix_power(Ufm(:,:,f),Uf(:,:,f),m_omega)
-  call Make_moment_map(Omega(:,:,f),Ufm(:,:,f))
-  call calc_sinU_and_cosUinv(sinU(:,:,f),cosUinv(:,:,f),Ufm(:,:,f))
+  if( m_omega == 0 ) then
+    call Make_moment_map0(Omega(:,:,f),Uf(:,:,f))
+  else
+    call matrix_power(Ufm(:,:,f),Uf(:,:,f),m_omega)
+    call Make_moment_map(Omega(:,:,f),Ufm(:,:,f))
+    call calc_sinU_and_cosUinv(sinU(:,:,f),cosUinv(:,:,f),Ufm(:,:,f))
+  endif
 enddo
 
 dSdA_boson_face=(0d0,0d0)
@@ -340,35 +344,42 @@ do l=1,num_links
       if ( l == links_in_f(f)%link_labels_(l_label) ) exit
     enddo
 
-    dCosUinvdA=(0d0,0d0)
-    dSinUdA=(0d0,0d0)
-    call calc_dCosUinvdA_dSinUdA(&
-      dCosUinvdA(:,:,:,:),dSinUdA(:,:,:,:),&
-      cosUinv(:,:,f),Uf(:,:,f),UMAT,f,l_label)
+  if( m_omega == 0 ) then 
+      dSinUdA=(0d0,0d0)
+      call calc_dSinUdA(dSinUdA(:,:,:,:),Uf(:,:,f),UMAT,f,l_label)
+      diff_Omega=(0d0,-1d0)*dSinUdA
 
-    diff_Omega=(0d0,0d0)
-    tmpmat=(0d0,0d0)
-    do jj=1,NMAT
-      do ii=1,NMAT
-         call matrix_product(&
-           diff_Omega(:,:,ii,jj),dSinUdA(:,:,ii,jj),cosUinv(:,:,f))
-         call zgemm('N','N',NMAT,NMAT,NMAT,(0d0,-1d0), &
-           SinU(:,:,f), NMAT, &
-           dCosUinvdA(:,:,ii,jj), NMAT, &
-           (0d0,-1d0), diff_Omega(:,:,ii,jj), NMAT)
-         call zgemm('N','N',NMAT,NMAT,NMAT,(0d0,-1d0), &
-           dCosUinvdA(:,:,ii,jj), NMAT, &
-           SinU(:,:,f), NMAT, &
-           (1d0,0d0), diff_Omega(:,:,ii,jj), NMAT)
-         call zgemm('N','N',NMAT,NMAT,NMAT,(0d0,-1d0), &
-           CosUinv(:,:,f), NMAT, &
-           dSinUdA(:,:,ii,jj), NMAT, &
-           (1d0,0d0), diff_Omega(:,:,ii,jj), NMAT)
-         if( ii==jj ) then
-           tmpmat=tmpmat+diff_Omega(:,:,ii,ii)
-         endif
+  else
+      dCosUinvdA=(0d0,0d0)
+      dSinUdA=(0d0,0d0)
+      call calc_dCosUinvdA_dSinUdA(&
+        dCosUinvdA(:,:,:,:),dSinUdA(:,:,:,:),&
+        cosUinv(:,:,f),Uf(:,:,f),UMAT,f,l_label)
+  
+      diff_Omega=(0d0,0d0)
+      tmpmat=(0d0,0d0)
+      do jj=1,NMAT
+        do ii=1,NMAT
+           call matrix_product(&
+             diff_Omega(:,:,ii,jj),dSinUdA(:,:,ii,jj),cosUinv(:,:,f))
+           call zgemm('N','N',NMAT,NMAT,NMAT,(0d0,-1d0), &
+             SinU(:,:,f), NMAT, &
+             dCosUinvdA(:,:,ii,jj), NMAT, &
+             (0d0,-1d0), diff_Omega(:,:,ii,jj), NMAT)
+           call zgemm('N','N',NMAT,NMAT,NMAT,(0d0,-1d0), &
+             dCosUinvdA(:,:,ii,jj), NMAT, &
+             SinU(:,:,f), NMAT, &
+             (1d0,0d0), diff_Omega(:,:,ii,jj), NMAT)
+           call zgemm('N','N',NMAT,NMAT,NMAT,(0d0,-1d0), &
+             CosUinv(:,:,f), NMAT, &
+             dSinUdA(:,:,ii,jj), NMAT, &
+             (1d0,0d0), diff_Omega(:,:,ii,jj), NMAT)
+           if( ii==jj ) then
+             tmpmat=tmpmat+diff_Omega(:,:,ii,ii)
+           endif
+         enddo
        enddo
-     enddo
+     endif
      ! make diff_Omega traceless
      do ii=1,NMAT
        diff_Omega(:,:,ii,ii)=diff_Omega(:,:,ii,ii)-tmpmat/cmplx(dble( NMAT ))

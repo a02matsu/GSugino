@@ -103,6 +103,7 @@ end subroutine Prod_DdagD
 !! compute D.vec
 !!  S_f = 1/2 \Psi^T D \Psi
 subroutine Prod_Dirac(D_vec, vec, Vsize,UMAT,PhiMat)
+use matrix_functions, only : matrix_3_product
 implicit none
 
 integer, intent(in) :: Vsize !! vecsize must be sizeD
@@ -280,44 +281,60 @@ endif
 if( p5==0 ) then
 !! (5) face action 2
 do f=1,num_faces
-  call Make_face_variable(Uf(:,:,f),f,UMAT) 
-  call matrix_power(Ufm(:,:,f),Uf(:,:,f),m_omega)
-  call calc_sinU_and_cosUinv(sinU(:,:,f),cosUinv(:,:,f),Ufm(:,:,f))
+    call Make_face_variable(Uf(:,:,f),f,UMAT) 
+  if( m_omega .ne. 0) then 
+    call matrix_power(Ufm(:,:,f),Uf(:,:,f),m_omega)
+    call calc_sinU_and_cosUinv(sinU(:,:,f),cosUinv(:,:,f),Ufm(:,:,f))
+  endif
 enddo
 
 
 do f=1,num_faces
   do i=1,links_in_f(f)%num_
     l=links_in_f(f)%link_labels_(i)
-    line1=(0d0,0d0)
-    line2=(0d0,0d0)
-    do k=1,m_omega
-      call calc_Amat(Amat,f,i,k,Uf(:,:,f),UMAT)
-      call calc_Bmat(Bmat,f,i,k,Uf(:,:,f),UMAT)
 
-      ! tmpmat2=A.lambda.B
-      call matrix_3_product(tmpmat2,Amat,lambda_mat(:,:,l),Bmat)
-      ! tmpmat3=B^dag.lambda.A^dag 
-      call matrix_3_product(tmpmat3,Bmat,lambda_mat(:,:,l),Amat,'C','N','C')
+    if( m_omega == 0 ) then
+      call calc_Amat(Amat,f,i,1,Uf(:,:,f),UMAT)
+      call calc_Bmat(Bmat,f,i,1,Uf(:,:,f),UMAT)
 
-      ! line1 = A.lambda.B+Bdag.lambda.Adag
-      line1=line1+tmpmat2+tmpmat3
-      ! line2 = cosUinv.(A.lambda.B-Bdag.lambda.Adag).cosUinv
-      call matrix_3_product(tmpmat1,cosUinv(:,:,f),tmpmat2-tmpmat3,cosUinv(:,:,f))
-      line2=line2+tmpmat1
-    enddo
+      call matrix_3_product(tmpmat1,Amat,lambda_mat(:,:,l),Bmat)
+      call matrix_3_product(tmpmat2,Bmat,lambda_mat(:,:,l),Amat,'C','N','C')
 
-    ! line1 = {A.lambda.B+B^dag.lambda.A^dag , (Um+Uminv)^{-1}
-    tmpmat1=line1
-    call matrix_AntiCommutator(line1,tmpmat1,cosUinv(:,:,f))
-    ! line2 = {cosUinv.(A.lambda.B-Bdag.lambda.Adag).cosUinv, sinU}
-    tmpmat1=line2
-    call matrix_AntiCommutator(line2,tmpmat1,sinU(:,:,f))
-    
-    DF_chi(:,:,f)=DF_chi(:,:,f)&
-      + cmplx(dble(links_in_f(f)%link_dirs_(i)))*(0d0,1d0)&
-        * cmplx(overall_factor) / cmplx(dble(m_omega))&
-        * cmplx(alpha_f(f)*beta_f(f)) * (line1-line2)
+      DF_chi(:,:,f)=DF_chi(:,:,f)&
+        + cmplx(dble(links_in_f(f)%link_dirs_(i)))*(0d0,1d0)&
+          * cmplx(overall_factor) * cmplx(alpha_f(f)*beta_f(f)) & 
+          * (tmpmat1 + tmpmat2)
+    else
+      line1=(0d0,0d0)
+      line2=(0d0,0d0)
+      do k=1,m_omega
+        call calc_Amat(Amat,f,i,k,Uf(:,:,f),UMAT)
+        call calc_Bmat(Bmat,f,i,k,Uf(:,:,f),UMAT)
+  
+        ! tmpmat2=A.lambda.B
+        call matrix_3_product(tmpmat2,Amat,lambda_mat(:,:,l),Bmat)
+        ! tmpmat3=B^dag.lambda.A^dag 
+        call matrix_3_product(tmpmat3,Bmat,lambda_mat(:,:,l),Amat,'C','N','C')
+  
+        ! line1 = A.lambda.B+Bdag.lambda.Adag
+        line1=line1+tmpmat2+tmpmat3
+        ! line2 = cosUinv.(A.lambda.B-Bdag.lambda.Adag).cosUinv
+        call matrix_3_product(tmpmat1,cosUinv(:,:,f),tmpmat2-tmpmat3,cosUinv(:,:,f))
+        line2=line2+tmpmat1
+      enddo
+  
+      ! line1 = {A.lambda.B+B^dag.lambda.A^dag , (Um+Uminv)^{-1}
+      tmpmat1=line1
+      call matrix_AntiCommutator(line1,tmpmat1,cosUinv(:,:,f))
+      ! line2 = {cosUinv.(A.lambda.B-Bdag.lambda.Adag).cosUinv, sinU}
+      tmpmat1=line2
+      call matrix_AntiCommutator(line2,tmpmat1,sinU(:,:,f))
+      
+      DF_chi(:,:,f)=DF_chi(:,:,f)&
+        + cmplx(dble(links_in_f(f)%link_dirs_(i)))*(0d0,1d0)&
+          * cmplx(overall_factor) / cmplx(dble(m_omega))&
+          * cmplx(alpha_f(f)*beta_f(f)) * (line1-line2)
+    endif
   enddo
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   ! make traceless for (i,j)
@@ -339,32 +356,45 @@ do l=1,num_links
       if ( l == links_in_f(f)%link_labels_(j) ) exit
     enddo
 
-    ! tmpmat1= { (Uf+Ufinv)^{-1} , \chi_f }
-    call matrix_anticommutator(tmpmat1,cosUinv(:,:,f),chi_mat(:,:,f))
+    if( m_omega == 0 ) then 
+      call calc_Amat(Amat,f,j,1,Uf(:,:,f),UMAT)
+      call calc_Bmat(Bmat,f,j,1,Uf(:,:,f),UMAT)
 
-    ! tmpmat2= (Uf+Ufinv)^{-1}.{ Uf-Ufinv , \chi_f }.(Uf+Ufinv)^{-1} 
-    call matrix_anticommutator(tmpmat3,sinU(:,:,f),chi_mat(:,:,f))
-    call matrix_3_product(tmpmat2,cosUinv(:,:,f),tmpmat3,cosUinv(:,:,f))
+      call matrix_3_product(tmpmat1,Bmat,chi_mat(:,:,f),Amat)
+      call matrix_3_product(tmpmat2,Amat,chi_mat(:,:,f),Bmat,'C','N','C')
 
-    line1=tmpmat1-tmpmat2
-    line2=tmpmat1+tmpmat2
-
-    acomm=(0d0,0d0)
-    do k=1,m_omega
-      call calc_Amat(Amat,f,j,k,Uf(:,:,f),UMAT)
-      call calc_Bmat(Bmat,f,j,k,Uf(:,:,f),UMAT)
-      ! tmpmat1= B.(tmpmat1-tmpmat2).A
-      call matrix_3_product(tmpmat1,BMAT,line1,AMAT)
-      ! tmpmat2 = Adag.(tmpmat1+tmpmat2).Bdag
-      call matrix_3_product(tmpmat2, AMAT,line2,BMAT,'C','N','C')
-
-      acomm=acomm+tmpmat1+tmpmat2
-    enddo
-
-    DF_lambda(:,:,l)=DF_lambda(:,:,l) &
-      + cmplx(dble(links_in_f(f)%link_dirs_(j)))*(0d0,1d0)&
-        * cmplx(-overall_factor) / cmplx(dble(m_omega))&
-        * cmplx(alpha_f(f)*beta_f(f)) * acomm
+      DF_lambda(:,:,l)=DF_lambda(:,:,l) &
+        + cmplx(dble(links_in_f(f)%link_dirs_(j)))*(0d0,1d0)&
+          * cmplx(-overall_factor) * cmplx(alpha_f(f)*beta_f(f)) &
+          * (tmpmat1+tmpmat2)
+    else
+      ! tmpmat1= { (Uf+Ufinv)^{-1} , \chi_f }
+      call matrix_anticommutator(tmpmat1,cosUinv(:,:,f),chi_mat(:,:,f))
+  
+      ! tmpmat2= (Uf+Ufinv)^{-1}.{ Uf-Ufinv , \chi_f }.(Uf+Ufinv)^{-1} 
+      call matrix_anticommutator(tmpmat3,sinU(:,:,f),chi_mat(:,:,f))
+      call matrix_3_product(tmpmat2,cosUinv(:,:,f),tmpmat3,cosUinv(:,:,f))
+  
+      line1=tmpmat1-tmpmat2
+      line2=tmpmat1+tmpmat2
+  
+      acomm=(0d0,0d0)
+      do k=1,m_omega
+        call calc_Amat(Amat,f,j,k,Uf(:,:,f),UMAT)
+        call calc_Bmat(Bmat,f,j,k,Uf(:,:,f),UMAT)
+        ! tmpmat1= B.(tmpmat1-tmpmat2).A
+        call matrix_3_product(tmpmat1,BMAT,line1,AMAT)
+        ! tmpmat2 = Adag.(tmpmat1+tmpmat2).Bdag
+        call matrix_3_product(tmpmat2, AMAT,line2,BMAT,'C','N','C')
+  
+        acomm=acomm+tmpmat1+tmpmat2
+      enddo
+  
+      DF_lambda(:,:,l)=DF_lambda(:,:,l) &
+        + cmplx(dble(links_in_f(f)%link_dirs_(j)))*(0d0,1d0)&
+          * cmplx(-overall_factor) / cmplx(dble(m_omega))&
+          * cmplx(alpha_f(f)*beta_f(f)) * acomm
+    endif
   enddo
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    ! make traceless for (i,j)

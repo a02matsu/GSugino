@@ -83,6 +83,7 @@ write(output,'(A,F6.4)') "# factor of Dtau for Phi= ",R_phi
 write(output,'(A,F6.4)') "# factor of Dtau for UMAT= ",R_A
 write(output,'(A,I5)') "# m_omega= ",m_omega
 write(output,'(A,E12.5)') "# mass_square_phi= ",mass_square_phi
+write(output,'(A,E12.5)') "# phys_mass_square_phi= ",phys_mass_square_phi
 write(output,'(A,E12.5)') "# mass_f= ",mass_f
 write(output,'(A,E12.5)') "# Remez_factor4= ",Remez_factor4
 write(output,'(A,E12.5)') "# Remez_factor8= ",Remez_factor8
