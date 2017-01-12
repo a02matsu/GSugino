@@ -74,11 +74,11 @@ integer, intent(in) :: output
 write(output,'(a,a)') "# simplicial complex : ",trim(SC_FILE_NAME)
 write(output,'(A,F6.4)') "# lattice spacing (\lambda=1)= ",LatticeSpacing
 write(output,'(A,I5)') "# NMAT= ",NMAT
-write(output,*) 
+write(output,'(a)') "#"
 write(output,'(A,I5)') "# Ntau= ",Ntau
 write(output,'(A,F10.8)') "# Dtau= ",Dtau
 write(output,'(A,I5)') "# iterations= ", num_ite
-write(output,*) 
+write(output,'(a)') "#"
 write(output,'(A,F6.4)') "# factor of Dtau for Phi= ",R_phi
 write(output,'(A,F6.4)') "# factor of Dtau for UMAT= ",R_A
 write(output,'(A,I5)') "# m_omega= ",m_omega
