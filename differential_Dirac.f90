@@ -315,6 +315,39 @@ endif
 dDdA_eta=dDdA_eta*cmplx(overall_factor)
 dDdA_lambda=dDdA_lambda*cmplx(overall_factor)
 dDdA_chi=dDdA_chi*cmplx(overall_factor)
+!do l=1,num_links
+!  do j=1,NMAT
+!    do i=1,NMAT
+!      do s=1,num_sites
+!        tmp=(0d0,0d0)
+!        do ii=1,NMAT
+!          tmp=tmp+dDdA_eta(ii,ii,s,i,j,l)
+!        enddo
+!        do ii=1,NMAT
+!          dDdA_eta(ii,ii,s,i,j,l)=dDdA_eta(ii,ii,s,i,j,l)-tmp/cmplx(dble(NMAT))
+!        enddo
+!      enddo
+!      do ll=1,num_links
+!        tmp=(0d0,0d0)
+!        do ii=1,NMAT
+!          tmp=tmp+dDdA_lambda(ii,ii,ll,i,j,l)
+!        enddo
+!        do ii=1,NMAT
+!          dDdA_lambda(ii,ii,ll,i,j,l)=dDdA_lambda(ii,ii,ll,i,j,l)-tmp/cmplx(dble(NMAT))
+!        enddo
+!      enddo
+!      do f=1,num_faces
+!        tmp=(0d0,0d0)
+!        do ii=1,NMAT
+!          tmp=tmp+dDdA_chi(ii,ii,f,i,j,l)
+!        enddo
+!        do ii=1,NMAT
+!          dDdA_chi(ii,ii,f,i,j,l)=dDdA_chi(ii,ii,f,i,j,l)-tmp/cmplx(dble(NMAT))
+!        enddo
+!      enddo
+!    enddo
+!  enddo
+!enddo
 
 
 !! (T1) test action
@@ -589,10 +622,10 @@ do l_label=1,links_in_f(f)%num_
         ! make traceless for (i,j)
         trace=(0d0,0d0)
         do j=1,NMAT
-          trace=trace+dDdA_chi(j,j,l,ii,jj,ll)
+          trace=trace+dDdA_chi(j,j,f,ii,jj,ll)
         enddo
         do j=1,NMAT
-          dDdA_chi(j,j,l,ii,jj,ll)=dDdA_chi(j,j,l,ii,jj,ll)-trace/cmplx(dble(NMAT))
+          dDdA_chi(j,j,f,ii,jj,ll)=dDdA_chi(j,j,f,ii,jj,ll)-trace/cmplx(dble(NMAT))
         enddo
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       enddo

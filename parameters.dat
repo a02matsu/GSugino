@@ -10,7 +10,7 @@ ab_tetra2.dat	! data of alpha and beta
 1				! config_step; step to write out configuration
 1				! obs_step; step to compute observables
 42342			! seed (works when fix_seed=1)
-2				! m_omega ;integer to avoid vacuum degeneracy (mm>=NMAT/4)
+1				! m_omega ;integer to avoid vacuum degeneracy (mm>=NMAT/4)
 0.1d0 			! mass_square_phi 
 1d-1       	! mass_f; fermion mass
 1d5		        ! Remez_factor4 ; range of remez approx( min*factor .. max*factor) 
