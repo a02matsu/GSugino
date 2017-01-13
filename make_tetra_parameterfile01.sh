@@ -4,9 +4,10 @@
 # ./make_paramterfile**.sh NewConf(0/1) LatticeSpacing mass^2 Ntau Dtau NumIte OldNum
 
 PARAFILE="parameters.dat"
+BODY=$(echo $0 | cut -d _ -f 2)
 
-SimpFile="tetra.dat"
-ABFile="ab_tetra.dat"
+SimpFile=$BODY".dat"
+ABFile="ab_$BODY.dat"
 
 NewConf=$1
 NMAT=$2
