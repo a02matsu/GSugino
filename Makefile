@@ -1,10 +1,10 @@
 VER=01
 VER_CALCOBS=02
-!FC=gfortran
+#FC=gfortran
 FC=ifort
-#FLAGS_IFORT=-mkl -CB -traceback -g 
+FLAGS_IFORT=-mkl -CB -traceback -g 
 #FLAGS_IFORT=-mkl -parallel -ipo
-FLAGS_IFORT=-mkl -O2 
+#FLAGS_IFORT=-mkl -O2 
 FLAGS_GCC=-llapack -lblas
 # コンパイルのために順番が大事。下層ほど先に書く。 
 SRCS=SUN_generators.f90 \
