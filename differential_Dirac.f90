@@ -675,10 +675,10 @@ do l_label=1,links_in_f(f)%num_
         do j=1,NMAT
           dDdA_chi(j,j,f,ii,jj,ll)=dDdA_chi(j,j,f,ii,jj,ll)-trace/cmplx(dble(NMAT))
         enddo
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         enddo
-      enddo 
-    endif 
+      enddo
+    endif
   enddo ! ll
 enddo ! l
 enddo ! f
