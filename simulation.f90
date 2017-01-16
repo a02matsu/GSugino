@@ -620,17 +620,14 @@ integer :: l
 !enddo
 do l=1,num_links
   Plmat=(0d0,1d0)*Dtau*P_Amat(:,:,l)
-  !write(*,*) "test001"
   !call MATRIX_EXP(NMAT,Plmat,dU)
   call traceless_projection(Plmat)
   call MATRIX_EXP(dU,Plmat)
   tmpmat=UMAT(:,:,l)
-  !write(*,*) "test002"
   call ZGEMM('N','N',NMAT,NMAT,NMAT,(1d0,0d0), &
     dU, NMAT, &
     tmpmat, NMAT, &
     (0d0,0d0), UMAT(:,:,l), NMAT)
-  !write(*,*) "test003"
 enddo
 
 
