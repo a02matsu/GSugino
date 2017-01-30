@@ -4,8 +4,8 @@ VER_CALCOBS=02
 FC=ifort
 #FLAGS_IFORT=-mkl -check bounds -heap-arrays 10 -CB -traceback -g 
 #FLAGS_IFORT=-mkl -check bounds -CB -traceback -g 
-#FLAGS_IFORT=-mkl -parallel -ipo
-FLAGS_IFORT=-mkl -O2 
+#FLAGS_IFORT=-mkl -parallel -ipo 
+FLAGS_IFORT=-mkl -O3
 FLAGS_GCC=-llapack -lblas
 # コンパイルのために順番が大事。下層ほど先に書く。 
 SRCS=SUN_generators.f90 \
