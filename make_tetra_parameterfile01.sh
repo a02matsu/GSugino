@@ -55,8 +55,8 @@ echo "${Ntau}		! NTAU" >> ${PARAFILE}
 echo "${Dtau}d0			! DTAU base" >> ${PARAFILE}
 echo "6d0				! R_phi ; Dtau_phi=R_phi * Dtau" >> ${PARAFILE}
 echo "1d0				! R_A   ; Dtau_A=R_A * Dtau" >> ${PARAFILE}
-echo "conSU${NMAT}m1a${LatticeSpacing}PM${MassSq}_${OLDNUM}.dat ! input configuration " >> ${PARAFILE}
-echo "outSU${NMAT}m1a${LatticeSpacing}PM${MassSq}_${NEWNUM}.dat ! output data" >> ${PARAFILE}
-echo "conSU${NMAT}m1a${LatticeSpacing}PM${MassSq}_${NEWNUM}.dat ! output configuration " >> ${PARAFILE}
-echo "medSU${NMAT}m1a${LatticeSpacing}PM${MassSq}_${NEWNUM}.dat ! intermediate configuration " >> ${PARAFILE}
+echo "conSU${NMAT}m1a${LatticeSpacing}MM${MassSq}_${OLDNUM}.dat ! input configuration " >> ${PARAFILE}
+echo "outSU${NMAT}m1a${LatticeSpacing}MM${MassSq}_${NEWNUM}.dat ! output data" >> ${PARAFILE}
+echo "conSU${NMAT}m1a${LatticeSpacing}MM${MassSq}_${NEWNUM}.dat ! output configuration " >> ${PARAFILE}
+echo "medSU${NMAT}m1a${LatticeSpacing}MM${MassSq}_${NEWNUM}.dat ! intermediate configuration " >> ${PARAFILE}
 

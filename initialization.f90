@@ -78,7 +78,7 @@ call make_SUN_generators(TMAT,NMAT)
 call BoxMuller2(rsite,num_sites*dimG)
 call genrand_real3(rlink)
 
-rsite=rsite * 0.01d0 / mass_square_phi
+rsite=rsite * 0.01d0 !/ mass_square_phi
 do s=1,num_sites
   num=0
   do i=1,NMAT

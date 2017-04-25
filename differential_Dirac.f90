@@ -666,16 +666,16 @@ do l_label=1,links_in_f(f)%num_
             + cmplx(dble(links_in_f(f)%link_dirs_(l_label) ))*(0d0,1d0) &
              * cmplx( alpha_f(f)*beta_f(f)/dble(m_omega) ) &
              * line(:,:,ii,jj)
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        ! make traceless for (i,j)
-        trace=(0d0,0d0)
-        do j=1,NMAT
-          trace=trace+dDdA_chi(j,j,f,ii,jj,ll)
-        enddo
-        do j=1,NMAT
-          dDdA_chi(j,j,f,ii,jj,ll)=dDdA_chi(j,j,f,ii,jj,ll)-trace/cmplx(dble(NMAT))
-        enddo
-       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+          !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+          ! make traceless for (i,j)
+          trace=(0d0,0d0)
+          do j=1,NMAT
+            trace=trace+dDdA_chi(j,j,f,ii,jj,ll)
+          enddo
+          do j=1,NMAT
+            dDdA_chi(j,j,f,ii,jj,ll)=dDdA_chi(j,j,f,ii,jj,ll)-trace/cmplx(dble(NMAT))
+          enddo
+         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         enddo
       enddo
     endif
