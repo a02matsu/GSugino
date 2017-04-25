@@ -123,14 +123,6 @@ double precision, intent(in) :: delta_Ham, ratio
 integer, intent(in) :: ite, accept, total_ite, CGite
 integer :: output,i,s,a
 
-!complex(kind(0d0)) :: min_eigen,max_eigen
-!call calc_smallset_and_largest_eigenvalues_of_D(min_eigen,max_eigen,UMAT,Phi)
-
-!do s=1,num_sites
-  !do a=1,dimG
-    !call trace_MTa(Phi(a,s),PhiMat(:,:,s),a,NMAT)
-  !enddo
-!enddo
 
 call calc_bosonic_action(OBS(1),UMAT,PhiMat)
 call calc_TrX2(OBS(2),PhiMat)

@@ -6,12 +6,13 @@
 module observables
 use global_parameters
 use global_subroutines
+use simulation
 implicit none
 
 contains
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 subroutine calc_bosonic_action(Sb,UMAT,PhiMat)
-use hamiltonian
+!use hamiltonian
 implicit none
 
 double precision, intent(out) :: Sb
