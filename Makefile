@@ -2,7 +2,7 @@ VER=01
 VER_CALCOBS=02
 #FC=gfortran
 FC=ifort
-FLAGS_IFORT=-mkl -CB -traceback -g 
+FLAGS_IFORT=-mkl -fpp -CB -traceback -g 
 #FLAGS_IFORT=-mkl -parallel -ipo
 #FLAGS_IFORT=-mkl -O2 
 FLAGS_GCC=-llapack -lblas
@@ -181,6 +181,7 @@ output.o: \
 simulation.o: \
   global_parameters.o \
   global_subroutines.o \
+  MonteCarloSteps.f90 \
   hamiltonian.o \
   forces.o \
   mt95.o \
