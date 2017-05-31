@@ -3,15 +3,15 @@
 !! ver.04: bug fix for mass part of PCSC
 !! ver.05: include WT id. in naive quench
 !! ver.06: added compensator for SU(2) (triple cover version)
-module observables
-use global_parameters
-use global_subroutines
-implicit none
-
-contains
+!module observables
+!use global_parameters
+!use global_subroutines
+!implicit none
+!
+!contains
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 subroutine calc_bosonic_action(Sb,UMAT,PhiMat)
-use hamiltonian
+!use hamiltonian
 implicit none
 
 double precision, intent(out) :: Sb
@@ -871,4 +871,4 @@ enddo
 end subroutine calc_compensator_IZ2
 
 
-end module observables
+!end module observables

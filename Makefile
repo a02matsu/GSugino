@@ -17,10 +17,6 @@ SRCS=SUN_generators.f90 \
 	 initialization.f90 \
 	 Dirac_operator.f90 \
 	 differential_Dirac.f90 \
-	 hamiltonian.f90 \
-	 forces.f90 \
-	 observables.f90 \
-	 output.f90 \
 	 simulation.f90 
 OBJS=$(SRCS:.f90=.o)
 #########################
@@ -155,41 +151,19 @@ differential_Dirac.o: \
   global_subroutines.o \
   SUN_generators.o \
   matrix_functions.o
-hamiltonian.o: \
-  global_parameters.o \
-  global_subroutines.o \
-  SUN_generators.o \
-  matrix_functions.o \
-  rational_algorithm.o \
-  Dirac_operator.o
-forces.o: \
-  global_parameters.o \
-  global_subroutines.o \
-  SUN_generators.o \
-  matrix_functions.o \
-  rational_algorithm.o \
-  Dirac_operator.o \
-  differential_Dirac.o
-observables.o: \
-  global_parameters.o \
-  Dirac_operator.o \
-  SUN_generators.o \
-  matrix_functions.o
-output.o: \
-  global_parameters.o \
-  observables.o
 simulation.o: \
   global_parameters.o \
   global_subroutines.o \
-  MonteCarloSteps.f90 \
-  hamiltonian.o \
-  forces.o \
   mt95.o \
   Dirac_operator.o \
-  output.o \
   matrix_functions.o \
   SUN_generators.o \
-  rational_algorithm.o
+  rational_algorithm.o \
+  MonteCarloSteps.f90 \
+  hamiltonian.f90 \
+  observables.f90 \
+  output.f90 \
+  forces.f90 
 
 $(OBJ_CALCOBS): $(OBJS)
 

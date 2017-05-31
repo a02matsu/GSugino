@@ -1,11 +1,11 @@
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! module to compute forces
-module forces
-use global_parameters
-use global_subroutines
-implicit none
-
-contains
+!module forces
+!use global_parameters
+!use global_subroutines
+!implicit none
+!
+!contains
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! dS/Dphi 
@@ -702,4 +702,4 @@ enddo
 !enddo
 end subroutine Make_fermionic_force
 
-end module forces
+!end module forces

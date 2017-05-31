@@ -1,14 +1,13 @@
-module output
-use global_parameters
-implicit none
+!module output
+!use global_parameters
+!implicit none
 
-integer, parameter :: num_obs=2
-character(10) :: obs_name(1:num_obs)
-data obs_name/ "Sb","TrX2" /
+!integer, parameter :: num_obs=2
+!character(10) :: obs_name(1:num_obs)
+!data obs_name/ "Sb","TrX2" /
+!double precision :: OBS(1:num_obs) ! 1) bosonic action SB
 
-double precision :: OBS(1:num_obs) ! 1) bosonic action SB
-
-contains
+!contains
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 subroutine write_header(seed,UMAT,PhiMat)
 implicit none
@@ -112,7 +111,7 @@ end subroutine write_observable_list
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 subroutine write_observables(PhiMat,UMAT,ite,accept,delta_Ham,total_ite,CGite,ratio)
-use observables
+!use observables
 use SUN_generators, only : trace_MTa
 implicit none
 
@@ -199,7 +198,7 @@ end subroutine write_basic_info_to_medfile
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 subroutine calc_smallset_and_largest_eigenvalues_of_D(min_eigen,max_eigen,UMAT,PhiMat)
-use observables, only : calc_eigenvalues_Dirac
+!use observables, only : calc_eigenvalues_Dirac
 implicit none
 
 complex(kind(0d0)), intent(out) :: min_eigen, max_eigen
@@ -214,4 +213,4 @@ min_eigen=eigenvalues(1)
 max_eigen=eigenvalues(sizeD)
 
 end subroutine calc_smallset_and_largest_eigenvalues_of_D
-end module output
+!end module output

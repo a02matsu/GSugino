@@ -1,11 +1,11 @@
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! module to compute Hamiltonian
-module hamiltonian
-use global_parameters
-use global_subroutines
-implicit none
+!module hamiltonian
+!use global_parameters
+!use global_subroutines
+!implicit none
 
-contains
+!contains
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! Hamiltonian
@@ -369,5 +369,5 @@ SF=dble(SF_CG)
 end subroutine fermionic_action
 
 
-end module hamiltonian
+!end module hamiltonian
 
