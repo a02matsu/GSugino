@@ -28,33 +28,34 @@ SRC_MAIN=GSugino.f90
 OBJ_MAIN=GSugino.o
 PROG=gsugino$(VER).exe
 #########################
-SRC_CALCOBS=calcobs.f90
-OBJ_CALCOBS=calcobs.o
-PROG_CALCOBS=calcobs$(VER_CALCOBS).exe
+#SRC_CALCOBS=calcobs.f90
+#OBJ_CALCOBS=calcobs.o
+#PROG_CALCOBS=calcobs$(VER_CALCOBS).exe
+##########################
+#SRC_CALCCOMP=calc_compensator.f90
+#OBJ_CALCCOMP=calc_compensator.o
+#PROG_CALCCOMP=calc_compensator$(VER_CALCOBS).exe
+##########################
+#SRC_CALCEIGEN=calceigen.f90
+#OBJ_CALCEIGEN=calceigen.o
+#PROG_CALCEIGEN=calceigen$(VER_CALCOBS).exe
+##########################
+#SRC_CALCWT=calcWTIZ.f90
+#OBJ_CALCWT=calcWTIZ.o
+#PROG_CALCWT=calcWTIZ$(VER_CALCOBS).exe
+##########################
+#SRC_WRITE_DOWN_CONFIG=write_down_config.f90
+#OBJ_WRITE_DOWN_CONFIG=write_down_config.o
+#PROG_WRITE_DOWN_CONFIG=write_down_config.exe
 #########################
-SRC_CALCCOMP=calc_compensator.f90
-OBJ_CALCCOMP=calc_compensator.o
-PROG_CALCCOMP=calc_compensator$(VER_CALCOBS).exe
-#########################
-SRC_CALCEIGEN=calceigen.f90
-OBJ_CALCEIGEN=calceigen.o
-PROG_CALCEIGEN=calceigen$(VER_CALCOBS).exe
-#########################
-SRC_CALCWT=calcWTIZ.f90
-OBJ_CALCWT=calcWTIZ.o
-PROG_CALCWT=calcWTIZ$(VER_CALCOBS).exe
-#########################
-SRC_WRITE_DOWN_CONFIG=write_down_config.f90
-OBJ_WRITE_DOWN_CONFIG=write_down_config.o
-PROG_WRITE_DOWN_CONFIG=write_down_config.exe
-########################
 LIB=libpfapack.a
 
 
 #.SUFFIXES : .o .f90 # .oを作るときは必ず.f90から作るよ
 .SUFFIXES : .f90 # .oを作るときは必ず.f90から作るよ
  
-all:$(PROG) $(PROG_CALCOBS) $(PROG_CALCCOMP) $(PROG_CALCEIGEN) $(PROG_WRITE_DOWN_CONFIG) $(PROG_CALCWT)
+all:$(PROG) 
+#all:$(PROG) $(PROG_CALCOBS) $(PROG_CALCCOMP) $(PROG_CALCEIGEN) $(PROG_WRITE_DOWN_CONFIG) $(PROG_CALCWT)
 
 #main:$(PROG)
 
@@ -69,41 +70,41 @@ else
 	$(FC) -O2 $(FLAGS_IFORT) -o $@ $(OBJS) $(OBJ_MAIN) $(LIB)
 endif
 
-$(PROG_CALCOBS): $(OBJ_CALCOBS) $(OBJS) 
-ifeq ($(FC),gfortran)
-	$(FC) -O2 $(FLAGS_GCC) -o $@ $(OBJS) $(OBJ_CALCOBS) $(LIB)
-else
-	$(FC) -O2 $(FLAGS_IFORT) -o $@ $(OBJS) $(OBJ_CALCOBS) $(LIB)
-endif
-
-
-$(PROG_CALCCOMP): $(OBJ_CALCCOMP) $(OBJS) 
-ifeq ($(FC),gfortran)
-	$(FC) -O2 $(FLAGS_GCC) -o $@ $(OBJS) $(OBJ_CALCCOMP) $(LIB)
-else
-	$(FC) -O2 $(FLAGS_IFORT) -o $@ $(OBJS) $(OBJ_CALCCOMP) $(LIB)
-endif
-
-$(PROG_CALCEIGEN): $(OBJ_CALCEIGEN) $(OBJS) 
-ifeq ($(FC),gfortran)
-	$(FC) -O2 $(FLAGS_GCC) -o $@ $(OBJS) $(OBJ_CALCEIGEN) $(LIB)
-else
-	$(FC) -O2 $(FLAGS_IFORT) -o $@ $(OBJS) $(OBJ_CALCEIGEN) $(LIB)
-endif
-
-$(PROG_CALCWT) : $(OBJ_CALCWT) $(OBJS)
-ifeq ($(FC),gfortran)
-	$(FC) $(FLAGS_GCC) -o $@ $(OBJS) $(OBJ_CALCWT) $(LIB)
-else
-	$(FC) -O2 $(FLAGS_IFORT) -o $@ $(OBJS) $(OBJ_CALCWT) $(LIB)
-endif
-
-$(PROG_WRITE_DOWN_CONFIG) : $(OBJ_WRITE_DOWN_CONFIG) $(OBJS)
-ifeq ($(FC),gfortran)
-	$(FC) $(FLAGS_GCC) -o $@ $(OBJS) $(OBJ_WRITE_DOWN_CONFIG) $(LIB)
-else
-	$(FC) -O2 $(FLAGS_IFORT) -o $@ $(OBJS) $(OBJ_WRITE_DOWN_CONFIG) $(LIB)
-endif
+#$(PROG_CALCOBS): $(OBJ_CALCOBS) $(OBJS) 
+#ifeq ($(FC),gfortran)
+#	$(FC) -O2 $(FLAGS_GCC) -o $@ $(OBJS) $(OBJ_CALCOBS) $(LIB)
+#else
+#	$(FC) -O2 $(FLAGS_IFORT) -o $@ $(OBJS) $(OBJ_CALCOBS) $(LIB)
+#endif
+#
+#
+#$(PROG_CALCCOMP): $(OBJ_CALCCOMP) $(OBJS) 
+#ifeq ($(FC),gfortran)
+#	$(FC) -O2 $(FLAGS_GCC) -o $@ $(OBJS) $(OBJ_CALCCOMP) $(LIB)
+#else
+#	$(FC) -O2 $(FLAGS_IFORT) -o $@ $(OBJS) $(OBJ_CALCCOMP) $(LIB)
+#endif
+#
+#$(PROG_CALCEIGEN): $(OBJ_CALCEIGEN) $(OBJS) 
+#ifeq ($(FC),gfortran)
+#	$(FC) -O2 $(FLAGS_GCC) -o $@ $(OBJS) $(OBJ_CALCEIGEN) $(LIB)
+#else
+#	$(FC) -O2 $(FLAGS_IFORT) -o $@ $(OBJS) $(OBJ_CALCEIGEN) $(LIB)
+#endif
+#
+#$(PROG_CALCWT) : $(OBJ_CALCWT) $(OBJS)
+#ifeq ($(FC),gfortran)
+#	$(FC) $(FLAGS_GCC) -o $@ $(OBJS) $(OBJ_CALCWT) $(LIB)
+#else
+#	$(FC) -O2 $(FLAGS_IFORT) -o $@ $(OBJS) $(OBJ_CALCWT) $(LIB)
+#endif
+#
+#$(PROG_WRITE_DOWN_CONFIG) : $(OBJ_WRITE_DOWN_CONFIG) $(OBJS)
+#ifeq ($(FC),gfortran)
+#	$(FC) $(FLAGS_GCC) -o $@ $(OBJS) $(OBJ_WRITE_DOWN_CONFIG) $(LIB)
+#else
+#	$(FC) -O2 $(FLAGS_IFORT) -o $@ $(OBJS) $(OBJ_WRITE_DOWN_CONFIG) $(LIB)
+#endif
 
 
 # moduleをコンパイルするときの依存性を解消

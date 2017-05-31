@@ -1,8 +1,8 @@
-3			! NMAT
+2			! NMAT
 0.7598d0			! lattice spacing
 octahedron.dat		! data of the simplicial complex
 ab_tetra.dat	! data of alpha and beta
-1				! test_mode ; 0:Simulation mode 1:Test mode, 
+0				! test_mode ; 0:Simulation mode 1:Test mode, 
 1				! new_config ; 0:Old Config 1:New Config
 2				! fix_seed ; 0:previous value 1:fix 2:system time
 0				! reset_ite ; 0:continue total ite, 1:reset total ite
