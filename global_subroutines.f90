@@ -4,6 +4,9 @@
 !! DO NOT CHANGE THE VALUES OF VARIABLES IN GLOBASL_PARAMETERS
 module global_subroutines
 use global_parameters
+#ifdef PARALLEL
+use parallel
+#endif
 !use simplicial_complex
 implicit none
 contains

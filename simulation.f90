@@ -6,6 +6,9 @@ use global_subroutines
 !use hamiltonian
 !use forces
 use mt95
+#ifdef PARALLEL
+use parallel
+#endif
 implicit none
 
 ! for output
@@ -19,8 +22,8 @@ double precision :: OBS(1:num_obs) ! 1) bosonic action SB
 contains
 #include "MonteCarloSteps.f90"
 #include "hamiltonian.f90"
+#include "forces.f90"
 #include "observables.f90"
 #include "output.f90"
-#include "forces.f90"
 
 end module simulation

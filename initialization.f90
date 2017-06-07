@@ -1,12 +1,12 @@
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!! module to initialize variables
 module initialization
-use mt95
 use global_parameters
+use mt95
+#ifdef PARALLEL
+use parallel
+#endif
 implicit none
 
 contains
-
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! read the preevious configuration
 subroutine read_config(total_ite,UMAT,PhiMat,state_mt95)
@@ -30,21 +30,6 @@ state_mt95=char_mt95
 end subroutine read_config
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!! read the configuration from the medfile
-!subroutine read_from_intermediate_file(total_ite,UMAT,Phi)
-!implicit none
-
-!integer, intent(inout) :: total_ite
-!complex(kind(0d0)), intent(inout) :: UMAT(1:NMAT,1:NMAT,1:num_links)
-!complex(kind(0d0)), intent(inout) :: Phi(1:dimG,1:num_sites)
-
-
-!end subroutine read_from_intermediate_file
-
-
-
-
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! set random configuration
 !! 
 !! For SU(N) case, the initial UMAT must be nearer than
@@ -65,9 +50,8 @@ implicit none
 complex(kind(0d0)), intent(inout) :: UMAT(1:NMAT,1:NMAT,1:num_links)
 complex(kind(0d0)), intent(inout) :: PhiMat(1:NMAT,1:NMAT,1:num_sites)
 
-double precision, parameter :: PI=dacos(-1d0)
 complex(kind(0d0)) :: TMAT(1:NMAT,1:NMAT,1:NMAT**2-1)
-double precision :: rsite(1:2*dimG*num_sites) ! for PHI
+double precision :: rsite(1:2*NMAT*NMAT*num_sites) ! for PHI
 double precision :: rlink(1:dimG,1:num_links) ! for UMAT
 complex(kind(0d0)) :: AMAT(1:NMAT,1:NMAT,1:num_links)
 integer :: s,l,a,f,i,j,num
@@ -75,12 +59,12 @@ integer :: s,l,a,f,i,j,num
 call make_SUN_generators(TMAT,NMAT)
 
 !call genrand_real3(rsite)
-call BoxMuller2(rsite,num_sites*dimG)
+call BoxMuller2(rsite,2*num_sites*NMAT*NMAT)
 call genrand_real3(rlink)
 
 rsite=rsite * 0.01d0 !/ mass_square_phi
+num=0
 do s=1,num_sites
-  num=0
   do i=1,NMAT
     do j=1,NMAT
       num=num+1

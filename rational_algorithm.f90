@@ -36,6 +36,7 @@ complex(kind(0d0)), intent(in) :: UMAT(:,:,:), PhiMat(:,:,:)
 
 call mmBiCG( Xvec, Bvec, beta_r, NMAT, NumVec, epsilon, MaxIte, info, CGite, UMAT, PhiMat, ProdMat )
 
+
 rvec = dcmplx(alpha_r(0)) * Bvec
 do r=1,NumVec
   rvec = rvec + dcmplx(alpha_r(r))*Xvec(:,r)

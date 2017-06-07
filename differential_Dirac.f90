@@ -5,6 +5,9 @@ use global_parameters
 use global_subroutines
 use SUN_generators
 use matrix_functions
+#ifdef PARALLEL
+use parallel
+#endif
 implicit none
 
 contains

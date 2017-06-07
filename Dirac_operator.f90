@@ -5,6 +5,9 @@ use global_parameters
 use global_subroutines
 use SUN_generators
 use matrix_functions
+#ifdef PARALLEL
+use parallel
+#endif
 implicit none
 
 contains
@@ -32,8 +35,19 @@ integer s,a
 do i=1,sizeD
   unitvec=(0d0,0d0)
   unitvec(i)=(1d0,0d0)
+  !write(*,*) MYRANK,"===========",i,"========="
   call prod_Dirac(Dirac(:,i),unitvec,sizeD,UMAT,PhiMat)
 enddo
+!call MPI_FINALIZE(IERR)
+!stop
+!do i=1,sizeD
+!  do j=1,sizeD
+!    if (abs(Dirac(i,j)) > 1d-5) then
+!      write(*,*) MYRANK,i,j,abs(Dirac(i,j))
+!    endif
+!  enddo
+!enddo
+
 
 end subroutine make_Dirac
 
@@ -109,8 +123,8 @@ implicit none
 integer, intent(in) :: Vsize !! vecsize must be sizeD
 complex(kind(0d0)), intent(in) :: vec(1:Vsize)
 complex(kind(0d0)), intent(inout) :: D_vec(1:Vsize)
-complex(kind(0d0)), intent(in) :: UMAT(:,:,:)
-complex(kind(0d0)), intent(in) :: PhiMat(:,:,:)
+complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_links)
+complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_sites)
 
 !complex(kind(0d0)), parameter :: mass_f=1d0
 
@@ -171,6 +185,7 @@ D_vec=(0d0,0d0)
 !r_face=(0d0,0d0)
 
 call vec_to_mat(eta_mat,lambda_mat,chi_mat,vec)
+
 
 do s=1,num_sites
   do i=1,NMAT
@@ -269,6 +284,7 @@ do l=1,num_links
 enddo
 endif
 
+
 if(p4==0) then
 !! (4) face action 1
 do f=1,num_faces
@@ -279,6 +295,7 @@ do f=1,num_faces
 enddo
 endif
 
+
 if( p5==0 ) then
 !! (5) face action 2
 do f=1,num_faces
@@ -288,6 +305,7 @@ do f=1,num_faces
     call calc_sinU_and_cosUinv(sinU(:,:,f),cosUinv(:,:,f),Ufm(:,:,f))
   endif
 enddo
+
 
 
 do f=1,num_faces
@@ -337,6 +355,11 @@ do f=1,num_faces
           * cmplx(alpha_f(f)*beta_f(f)) * (line1-line2)
     endif
   enddo
+!  do a=1,NMAT
+!    do b=1,NMAT
+!      write(*,*) MYRANK,f,a,b,abs(BMAT(a,b))
+!    enddo
+!  enddo
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   ! make traceless for (i,j)
   trace=(0d0,0d0)
@@ -348,6 +371,15 @@ do f=1,num_faces
   enddo
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 enddo
+!do s=1,num_faces
+!  do i=1,NMAT
+!    do j=1,NMAT
+!      if( abs(DF_chi(i,j,s)) > 1d-5 ) then
+!        write(*,*) MYRANK, s,i,j,abs(DF_chi(i,j,s))
+!      endif
+!    enddo
+!  enddo
+!enddo
 
 do l=1,num_links
   do i=1,face_in_l(l)%num_       
@@ -409,6 +441,7 @@ do l=1,num_links
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 enddo
 endif
+
 
 call mat_to_vec(D_vec,DF_eta,DF_lambda,DF_chi)
 !! (T1) test action
@@ -529,7 +562,32 @@ integer :: s,l,a,b
 !call make_pseudo_fermion(PF,UMAT,Phi)
 !! calculate Hamiltonian 
 
+!do s=1,num_links
+!rtmp=0d0
+! do i=1,NMAT
+!   do j=1,NMAT
+!     rtmp=rtmp+abs(UMAT(i,j,s))
+!   enddo
+! enddo
+! write(*,*) MYRANK,s,rtmp
+!enddo
+!
 call make_Dirac(Dirac,UMAT,PhiMat)
+Det=(0d0,0d0)
+do i=1,sizeD
+do j=1,sizeD
+  Det=Det+Dirac(i,j)*conjg(Dirac(i,j))
+enddo
+enddo
+!write(*,*) MYRANK,Det
+!write(*,*) MYRANK,UMAT
+!write(*,*) MYRANK,PhiMat
+
+!#ifdef PARALLEL
+!  call MPI_FINALIZE(IERR)
+!#endif
+!stop
+
 
 rtmp=0d0
 dtmp=0d0
