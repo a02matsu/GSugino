@@ -112,6 +112,12 @@ integer :: num_local_links ! number of links for each sub_SC
 integer :: num_local_faces ! number of faces for each sub_SC
 
 
+integer :: num_necessary_sites ! number of sites needed for each rank
+integer :: num_necessary_links ! number of links needed for each rank
+integer :: num_necessary_faces ! number of faces needed for each rank
+
+
+
 double precision, allocatable :: local_alpha_s(:)
 double precision, allocatable :: local_alpha_l(:)
 double precision, allocatable :: local_alpha_f(:)
@@ -131,6 +137,19 @@ end type LOCAL_LABEL
 type(LOCAL_LABEL), allocatable :: local_site_of_global(:) ! map from global site to local site
 type(LOCAL_LABEL), allocatable :: local_link_of_global(:) ! map from global link to local link
 type(LOCAL_LABEL), allocatable :: local_face_of_global(:) ! map from global face to local face
+
+
+integer :: num_send_sites, num_recv_sites
+integer :: num_send_links, num_recv_links
+integer :: num_send_faces, num_recv_faces
+
+type(LOCAL_LABEL), allocatable :: send_sites(:) 
+type(LOCAL_LABEL), allocatable :: send_links(:) 
+type(LOCAL_LABEL), allocatable :: send_faces(:) 
+
+type(LOCAL_LABEL), allocatable :: recv_sites(:) 
+type(LOCAL_LABEL), allocatable :: recv_links(:) 
+type(LOCAL_LABEL), allocatable :: recv_faces(:) 
 #endif
 
 
@@ -697,10 +716,7 @@ subroutine set_sub_SC
 use parallel
 #endif
 implicit none
-
-integer :: tmp_num_local_sites
-integer,allocatable :: tmp_global_site_of_local(:)
-integer :: s,l,f,rank,i,part
+integer :: s,l,f,i
 
 
 #ifdef PARALLEL
@@ -711,70 +727,33 @@ integer :: s,l,f,rank,i,part
   allocate( local_link_of_global(1:num_links) )
   allocate( local_face_of_global(1:num_faces) )
 
-  if (MYRANK == 0) then
-    open(SUBSC_FILE, file=FsubSC, status='OLD',action='READ')
-    read(SUBSC_FILE,*) num_sub_SC
-    ! send num_sub_SC to all the other nodes
-    call MPI_BCAST(num_sub_SC,1,MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
+  !! local_{site/link/face}_of_global(:)を設定
+  call set_map_from_global_to_local_data
 
-    if (num_sub_SC .ne. NPROCS) then
-      write(*,*) "number of core is mismatch."
-      close(SUBSC_FILE)
-      call MPI_FINALIZE(IERR)
-    stop
-    endif
-
-    do part=1,num_sub_SC
-      ! read global_site data
-      read(SUBSC_FILE,*) rank
-      read(SUBSC_FILE,*) tmp_num_local_sites
-      allocate( tmp_global_site_of_local(1:tmp_num_local_sites) )
-      read(SUBSC_FILE,*) (tmp_global_site_of_local(i),i=1,tmp_num_local_sites)
-      ! 
-      !! set local_site_of_global(:)
-      do i=1,tmp_num_local_sites
-        local_site_of_global(tmp_global_site_of_local(i))%rank_=rank
-        local_site_of_global(tmp_global_site_of_local(i))%label_=i
-      enddo
-      i=0
-      do l=1,num_links
-        do s=1,tmp_num_local_sites
-          if( tmp_global_site_of_local(s)==link_org(l) ) then
-            i=i+1
-            local_link_of_global(l)%rank_=rank
-            local_link_of_global(l)%label_=i
-          endif
-        enddo
-      enddo
-      i=0
-      do f=1,num_faces
-        do s=1,tmp_num_local_sites
-          if( tmp_global_site_of_local(s) == sites_in_f(f)%label_(1)) then
-            i=i+1
-            local_face_of_global(f)%rank_=rank
-            local_face_of_global(f)%label_=i
-          endif
-        enddo
-      enddo
-      !!
-      if( rank == 0 ) then
-        !! set global_site_of
-        num_local_sites=tmp_num_local_sites
-        allocate( global_site_of_local(1:num_local_sites) )
-        global_site_of_local=tmp_global_site_of_local
-      else
-        call MPI_SEND(tmp_num_local_sites,1,MPI_INTEGER,rank,1,MPI_COMM_WORLD,IERR)
-        call MPI_SEND(tmp_global_site_of_local,tmp_num_local_sites,MPI_INTEGER,rank,2,MPI_COMM_WORLD,IERR)
-      endif
-      deallocate( tmp_global_site_of_local ) 
+  !call stop_for_test
+  !! この段階で各ノードが担当するsite/link/faceの情報を全て持っている。
+  !!
+  !! 計算に必要なlocal siteの決定
+  call set_local_sites
+  if(MYRANK==0) then 
+    do s=1,num_sites
+      write(*,*) s, local_site_of_global(s)
     enddo
-    close(SUBSC_FILE)
-  else
-    call MPI_BCAST(num_sub_SC,1,MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
-    call MPI_RECV(num_local_sites,1,MPI_INTEGER,0,1,MPI_COMM_WORLD,ISTATUS,IERR)
-    allocate( global_site_of_local(1:num_local_sites) )
-    call MPI_RECV(global_site_of_local,num_local_sites,MPI_INTEGER,0,2,MPI_COMM_WORLD,ISTATUS,IERR)
   endif
+  write(*,*) "==== send_site",MYRANK,"===="
+  do s=1,num_send_sites
+    write(*,*) MYRANK,send_sites(s)
+  enddo
+  write(*,*) "==== recv_site",MYRANK,"===="
+  do s=1,num_recv_sites
+    write(*,*) MYRANK,recv_sites(s)
+  enddo
+  write(*,*) "==== glboal_site_of_local",MYRANK,"===="
+  do s=1,num_necessary_sites
+    write(*,*) MYRANK,global_site_of_local(s)
+  enddo
+
+  call stop_for_test
 
 
   ! set global_link_of
@@ -869,6 +848,204 @@ integer :: s,l,f,rank,i,part
 
 end subroutine set_sub_SC
 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+subroutine set_map_from_global_to_local_data
+use parallel
+implicit none
+
+integer :: tmp_num_local_sites,tmp_num_local_links,tmp_num_local_faces
+integer,allocatable :: tmp_global_site_of_local(:)
+integer :: s,l,f,rank,i,part
+
+if (MYRANK == 0) then
+  open(SUBSC_FILE, file=FsubSC, status='OLD',action='READ')
+  read(SUBSC_FILE,*) num_sub_SC
+  ! send num_sub_SC to all the other nodes
+  call MPI_BCAST(num_sub_SC,1,MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
+
+  if (num_sub_SC .ne. NPROCS) then
+    write(*,*) "number of core is mismatch."
+    close(SUBSC_FILE)
+    call MPI_FINALIZE(IERR)
+  stop
+  endif
+  do part=1,num_sub_SC
+    ! sub_SCの構造は、
+    !   ・Num_Sub_SC
+    ! の後に、
+    !   ・RANK
+    !   ・number of sites in the node
+    !   ・そのnodeが担当するsiteのリスト
+    ! が順番に並んでいる。
+    
+    !! RANKとそれが担当するノードを読み込む
+    read(SUBSC_FILE,*) rank
+    read(SUBSC_FILE,*) tmp_num_local_sites
+    allocate( tmp_global_site_of_local(1:tmp_num_local_sites) )
+    read(SUBSC_FILE,*) (tmp_global_site_of_local(i),i=1,tmp_num_local_sites)
+    !  
+    !! set local_site_of_global(:) to a temporary variable
+    do i=1,tmp_num_local_sites
+      local_site_of_global(tmp_global_site_of_local(i))%rank_=rank
+      local_site_of_global(tmp_global_site_of_local(i))%label_=i
+    enddo
+    tmp_num_local_links=0
+    do l=1,num_links
+      do s=1,tmp_num_local_sites
+        if( tmp_global_site_of_local(s)==link_org(l) ) then
+          tmp_num_local_links=tmp_num_local_links+1
+          local_link_of_global(l)%rank_=rank
+          local_link_of_global(l)%label_=tmp_num_local_links
+        endif
+      enddo
+    enddo
+    tmp_num_local_faces=0
+    do f=1,num_faces
+      do s=1,tmp_num_local_sites
+        if( tmp_global_site_of_local(s) == sites_in_f(f)%label_(1)) then
+          tmp_num_local_faces=tmp_num_local_faces+1
+          i=i+1
+          local_face_of_global(f)%rank_=rank
+          local_face_of_global(f)%label_=tmp_num_local_faces
+        endif
+      enddo
+    enddo
+    !!
+    if( rank == 0 ) then
+      num_local_sites=tmp_num_local_sites
+      num_local_links=tmp_num_local_links
+      num_local_faces=tmp_num_local_faces
+    else
+      call MPI_SEND(tmp_num_local_sites,1,MPI_INTEGER,rank,1,MPI_COMM_WORLD,IERR)
+      call MPI_SEND(tmp_num_local_links,1,MPI_INTEGER,rank,2,MPI_COMM_WORLD,IERR)
+      call MPI_SEND(tmp_num_local_faces,1,MPI_INTEGER,rank,3,MPI_COMM_WORLD,IERR)
+    endif
+    deallocate( tmp_global_site_of_local ) 
+  enddo
+  close(SUBSC_FILE)
+  else
+    call MPI_BCAST(num_sub_SC,1,MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
+    call MPI_RECV(num_local_sites,1,MPI_INTEGER,0,1,MPI_COMM_WORLD,ISTATUS,IERR)
+    call MPI_RECV(num_local_links,1,MPI_INTEGER,0,2,MPI_COMM_WORLD,ISTATUS,IERR)
+    call MPI_RECV(num_local_faces,1,MPI_INTEGER,0,3,MPI_COMM_WORLD,ISTATUS,IERR)
+endif
+call MPI_BCAST(local_site_of_global,num_sites,MPI_LOCAL_LABEL,0,MPI_COMM_WORLD,IERR)
+call MPI_BCAST(local_link_of_global,num_links,MPI_LOCAL_LABEL,0,MPI_COMM_WORLD,IERR)
+call MPI_BCAST(local_face_of_global,num_faces,MPI_LOCAL_LABEL,0,MPI_COMM_WORLD,IERR)
+
+end subroutine set_map_from_global_to_local_data
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
+!! 計算に必要なsiteの情報を設定
+subroutine set_local_sites
+use parallel
+implicit none
+
+integer s,l,i,nsend,nrecv,info
+integer :: tmp_global_site_of_local(1:num_sites)
+!integer :: tmp_send_sites(1:num_sites)
+!integer :: tmp_recv_sites(1:num_sites)
+type(LOCAL_LABEL) :: tmp_send_sites(1:num_sites)
+type(LOCAL_LABEL) :: tmp_recv_sites(1:num_sites)
+
+!! 計算を担当するsiteを tmp_global_site_of_local の最初の方に設定
+num_necessary_sites=0
+tmp_global_site_of_local=0
+do s=1,num_sites
+  if( local_site_of_global(s)%rank_ == MYRANK ) then
+    num_necessary_sites = num_necessary_sites + 1
+    tmp_global_site_of_local(num_necessary_sites)=s
+  endif
+enddo
+!! この段階で、num_necesarry_sites=num_local_sites
+!! linkの始点と終点が別のnodeに属していたら、
+!! tipの位置を、orgを担当するnodeに送る必要がある
+!! 重複があり得るので、逐一チェックしながら進める
+nsend=0
+nrecv=0
+do l=1,num_links
+  if( local_site_of_global(link_org(l))%rank_ &
+        /= local_site_of_global(link_tip(l))%rank_ ) then
+    !!!!!!!!!!!
+    if( local_site_of_global(link_tip(l))%rank_ == MYRANK ) then
+      !! 重複チェック
+      info=0
+      do i=1,nsend
+        if( tmp_send_sites(i)%rank_ == local_site_of_global(link_org(l))%rank_ &
+          .and. &
+            tmp_send_sites(i)%label_ == link_tip(l) ) then
+          info=1
+          exit
+        endif
+      enddo
+      if (info==0) then 
+        nsend=nsend+1
+        tmp_send_sites(nsend)%rank_ = local_site_of_global(link_org(l))%rank_ 
+        tmp_send_sites(nsend)%label_ = link_tip(l) 
+      endif
+    !!!!!!!!!!!
+    elseif( local_site_of_global(link_org(l))%rank_ == MYRANK ) then
+      !! 重複チェック
+      info=0
+      do i=1,nrecv
+        if( tmp_recv_sites(i)%rank_ == local_site_of_global(link_tip(l))%rank_ &
+          .and. &
+            tmp_recv_sites(i)%label_ == link_tip(l) ) then
+          info=1
+          exit
+        endif
+      enddo
+      if (info==0) then 
+        nrecv=nrecv+1
+        tmp_recv_sites(nrecv)%rank_ = local_site_of_global(link_tip(l))%rank_ 
+        tmp_recv_sites(nrecv)%label_ = link_tip(l) 
+        tmp_global_site_of_local(num_local_sites+nrecv)=link_tip(l)
+      endif
+    endif
+  endif
+enddo
+
+
+!! 重複度を除いて配列を定義
+num_send_sites=nsend
+num_recv_sites=nrecv
+allocate( send_sites(num_send_sites) )
+allocate( recv_sites(num_recv_sites) )
+num_necessary_sites = num_local_sites + num_recv_sites
+allocate( global_site_of_local(1:num_necessary_sites) )
+
+!! 代入
+do s=1,num_send_sites
+  send_sites(s)%rank_ = tmp_send_sites(s)%rank_
+  send_sites(s)%label_ = local_site_of_global(tmp_send_sites(s)%label_)%label_
+enddo
+do s=1,num_recv_sites
+  recv_sites(s)%rank_ = tmp_recv_sites(s)%rank_
+  recv_sites(s)%label_ = num_local_sites+s
+enddo
+do s=1,num_necessary_sites
+  global_site_of_local(s) = tmp_global_site_of_local(s)
+enddo
+
+
+
+
+end subroutine set_local_sites
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
+!! テスト用に止めるルーチン
+subroutine stop_for_test
+#ifdef PARALLEL
+use parallel
+#endif
+implicit none
+
+#ifdef PARALLEL
+  call MPI_FINALIZE(IERR)
+#endif
+  stop
+end subroutine stop_for_test
 
 
 
