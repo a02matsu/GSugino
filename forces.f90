@@ -563,6 +563,7 @@ complex(kind(0d0)) :: tmp
 double precision :: rtmp
 integer :: CGite
 integer :: r,i,j,s,l,a,b,ss,f,ll,ii,jj
+integer :: k,l_label
 
 
 !! for test
@@ -614,21 +615,34 @@ do r=1,N_Remez4
     Dvec(:,r) )
 enddo
 
+! \Phi(s,ii,jj)での微分
 do s=1,num_sites
   do ii=1,NMAT
     do jj=1,NMAT
       do r=1,N_Remez4
         tmp=(0d0,0d0)
-        do ss=1,num_sites
+        !do ss=1,num_sites
+        ss=s
+        do i=1,NMAT
+          do j=1,NMAT
+            tmp=tmp&
+              +conjg( Dvec_eta(i,j,ss,r) )*dDdPhi_eta(i,j,ss,ii,jj,s,r) !&
+              !+conjg( dDdbPhi_eta(i,j,ss,ii,jj,s,r) )*Dvec_eta(i,j,ss,r)
+          enddo
+        enddo
+        !enddo
+        do k=1,linktip_from_s(s)%num_
+          l=linktip_from_s(s)%labels_(k)
           do i=1,NMAT
             do j=1,NMAT
               tmp=tmp&
-                +conjg( Dvec_eta(i,j,ss,r) )*dDdPhi_eta(i,j,ss,ii,jj,s,r) !&
-                !+conjg( dDdbPhi_eta(i,j,ss,ii,jj,s,r) )*Dvec_eta(i,j,ss,r)
+                !+conjg( Dvec_lambda(i,j,l,r) )*dDdPhi_lambda(i,j,l,ii,jj,s,r) &
+                +conjg( dDdbPhi_lambda(i,j,l,jj,ii,s,r) )*Dvec_lambda(i,j,l,r)
             enddo
           enddo
         enddo
-        do l=1,num_links
+        do k=1,linkorg_to_s(s)%num_
+          l=linkorg_to_s(s)%labels_(k)
           do i=1,NMAT
             do j=1,NMAT
               tmp=tmp&
@@ -638,13 +652,15 @@ do s=1,num_sites
           enddo
         enddo
         do f=1,num_faces
-          do i=1,NMAT
-            do j=1,NMAT
-              tmp=tmp&
-                +conjg( Dvec_chi(i,j,f,r) )*dDdPhi_chi(i,j,f,ii,jj,s,r)! &
-                !+conjg( dDdbPhi_chi(i,j,f,ii,jj,s,r) )*Dvec_chi(i,j,f,r)
+          if( s==sites_in_f(f)%label_(1) ) then 
+            do i=1,NMAT
+              do j=1,NMAT
+                tmp=tmp&
+                  +conjg( Dvec_chi(i,j,f,r) )*dDdPhi_chi(i,j,f,ii,jj,s,r)! &
+                  !+conjg( dDdbPhi_chi(i,j,f,ii,jj,s,r) )*Dvec_chi(i,j,f,r)
+              enddo
             enddo
-          enddo
+          endif
         enddo
         dSdPhi_fermion(ii,jj,s)=dSdPhi_fermion(ii,jj,s) &
           - dcmplx(Remez_alpha4(r))*tmp
@@ -654,13 +670,14 @@ do s=1,num_sites
 enddo
 
 
-
+! A(ll,ii,jj)で微分
 do ll=1,num_links
   do ii=1,NMAT
     do jj=1,NMAT
       do r=1,N_Remez4
         tmp=(0d0,0d0)
-        do ss=1,num_sites
+        !do ss=1,num_sites
+        ss=link_tip(ll)
           do i=1,NMAT
             do j=1,NMAT
               tmp=tmp &
@@ -668,17 +685,37 @@ do ll=1,num_links
                 + conjg( dDdA_eta(i,j,ss,jj,ii,ll,r) ) * Dvec_eta(i,j,ss,r) 
             enddo
           enddo
-        enddo
-        do l=1,num_links
-          do i=1,NMAT
-            do j=1,NMAT
-              tmp=tmp &
-                +conjg( Dvec_lambda(i,j,l,r) ) * dDdA_lambda(i,j,l,ii,jj,ll,r)&
-                + conjg( dDdA_lambda(i,j,l,jj,ii,ll,r) ) * Dvec_lambda(i,j,l,r) 
-            enddo
+        !enddo
+        !do l=1,num_links
+        do k=1,face_in_l(ll)%num_
+          f=face_in_l(ll)%label_(k)
+          do l_label=1,links_in_f(f)%num_
+            l=links_in_f(f)%link_labels_(l_label)
+            ! 重複の処理が必要
+            if( l /= ll ) then 
+              do i=1,NMAT
+                do j=1,NMAT
+                  tmp=tmp &
+                    +conjg( Dvec_lambda(i,j,l,r) ) * dDdA_lambda(i,j,l,ii,jj,ll,r)&
+                    + conjg( dDdA_lambda(i,j,l,jj,ii,ll,r) ) * Dvec_lambda(i,j,l,r) 
+                enddo
+              enddo
+            endif
           enddo
         enddo
-        do f=1,num_faces
+        ! 重複した部分は別に計算
+        l=ll
+        do i=1,NMAT
+          do j=1,NMAT
+            tmp=tmp &
+              +conjg( Dvec_lambda(i,j,l,r) ) * dDdA_lambda(i,j,l,ii,jj,ll,r)&
+              + conjg( dDdA_lambda(i,j,l,jj,ii,ll,r) ) * Dvec_lambda(i,j,l,r) 
+          enddo
+        enddo
+        !enddo
+        !do f=1,num_faces
+        do k=1,face_in_l(ll)%num_
+          f=face_in_l(ll)%label_(k)
           do i=1,NMAT
             do j=1,NMAT
               tmp=tmp &

@@ -35,6 +35,11 @@ type SITEDAT
   integer, allocatable :: label_(:) ! siteのラベル label_(1:num_)
 end type SITEDAT
 
+type VECT
+  integer :: num_ ! 要素の数
+  integer, allocatable :: labels_(:) ! ラベル label_(1:num_)
+end type VECT
+
 !type diffdiff_by_linkvals_in_face
 !  integer :: num_links
 !  complex(kind(0d0)), allocatable :: diffdiff_val(:,:,:,:,:,:)
@@ -82,6 +87,9 @@ double precision, allocatable :: NZFF_value(:) ! NZF_value(1:NZFF)
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! data of the simplicial complex
+integer :: global_num_sites ! number of sites
+integer :: global_num_links ! number of links
+integer :: global_num_faces ! number of faces
 integer :: num_sites ! number of sites
 integer :: num_links ! number of links
 integer :: num_faces ! number of faces
@@ -117,6 +125,18 @@ integer :: num_necessary_links ! number of links needed for each rank
 integer :: num_necessary_faces ! number of faces needed for each rank
 
 
+integer, allocatable :: local_link_org(:) ! l番目のリンクのorigin
+integer, allocatable :: local_link_tip(:) ! l番目のリンクのtop
+!! <s,・>
+type(VECT), allocatable :: local_linktip_from_s(:) ! sから出るリンクのtip(実はSITE_LINKDATである必要はない。)
+!! <・,t>
+type(VECT), allocatable :: local_linkorg_to_s(:) ! sに入るリンクのorigin
+!!
+type(LINKDAT), allocatable :: local_links_in_f(:) ! fに含まれるリンクのデータ
+!! 
+type(FACEDAT), allocatable :: local_face_in_l(:) ! lに含まれるface
+!!
+type(SITEDAT), allocatable :: local_sites_in_f(:) ! face f に含まれるサイト
 
 double precision, allocatable :: local_alpha_s(:)
 double precision, allocatable :: local_alpha_l(:)
@@ -727,110 +747,50 @@ integer :: s,l,f,i
   allocate( local_link_of_global(1:num_links) )
   allocate( local_face_of_global(1:num_faces) )
 
-  !! local_{site/link/face}_of_global(:)を設定
+  !! SUBSC_FILEを読み取って、local_{site/link/face}_of_global(:)を設定
+  !! すなわち、各ノードが担当するsite/link/faceを設定
+  !!   num_local_sites/links/faces
+  !!   local_{site/link/face}_of_global(:)
   call set_map_from_global_to_local_data
 
   !call stop_for_test
-  !! この段階で各ノードが担当するsite/link/faceの情報を全て持っている。
-  !!
-  !! 計算に必要なlocal siteの決定
+  !! 各ノードが計算に必要なsiteの情報と、site情報の送り先、受信元を設定する
+  !!   num_necessary_sites
+  !!   global_site_of_local(s)
+  !!   send_sites(s)
+  !!   recv_sites(s)
   call set_local_sites
-  if(MYRANK==0) then 
-    do s=1,num_sites
-      write(*,*) s, local_site_of_global(s)
-    enddo
-  endif
-  write(*,*) "==== send_site",MYRANK,"===="
-  do s=1,num_send_sites
-    write(*,*) MYRANK,send_sites(s)
-  enddo
-  write(*,*) "==== recv_site",MYRANK,"===="
-  do s=1,num_recv_sites
-    write(*,*) MYRANK,recv_sites(s)
-  enddo
-  write(*,*) "==== glboal_site_of_local",MYRANK,"===="
-  do s=1,num_necessary_sites
-    write(*,*) MYRANK,global_site_of_local(s)
-  enddo
+  !! 各ノードが計算に必要なlinkの情報と、link情報の送り先、受信元を設定する
+  !!   num_necessary_links
+  !!   global_link_of_local(l)
+  !!   send_links(l)
+  !!   recv_links(l)
+  call set_local_links
+  !! 各ノードが計算に必要なfaceの情報を設定する
+  !!   num_necessary_faces
+  !!   global_face_of_local(l)
+  call set_local_faces
 
-  call stop_for_test
+  !! localなlinkのorgとtipを設定
+  call set_local_link_org_and_tip
+  !! localなsiteから出入りするlocal linkのラベルを設定
+  call set_local_link_fromto_site
+  !! localなfaceに含まれるlinkのlocalラベルを設定
+  call set_local_links_in_f
+  !! localなlinkを共有するfaceのlocalラベルを設定
+  call set_local_face_in_l
+  !! localなfaceに含まれるsiteのlocalラベルを設定
+  !! ただし、使うのは sites_in_f(f)%label_(1)だけなので、
+  !! はじめから size=1 にしておく。
+  call set_local_sites_in_f
 
-
-  ! set global_link_of
-  num_local_links=0
-  do l=1,num_links
-    do s=1,num_local_sites
-      if( global_site_of_local(s) == link_org(l) ) then
-        num_local_links=num_local_links+1
-        exit
-      endif
-    enddo
-  enddo
-  allocate( global_link_of_local(1:num_local_links) )
-  i=0
-  do l=1,num_links
-    do s=1,num_local_sites
-      if( global_site_of_local(s) == link_org(l) ) then
-        i=i+1
-        global_link_of_local(i)=l
-        exit
-      endif
-    enddo
-  enddo
-
-  ! set global_face_of
-  num_local_faces=0
-  do f=1,num_faces
-    do s=1,num_local_sites
-      if( global_site_of_local(s) == sites_in_f(f)%label_(1)) then
-        num_local_faces=num_local_faces+1
-        exit
-      endif
-    enddo
-  enddo
-  allocate( global_face_of_local(1:num_local_faces) )
-  i=0
-  do f=1,num_faces
-    do s=1,num_local_sites
-      if( global_site_of_local(s) == sites_in_f(f)%label_(1)) then
-        i=i+1
-        global_face_of_local(i)=f
-        exit
-      endif
-    enddo
-  enddo
-
-  ! broadcast local_site/link/face_of_global(:)
-  do s=1,num_sites
-    call MPI_BCAST(local_site_of_global(s)%rank_,1,MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
-    call MPI_BCAST(local_site_of_global(s)%label_,1,MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
-  enddo
-  do l=1,num_links
-    call MPI_BCAST(local_link_of_global(l)%rank_,1,MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
-    call MPI_BCAST(local_link_of_global(l)%label_,1,MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
-  enddo
-  do f=1,num_faces
-    call MPI_BCAST(local_face_of_global(f)%rank_,1,MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
-    call MPI_BCAST(local_face_of_global(f)%label_,1,MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
-  enddo
-
-    
-  !write(*,*) MYRANK,"  site: ",num_local_sites, global_site_of_local
-  !write(*,*) MYRANK,"  link: ",num_local_links, global_link_of_local
-  !write(*,*) MYRANK,"  face: ",num_local_faces, global_face_of_local
-
-  !write(*,*) MYRANK,"  local site of: ",local_site_of_global(:)
-  !write(*,*) MYRANK,"  local link of: ",local_link_of_global(:)
-  !write(*,*) MYRANK,"  local face of: ",local_face_of_global(:)
-
-  !write(*,*) num_sites, num_links, num_faces
-
-  !call MPI_FINALIZE(IERR)
-  !stop
 #else
   num_local_sites=num_sites
   num_local_links=num_links
   num_local_faces=num_faces
+  num_necessary_sites=num_sites
+  num_necessary_links=num_links
+  num_necessary_faces=num_faces
   allocate( global_site_of_local(1:num_sites) )
   allocate( global_link_of_local(1:num_links) )
   allocate( global_face_of_local(1:num_faces) )
@@ -848,6 +808,7 @@ integer :: s,l,f,i
 
 end subroutine set_sub_SC
 
+#ifdef PARALLEL
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 subroutine set_map_from_global_to_local_data
 use parallel
@@ -1026,13 +987,606 @@ enddo
 do s=1,num_necessary_sites
   global_site_of_local(s) = tmp_global_site_of_local(s)
 enddo
-
-
-
-
 end subroutine set_local_sites
 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
+!! 計算に必要なlinkの情報を設定
+subroutine set_local_links
+use parallel
+implicit none
 
+integer s,l,f,i,j,k,ll,ll_label
+integer :: tmp_global_link_of_local(1:num_links)
+type(LOCAL_LABEL) :: tmp_send_links(1:num_links)
+type(LOCAL_LABEL) :: tmp_recv_links(1:num_links)
+integer :: nsend,nrecv,info
+
+
+do l=1,num_links
+  tmp_global_link_of_local(l)=0
+  tmp_send_links(l)%rank_=-1
+  tmp_send_links(l)%label_=-1
+  tmp_recv_links(l)%rank_=-1
+  tmp_recv_links(l)%label_=-1
+enddo
+
+!! 計算を担当するlinkを tmp_global_link_of_local の最初の方に設定
+num_necessary_links=0
+tmp_global_link_of_local=0
+do l=1,num_links
+  if( local_link_of_global(l)%rank_ == MYRANK ) then
+    num_necessary_links = num_necessary_links + 1
+    tmp_global_link_of_local(num_necessary_links)=l
+  endif
+enddo
+!! この段階で、num_necesarry_links=num_local_links
+!! 計算に必要なのは、
+!!   (1) 担当するsiteをtipとするlink
+!!   (2) 担当するfaceを構成するlink
+!!   (3) 担当するlinkを共有するfaceに含まれる全link
+!! 重複があり得るので、逐一チェックしながら進める
+
+!!   (1) 担当するsiteをtipとするlink
+nsend=0
+nrecv=0
+do l=1,num_links
+  if( local_site_of_global(link_tip(l))%rank_ /= &
+      local_site_of_global(link_org(l))%rank_ ) then
+    if( local_site_of_global(link_org(l))%rank_ == MYRANK ) then
+      !! 重複チェック
+      info=0
+      do i=1,nsend
+        if( tmp_send_links(i)%rank_ == local_site_of_global(link_tip(l))%rank_ &
+          .and. &
+            tmp_send_links(i)%label_ == l ) then
+          info=1
+          exit
+        endif
+      enddo
+      if( info == 0 ) then
+        nsend=nsend+1
+        tmp_send_links(nsend)%rank_ = local_site_of_global(link_tip(l))%rank_
+        tmp_send_links(nsend)%label_ = l
+      endif
+    !!!!!!!!!!!
+    elseif( local_site_of_global(link_tip(l))%rank_ == MYRANK ) then
+      !! 重複チェック
+      info=0
+      do i=1,nrecv
+        if( tmp_recv_links(i)%rank_ == local_site_of_global(link_org(l))%rank_ &
+          .and. &
+            tmp_recv_links(i)%label_ == l ) then
+          info=1
+          exit
+        endif
+      enddo
+      if (info==0) then 
+        nrecv=nrecv+1
+        tmp_recv_links(nrecv)%rank_ = local_site_of_global(link_org(l))%rank_ 
+        tmp_recv_links(nrecv)%label_ = l
+        tmp_global_link_of_local(num_local_links+nrecv)=l
+      endif
+    endif
+  endif
+enddo
+
+!!   (2) 担当するfaceを構成するlink
+do f=1,num_faces
+  do j=1,links_in_f(f)%num_
+    l=links_in_f(f)%link_labels_(j)
+    if( local_face_of_global(f)%rank_ /= local_link_of_global(l)%rank_ ) then
+      if( local_link_of_global(l)%rank_ == MYRANK ) then
+        !! 重複チェック
+        info=0
+        do i=1,nsend
+          if( tmp_send_links(i)%rank_ == local_face_of_global(f)%rank_ &
+            .and. &
+              tmp_send_links(i)%label_ == l ) then
+            info=1
+            exit
+          endif
+        enddo
+        if( info == 0 ) then
+          nsend=nsend+1
+          tmp_send_links(nsend)%rank_ = local_face_of_global(f)%rank_ 
+          tmp_send_links(nsend)%label_ = l
+        endif
+      !!!!!!!!!!!
+      elseif( local_face_of_global(f)%rank_ == MYRANK ) then
+        !! 重複チェック
+        info=0
+        do i=1,nrecv
+          if( tmp_recv_links(i)%rank_ == local_link_of_global(l)%rank_ &
+            .and. &
+              tmp_recv_links(i)%label_ == l ) then
+            info=1
+            exit
+          endif
+        enddo
+        if (info==0) then 
+          nrecv=nrecv+1
+          tmp_recv_links(nrecv)%rank_ = local_link_of_global(l)%rank_
+          tmp_recv_links(nrecv)%label_ = l
+          tmp_global_link_of_local(num_local_links+nrecv)=l
+        endif
+      endif
+    endif
+  enddo
+enddo
+
+!!   (3) 担当するlinkを共有するfaceに含まれる全link
+do l=1,num_links
+  do k=1,face_in_l(l)%num_
+    f=face_in_l(l)%label_(k)
+    do ll_label=1,links_in_f(f)%num_
+      ll=links_in_f(f)%link_labels_(ll_label)
+      if( local_link_of_global(l)%rank_ /= local_link_of_global(ll)%rank_ ) then 
+        if( local_link_of_global(ll)%rank_ == MYRANK ) then
+          !! 重複チェック
+          info=0
+          do i=1,nsend
+            if( tmp_send_links(i)%rank_ == local_link_of_global(l)%rank_ &
+                .and. &
+                tmp_send_links(i)%label_ == ll ) then 
+              info=1
+              exit
+            endif
+          enddo
+          if (info == 0 ) then
+            nsend=nsend+1
+            tmp_send_links(nsend)%rank_ = local_link_of_global(l)%rank_ 
+            tmp_send_links(nsend)%label_ = ll
+          endif
+        !!!!!!!!!!!
+        elseif( local_link_of_global(l)%rank_ == MYRANK ) then
+          !! 重複チェック
+          info=0
+          do i=1,nrecv
+            if( tmp_recv_links(i)%rank_ == local_link_of_global(ll)%rank_ &
+                .and. &
+                tmp_recv_links(i)%label_ == ll ) then 
+              info=1
+              exit
+            endif
+          enddo
+          if (info == 0 ) then
+            nrecv=nrecv+1
+            tmp_recv_links(nrecv)%rank_ = local_link_of_global(ll)%rank_ 
+            tmp_recv_links(nrecv)%label_ = ll
+            tmp_global_link_of_local(num_local_links+nrecv)=ll
+          endif
+        endif
+      endif
+    enddo
+  enddo
+enddo
+
+!! 重複度を除いて配列を定義
+num_send_links=nsend
+num_recv_links=nrecv
+allocate( send_links(num_send_links) )
+allocate( recv_links(num_recv_links) )
+num_necessary_links = num_local_links + num_recv_links
+allocate( global_link_of_local(1:num_necessary_links) )
+
+!! 代入
+do l=1,num_send_links
+  send_links(l)%rank_ = tmp_send_links(l)%rank_
+  send_links(l)%label_ = local_link_of_global(tmp_send_links(l)%label_)%label_
+enddo
+do l=1,num_recv_links
+  recv_links(l)%rank_ = tmp_recv_links(l)%rank_
+  recv_links(l)%label_ = num_local_links+l
+enddo
+do l=1,num_necessary_links
+  global_link_of_local(l) = tmp_global_link_of_local(l)
+enddo
+
+end subroutine set_local_links
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
+!! 計算に必要なfaceの情報を設定
+subroutine set_local_faces
+use parallel
+implicit none
+
+integer f,l,i,k
+type(LOCAL_LABEL) :: tmp_send_faces(1:num_faces)
+type(LOCAL_LABEL) :: tmp_recv_faces(1:num_faces)
+integer :: nsend,nrecv,info
+integer :: tmp_global_face_of_local(1:num_faces)
+
+!! 計算を担当するfaceを tmp_global_face_of_local の最初の方に設定
+num_necessary_faces=0
+do f=1,num_faces
+  if( local_face_of_global(f)%rank_ == MYRANK ) then
+    num_necessary_faces = num_necessary_faces + 1
+    tmp_global_face_of_local(num_necessary_faces)=f
+  endif
+enddo
+
+nsend=0
+nrecv=0
+!! 担当するlinkを共有するfaceが全て必要
+do l=1,num_links
+  do k=1,face_in_l(l)%num_
+    f=face_in_l(l)%label_(k)
+    if( local_link_of_global(l)%rank_ &
+        /= local_face_of_global(f)%rank_ ) then
+      if( local_face_of_global(f)%rank_ == MYRANK ) then
+        !重複チェック
+        info=0
+        do i=1,nsend
+          if( tmp_send_faces(i)%rank_ == local_link_of_global(l)%rank_ &
+              .and. &
+              tmp_send_faces(i)%label_ == f ) then 
+            info=1
+            exit
+          endif
+        enddo
+        if (info == 0 ) then
+          nsend=nsend+1
+          tmp_send_faces(nsend)%rank_ = local_link_of_global(l)%rank_ 
+          tmp_send_faces(nsend)%label_ = f
+        endif
+      !!!!!!!!!!!
+      elseif( local_link_of_global(l)%rank_ == MYRANK ) then
+        !! 重複チェック
+        info=0
+        do i=1,nrecv
+          if( tmp_recv_faces(i)%rank_ == local_face_of_global(f)%rank_ &
+              .and. &
+              tmp_recv_faces(i)%label_ == f ) then 
+            info=1
+            exit
+          endif
+        enddo
+        if (info == 0 ) then
+          nrecv=nrecv+1
+          tmp_recv_faces(nrecv)%rank_ = local_face_of_global(f)%rank_ 
+          tmp_recv_faces(nrecv)%label_ = f
+          tmp_global_face_of_local(num_local_faces+nrecv)=f
+        endif
+      endif
+    endif
+  enddo
+enddo
+
+
+!! 重複度を除いて配列を定義
+num_send_faces=nsend
+num_recv_faces=nrecv
+allocate( send_faces(num_send_faces) )
+allocate( recv_faces(num_recv_faces) )
+num_necessary_faces = num_local_faces + num_recv_faces
+allocate( global_face_of_local(1:num_necessary_links) )
+
+!! 代入
+do i=1,num_send_faces
+  send_faces(i)%rank_ = tmp_send_faces(i)%rank_
+  send_faces(i)%label_ = local_face_of_global(tmp_send_faces(i)%label_)%label_
+enddo
+do i=1,num_recv_faces
+  recv_faces(i)%rank_ = tmp_recv_faces(i)%rank_
+  recv_faces(i)%label_ = num_local_faces+i
+enddo
+do f=1,num_necessary_faces
+  global_face_of_local(f) = tmp_global_face_of_local(f)
+enddo
+
+end subroutine set_local_faces
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
+!! それぞれのnode上でのlink_tipとlink_orgを設定
+subroutine set_local_link_org_and_tip
+use parallel
+implicit none
+
+integer info_o, info_t
+integer l,s
+
+allocate( local_link_org(1:num_local_links) )
+allocate( local_link_tip(1:num_local_links) )
+
+do l=1,num_local_links
+  info_o=0
+  info_t=0
+  do s=1,num_necessary_sites
+    if( global_site_of_local(s) == link_org(global_link_of_local(l)) ) then
+      local_link_org(l) = s
+      info_o=1
+    elseif( global_site_of_local(s) == link_tip(global_link_of_local(l)) ) then
+      local_link_tip(l) = s
+      info_t=1
+    endif
+    if( info_o * info_t == 1 ) exit
+  enddo
+  if( info_o * info_t == 0 ) then 
+    write(*,*) "something is wrong in local link", l, "in RANK",MYRANK
+    call stop_for_test
+  endif
+enddo
+
+
+end subroutine set_local_link_org_and_tip
+
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
+!! それぞれのnode上で、siteに出入りするlinkのラベルを設定
+subroutine set_local_link_fromto_site
+use parallel
+implicit none
+
+integer s,ss,l,num,info,i
+
+allocate(local_linktip_from_s(1:num_local_sites))
+allocate(local_linkorg_to_s(1:num_local_sites))
+do s=1,num_local_sites
+  !! local_linktip
+  num=linktip_from_s(global_site_of_local(s))%num_
+  local_linktip_from_s(s)%num_=num
+  allocate(local_linktip_from_s(s)%labels_(1:num) )
+  do i=1,num
+    info=0
+    do l=1,num_necessary_links
+      if( linktip_from_s(global_site_of_local(s))%labels_(i) &
+          == global_link_of_local(l) ) then
+        local_linktip_from_s(s)%labels_(i)=l
+        info=1
+        exit
+      endif
+    enddo
+    if( info==0 ) then 
+      write(*,*) MYRANK,"Something happpend in set_local_linktip_from_s"
+      call stop_for_test
+    endif
+  enddo
+  !! local_linkorg
+  num=linkorg_to_s(global_site_of_local(s))%num_
+  local_linkorg_to_s(s)%num_= num
+  allocate(local_linkorg_to_s(s)%labels_(1:num) )
+  do i=1,num
+    do l=1,num_necessary_links
+      info=0
+      if( linkorg_to_s(global_site_of_local(s))%labels_(i) &
+          == global_link_of_local(l) ) then
+        local_linkorg_to_s(s)%labels_(i)=l
+        info=1
+        exit
+      endif
+    enddo
+    if( info==0 ) then 
+      write(*,*) MYRANK,"Something happpend in set_local_linkorg_to_s 1"
+      call stop_for_test
+    endif
+  enddo
+enddo
+
+end subroutine set_local_link_fromto_site
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
+!! それぞれのnode上で、faceを構成するlinkのラベルを設定
+subroutine  set_local_links_in_f
+use parallel
+implicit none
+
+integer f,l,ll, num, g_link, dir
+
+allocate( local_links_in_f(1:num_local_faces) )
+do f=1,num_local_faces
+  num = links_in_f(global_face_of_local(f))%num_
+  local_links_in_f(f)%num_ = num
+  allocate( local_links_in_f(f)%link_labels_(1:num) )
+  allocate( local_links_in_f(f)%link_dirs_(1:num))
+
+  do l=1,num
+    g_link = links_in_f(global_face_of_local(f))%link_labels_(l)
+    dir = links_in_f(global_face_of_local(f))%link_dirs_(l)
+    do ll=1,num_necessary_links
+      if( global_link_of_local(ll) == g_link ) then
+        local_links_in_f(f)%link_labels_(l) = ll
+        local_links_in_f(f)%link_dirs_(l) = dir
+      endif
+    enddo
+  enddo
+enddo
+
+end subroutine  set_local_links_in_f
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
+!! それぞれのnode上で、linkに共有されるfaceのラベルを設定
+subroutine  set_local_face_in_l
+use parallel
+implicit none
+
+integer l,num ,i,f,g_face,info
+
+allocate( local_face_in_l(1:num_local_links) )
+do l=1,num_local_links
+  num = face_in_l(global_link_of_local(l))%num_
+  local_face_in_l(l)%num_ = num
+  allocate( local_face_in_l(l)%label_(1:num) )
+
+  do i=1,num
+    info=0
+    g_face = face_in_l(global_link_of_local(l))%label_(i)
+    do f=1,num_necessary_faces
+      if( global_face_of_local(f) == g_face ) then
+        local_face_in_l(l)%label_(i) = f
+        info=1
+      endif
+    enddo
+    if( info == 0 ) then 
+      write(*,*) "something happened in setting local_face_in_l."
+      write(*,*) MYRANK, f,i
+      call stop_for_test
+    endif
+  enddo
+enddo
+
+
+end subroutine  set_local_face_in_l
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
+!! それぞれのnode上で担当するfaceのlocalな代表点を設定
+subroutine set_local_sites_in_f
+use parallel
+implicit none
+
+integer f,s,global_s,info
+
+allocate( local_sites_in_f(1:num_local_faces) )
+do f=1,num_local_faces
+  local_sites_in_f(f)%num_=1 
+  allocate( local_sites_in_f(f)%label_(1:1) )
+
+  global_s=sites_in_f(global_face_of_local(f))%label_(1)
+  do s=1,num_necessary_sites
+    
+    if( global_s == global_site_of_local(s) ) then
+      local_sites_in_f(f)%label_(1) = s
+      info=1
+      exit
+    endif
+  enddo
+  if( info == 0 ) then
+    write(*,*) "something happened in set_local_sites_in_f"
+    call stop_for_test
+  endif
+enddo
+
+end subroutine set_local_sites_in_f
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
+!! それぞれのnode上で必要な alpha, beta を設定する
+subroutine set_local_alpha_beta
+use parallel
+implicit none
+
+integer s,l,f
+
+allocate(local_alpha_s(1:num_necessary_sites) )
+allocate(local_alpha_l(1:num_necessary_links) )
+allocate(local_alpha_f(1:num_necessary_faces) )
+allocate(local_beta_f(1:num_necessary_faces) )
+do s=1,num_necessary_sites
+  local_alpha_s(s) = alpha_s(global_site_of_local(s) )
+enddo
+
+do l=1,num_necessary_links
+  local_alpha_l(l) = alpha_l(global_link_of_local(l) )
+enddo
+
+do f=1,num_necessary_faces
+  local_alpha_f(f) = alpha_f(global_face_of_local(f) )
+  local_beta_f(f) = beta_f(global_face_of_local(f) )
+enddo
+
+
+end subroutine set_local_alpha_beta
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
+!! globalに定義していた諸々の数をlocalに置き換える
+subroutine switch_globalnum_to_localnum
+use parallel
+implicit none
+
+integer s,l,f,i,num
+
+global_num_sites = num_sites
+global_num_links = num_links
+global_num_faces = num_faces
+
+num_sites = num_local_sites
+num_links = num_local_links
+num_faces = num_local_faces
+
+deallocate( link_org, link_tip )
+allocate(link_org(1:num_local_links))
+allocate(link_tip(1:num_local_links))
+link_org = local_link_org
+link_tip = local_link_tip
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+deallocate( linktip_from_s, linkorg_to_s )
+allocate(linktip_from_s(1:num_local_sites)) 
+allocate(linkorg_to_s(1:num_local_sites))
+do s=1,num_sites
+  num = local_linktip_from_s(s)%num_
+  linktip_from_s(s)%num_ = num
+  allocate(linktip_from_s(s)%labels_(1:num) )
+  allocate(linktip_from_s(s)%sites_(1:num) )
+  do i=1,num
+    linktip_from_s(s)%labels_(i) = local_linktip_from_s(s)%labels_(i)
+  enddo
+  !!!!!
+  num = local_linkorg_to_s(s)%num_
+  allocate(linkorg_to_s(s)%labels_(1:num) )
+  allocate(linkorg_to_s(s)%sites_(1:num) )
+  linkorg_to_s(s)%num_ = num
+  do i=1,num
+    linkorg_to_s(s)%labels_(i) = local_linkorg_to_s(s)%labels_(i)
+  enddo
+enddo
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+deallocate( links_in_f )
+allocate( links_in_f(1:num_faces) )
+do f=1,num_faces
+  num=local_links_in_f(f)%num_
+  links_in_f(f)%num_ = num
+  allocate( links_in_f(f)%link_labels_(1:num) )
+  allocate( links_in_f(f)%link_dirs_(1:num) )
+  links_in_f(f)%link_labels_=local_links_in_f(f)%link_labels_
+  links_in_f(f)%link_dirs_=local_links_in_f(f)%link_dirs_
+enddo
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+deallocate( face_in_l )
+allocate( face_in_l(1:num_links) )
+do l=1,num_links
+  num=local_face_in_l(l)%num_
+  face_in_l(l)%num_ = num
+  allocate( face_in_l(l)%label_(1:num) )
+  face_in_l(l)%label_=local_face_in_l(l)%label_
+enddo
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+deallocate( sites_in_f )
+allocate( sites_in_f(1:num_faces) )
+do f=1,num_faces
+  sites_in_f(f)%num_=1
+  allocate( sites_in_f(f)%label_(1:1) )
+  sites_in_f(f)%label_ = local_sites_in_f(f)%label_
+enddo
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+deallocate( alpha_s )
+allocate( alpha_s(1:num_necessary_sites) )
+alpha_s = local_alpha_s
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+deallocate( alpha_l )
+allocate( alpha_l(1:num_necessary_links) )
+alpha_l = local_alpha_l
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+deallocate( alpha_f )
+allocate( alpha_f(1:num_necessary_faces) )
+alpha_f = local_alpha_f
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+deallocate( beta_f )
+allocate( beta_f(1:num_necessary_faces) )
+beta_f = local_beta_f
+
+end subroutine switch_globalnum_to_localnum
+
+#endif
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
 !! テスト用に止めるルーチン
 subroutine stop_for_test

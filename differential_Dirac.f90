@@ -689,7 +689,7 @@ enddo ! f
 do l=1,num_links
 do i=1,face_in_l(l)%num_       
   f=face_in_l(l)%label_(i)
-  ! j: position of the link l in the face l
+  ! l_label: position of the link l in the face f
   do l_label=1,links_in_f(f)%num_
     if ( l == links_in_f(f)%link_labels_(l_label) ) exit
   enddo

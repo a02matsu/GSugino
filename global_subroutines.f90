@@ -2271,4 +2271,17 @@ arg=atan2( dble((0d0,-1d0)*phase), dble(phase) )
 
 end function arg
 
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! 必要な変数を通信するsubroutine
+subroutine variables_syncronizer(PhiMat, UMat)
+#ifdef PARALLEL
+use parallel
+
+integer s,l,f
+
+
+#endif
+end subroutine variables_syncronizer
+
 end module global_subroutines

@@ -68,11 +68,29 @@ endif
   call set_alpha_beta
 ! remove comment if test of the module is needed
 !    call test_module_simplicial_complex(sc)
-! initialize the size of the variables
+
+! set necesarry data in each node
   call set_sub_SC
 
-  allocate( UMAT(1:NMAT,1:NMAT,1:num_links) )
-  allocate( PHIMAT(1:NMAT,1:NMAT, 1:num_sites) )
+#ifdef PARALLEL
+! set local_alpha_s/l/f and local_beta_f
+  call set_local_alpha_beta
+
+! 以下の量をlocalな量で再定義
+!   num_sites/links/faces
+!   linktip_from_s, linkorg_to_s
+!   links_in_f
+!   face_in_l
+!   sites_in_f
+!   alpha_s/l/f
+!   beta_f
+  call switch_globalnum_to_localnum
+#endif
+ 
+
+! initialize the size of the variables
+  allocate( UMAT(1:NMAT,1:NMAT,1:num_necessary_links) )
+  allocate( PHIMAT(1:NMAT,1:NMAT, 1:num_necessary_sites) )
 
 ! set the seed of the random number generators
 ! The default value is set in the parameter file.
@@ -85,8 +103,8 @@ endif
     call genrand_init( put=state_mt95 )
   else
 #ifdef PARALLEL
-    !seed=seed/(MYRANK+1)
-    call MPI_BCAST(seed,1,MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
+    seed=seed/(MYRANK+1)
+    !call MPI_BCAST(seed,1,MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
 #endif
     call genrand_init( put=seed )
   endif
@@ -96,6 +114,11 @@ endif
   !if (test_mode==1 .or. new_config==1) then
   if (new_config==1) then
     call set_random_config(UMAT,PHIMAT) 
+    !do s=1,num_sites
+      !write(*,*) global_site_of_local(s),PhiMat(:,:,s)
+    !enddo
+    !call stop_for_test
+
     !do s=1,num_sites
     !tmp=(0d0,0d0)
       !do i=1,NMAT
