@@ -330,20 +330,21 @@ do ite=1,MaxIte
  endif
  enddo
 
+ call mat_to_vec(r_vec,r_eta,r_lambda,r_chi)
+ call mat_to_vec(p_vec,p_eta,p_lambda,p_chi)
 ! (6) update Xvec and psigma_vec
  do s=1, NumVec
    if ( flag(s) .ne. 1 ) then
      tmp_c1 = dcmplx(zeta_k(s)/zeta_km1(s)*alpha_k)
      tmp_c2 = dcmplx((zeta_k(s)*zeta_k(s))/(zeta_km1(s)*zeta_km1(s))*beta_k)
-! ここは要チェック
-! このブロックを下のブロックに交換すると結果が変わる。
-! do i=1, VSize
-!     Xvec(i,s) = Xvec(i,s) + tmp_c1 * psigma_vec(i,s)
-!     psigma_vec(i,s) = dcmplx(zeta_k(s))*r_vec(i) + tmp_c2*psigma_vec(i,s) 
-! enddo
+ do i=1, VSize
+     Xvec(i,s) = Xvec(i,s) + tmp_c1 * psigma_vec(i,s)
+     psigma_vec(i,s) = dcmplx(zeta_k(s))*r_vec(i) + tmp_c2*psigma_vec(i,s) 
+ enddo
      X_eta(:,:,:,s) =  X_eta(:,:,:,s) + tmp_c1 * psigma_eta(:,:,:,s)
      X_lambda(:,:,:,s) = X_lambda(:,:,:,s) + tmp_c1 * psigma_lambda(:,:,:,s)
      X_chi(:,:,:,s) =  X_chi(:,:,:,s) + tmp_c1 * psigma_chi(:,:,:,s)
+     call mat_to_vec(Xvec(:,s),X_eta(:,:,:,s),X_lambda(:,:,:,s),X_chi(:,:,:,s))
      !!
      psigma_eta(:,:,:,s) = cmplx(zeta_k(s))*r_eta(:,:,:) &
        + tmp_c2*psigma_eta(:,:,:,s) 
@@ -351,6 +352,7 @@ do ite=1,MaxIte
        + tmp_c2*psigma_lambda(:,:,:,s) 
      psigma_chi(:,:,:,s) = cmplx(zeta_k(s))*r_chi(:,:,:) &
        + tmp_c2*psigma_chi(:,:,:,s) 
+     !!
    endif
  enddo
    
@@ -372,6 +374,9 @@ do ite=1,MaxIte
      !write(*,*) "iteration=",ite
      info = 0
      CGite=ite
+     !do s=1,NumVec
+       !call mat_to_vec(Xvec(:,s),X_eta(:,:,:,s),X_lambda(:,:,:,s),X_chi(:,:,:,s))
+     !enddo
      return
  else
      alpha_km1 = alpha_k
@@ -383,6 +388,9 @@ enddo
  
  CGite=Maxite
  info = 1
+! do s=1,NumVec
+!   call mat_to_vec(Xvec(:,s),X_eta(:,:,:,s),X_lambda(:,:,:,s),X_chi(:,:,:,s))
+! enddo
 
 return
 end subroutine mmBiCG
