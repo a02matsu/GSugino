@@ -10,10 +10,15 @@ subroutine calc_matrix_rational_power(rvec, Bvec, VSize, &
         NumVec, epsilon, MaxIte, info, CGite, alpha_r, beta_r,UMAT,PhiMat, ProdMat,num_sites, num_links, num_faces)
 implicit none
 interface 
-  subroutine ProdMat(R_VEC,VEC,MSIZE,UMAT,PhiMat)
-    integer, intent(in) :: MSIZE
-    complex(kind(0d0)), intent(in) :: VEC(1:MSIZE)
-    complex(kind(0d0)), intent(inout) :: R_VEC(1:MSIZE)
+!  subroutine ProdMat(R_VEC,VEC,MSIZE,UMAT,PhiMat)
+!    integer, intent(in) :: MSIZE
+!    complex(kind(0d0)), intent(in) :: VEC(1:MSIZE)
+!    complex(kind(0d0)), intent(inout) :: R_VEC(1:MSIZE)
+!    complex(kind(0d0)), intent(in) :: UMAT(:,:,:),PhiMat(:,:,:)
+!  end subroutine ProdMat
+  subroutine ProdMat(D_eta,D_lambda,D_chi,eta,lambda,chi,UMAT,PhiMat)
+    complex(kind(0d0)), intent(out) :: D_eta(:,:,:),D_lambda(:,:,:),D_chi(:,:,:)
+    complex(kind(0d0)), intent(in) :: eta(:,:,:),lambda(:,:,:),chi(:,:,:)
     complex(kind(0d0)), intent(in) :: UMAT(:,:,:),PhiMat(:,:,:)
   end subroutine ProdMat
 end interface
@@ -45,6 +50,62 @@ enddo
   
 end subroutine calc_matrix_rational_power
 
+subroutine mmBiCG_dev( Xvec, Bvec, sigma, VSize, NumVec, &
+    epsilon, MaxIte, info, CGite, UMAT,PhiMat, ProdMat, &
+    num_sites, num_links, num_faces )
+use global_subroutines, only : mat_to_vec, vec_to_mat
+implicit none
+interface
+!! R_VEC = MATRIX . VEC を計算するサブルーチン
+!! ただし、MATRIX は明示的に指定しない。
+!! 呼び出す側で定義する必要がある。
+!  subroutine ProdMat(R_VEC,VEC,MSIZE,UMAT,PhiMat)
+!    integer, intent(in) :: MSIZE
+!    complex(kind(0d0)), intent(in) :: VEC(1:MSIZE)
+!    complex(kind(0d0)), intent(inout) :: R_VEC(1:MSIZE)
+!    complex(kind(0d0)), intent(in) :: UMAT(:,:,:),PhiMat(:,:,:)
+!  end subroutine ProdMat
+  subroutine ProdMat(D_eta,D_lambda,D_chi,eta,lambda,chi,UMAT,PhiMat)
+    complex(kind(0d0)), intent(out) :: D_eta(:,:,:),D_lambda(:,:,:),D_chi(:,:,:)
+    complex(kind(0d0)), intent(in) :: eta(:,:,:),lambda(:,:,:),chi(:,:,:)
+    complex(kind(0d0)), intent(in) :: UMAT(:,:,:),PhiMat(:,:,:)
+  end subroutine ProdMat
+end interface
+
+integer, intent(in) :: VSize, NumVec
+complex(kind(0d0)), intent(inout) :: Xvec(1:VSize,1:NumVec)
+complex(kind(0d0)), intent(in) :: Bvec(1:VSize)
+double precision, intent(in) :: sigma(1:NumVec)
+double precision, intent(in) :: epsilon
+integer, intent(in) :: MaxIte
+integer, intent(inout) :: info 
+integer, intent(inout) :: CGite
+integer, intent(in) :: num_sites, num_links, num_faces
+complex(kind(0d0)), intent(in) :: UMAT(:,:,:), PhiMat(:,:,:)
+
+complex(kind(0d0)), allocatable :: X_eta(:,:,:,:),X_lambda(:,:,:,:),X_chi(:,:,:,:)
+complex(kind(0d0)), allocatable :: B_eta(:,:,:),B_lambda(:,:,:),B_chi(:,:,:)
+
+integer :: NMAT
+
+NMAT=size(UMAT,1)
+
+allocate( X_eta(1:NMAT,1:NMAT,1:num_sites,1:NumVec) )
+allocate( X_lambda(1:NMAT,1:NMAT,1:num_links,1:NumVec) )
+allocate( X_chi(1:NMAT,1:NMAT,1:num_faces,1:NumVec) )
+
+allocate( B_eta(1:NMAT,1:NMAT,1:num_sites) )
+allocate( B_lambda(1:NMAT,1:NMAT,1:num_links) )
+allocate( B_chi(1:NMAT,1:NMAT,1:num_faces) )
+
+call vec_to_mat(B_eta,B_lambda,B_chi,Bvec)
+
+!call mmBiCG_mat( &
+!  X_eta,X_lambda,X_chi, &
+!  B_eta,B_lambda,B_chi, &
+!  sigma, epsilon, MaxIte, info, CGite, UMAT,PhiMat, ProdMat)
+
+end subroutine mmBiCG_dev
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! Multi-shift CG Solver
@@ -94,15 +155,21 @@ end subroutine calc_matrix_rational_power
 subroutine mmBiCG( Xvec, Bvec, sigma, VSize, NumVec, &
     epsilon, MaxIte, info, CGite, UMAT,PhiMat, ProdMat, &
     num_sites, num_links, num_faces )
+use global_subroutines, only : mat_to_vec, vec_to_mat
 implicit none
 interface
 !! R_VEC = MATRIX . VEC を計算するサブルーチン
 !! ただし、MATRIX は明示的に指定しない。
 !! 呼び出す側で定義する必要がある。
-  subroutine ProdMat(R_VEC,VEC,MSIZE,UMAT,PhiMat)
-    integer, intent(in) :: MSIZE
-    complex(kind(0d0)), intent(in) :: VEC(1:MSIZE)
-    complex(kind(0d0)), intent(inout) :: R_VEC(1:MSIZE)
+!  subroutine ProdMat(R_VEC,VEC,MSIZE,UMAT,PhiMat)
+!    integer, intent(in) :: MSIZE
+!    complex(kind(0d0)), intent(in) :: VEC(1:MSIZE)
+!    complex(kind(0d0)), intent(inout) :: R_VEC(1:MSIZE)
+!    complex(kind(0d0)), intent(in) :: UMAT(:,:,:),PhiMat(:,:,:)
+!  end subroutine ProdMat
+  subroutine ProdMat(D_eta,D_lambda,D_chi,eta,lambda,chi,UMAT,PhiMat)
+    complex(kind(0d0)), intent(out) :: D_eta(:,:,:),D_lambda(:,:,:),D_chi(:,:,:)
+    complex(kind(0d0)), intent(in) :: eta(:,:,:),lambda(:,:,:),chi(:,:,:)
     complex(kind(0d0)), intent(in) :: UMAT(:,:,:),PhiMat(:,:,:)
   end subroutine ProdMat
 end interface
@@ -125,32 +192,35 @@ complex(kind(0d0)), intent(in) :: UMAT(:,:,:), PhiMat(:,:,:)
 
 
 !! private variables
-complex(kind(0d0)) :: r_vec(1:VSize)
-complex(kind(0d0)) :: p_vec(1:VSize)
+!complex(kind(0d0)) :: r_vec(1:VSize)
+!complex(kind(0d0)) :: p_vec(1:VSize)
 double precision :: zeta_k(1:NumVec), zeta_km1(1:NumVec)
 double precision :: alpha_k, alpha_km1
 double precision :: beta_k, beta_km1
-complex(kind(0d0)) :: psigma_vec(1:VSize,1:NumVec)
+!complex(kind(0d0)) :: psigma_vec(1:VSize,1:NumVec)
 
-!complex(kind(0d0)) :: r_vec(1:DimVec)
-complex(kind(0d0)), allocatable :: r_vec_eta(:,:,:)
-complex(kind(0d0)), allocatable :: r_vec_lambda(:,:,:)
-complex(kind(0d0)), allocatable :: r_vec_chi(:,:,:)
+complex(kind(0d0)) :: r_vec(1:Vsize)
+complex(kind(0d0)), allocatable :: r_eta(:,:,:)
+complex(kind(0d0)), allocatable :: r_lambda(:,:,:)
+complex(kind(0d0)), allocatable :: r_chi(:,:,:)
 !!
-!complex(kind(0d0)) :: p_vec(1:DimVec)
-complex(kind(0d0)), allocatable :: p_vec_eta(:,:,:)
-complex(kind(0d0)), allocatable :: p_vec_lambda(:,:,:)
-complex(kind(0d0)), allocatable :: p_vec_chi(:,:,:)
+complex(kind(0d0)) :: p_vec(1:Vsize)
+complex(kind(0d0)), allocatable :: p_eta(:,:,:)
+complex(kind(0d0)), allocatable :: p_lambda(:,:,:)
+complex(kind(0d0)), allocatable :: p_chi(:,:,:)
 !!
-!complex(kind(0d0)) :: psigma_vec(1:DimVec,1:NumVec)
-complex(kind(0d0)), allocatable :: psigma_vec_eta(:,:,:,:)
-complex(kind(0d0)), allocatable :: psigma_vec_lambda(:,:,:,:)
-complex(kind(0d0)), allocatable :: psigma_vec_chi(:,:,:,:)
+complex(kind(0d0)) :: psigma_vec(1:Vsize,1:NumVec)
+complex(kind(0d0)), allocatable :: psigma_eta(:,:,:,:)
+complex(kind(0d0)), allocatable :: psigma_lambda(:,:,:,:)
+complex(kind(0d0)), allocatable :: psigma_chi(:,:,:,:)
 !!
-!complex(kind(0d0)) :: tmp_vec(1:DimVec)
-complex(kind(0d0)), allocatable :: tmp_vec_eta(:,:,:)
-complex(kind(0d0)), allocatable :: tmp_vec_lambda(:,:,:)
-complex(kind(0d0)), allocatable :: tmp_vec_chi(:,:,:)
+complex(kind(0d0)) :: tmp_vec(1:Vsize)
+complex(kind(0d0)), allocatable :: tmp_eta(:,:,:)
+complex(kind(0d0)), allocatable :: tmp_lambda(:,:,:)
+complex(kind(0d0)), allocatable :: tmp_chi(:,:,:)
+!!
+complex(kind(0d0)), allocatable :: X_eta(:,:,:,:),X_lambda(:,:,:,:),X_chi(:,:,:,:)
+!complex(kind(0d0)), allocatable :: B_eta(:,:,:),B_lambda(:,:,:),B_chi(:,:,:)
 
 integer :: flag(NumVec), ff
 
@@ -159,26 +229,28 @@ integer :: flag(NumVec), ff
 integer :: i,ite, s
 double precision :: tmp_r1
 complex(kind(0d0)) :: tmp_c1, tmp_c2, rkrk
-complex(kind(0d0)) :: tmp_vec(1:VSize)
 integer :: NMAT
 
 NMAT=size(UMAT,1)
 
 !!
-allocate( r_vec_eta(1:NMAT,1:NMAT,1:num_sites) )
-allocate( p_vec_eta(1:NMAT,1:NMAT,1:num_sites) )
-allocate( tmp_vec_eta(1:NMAT,1:NMAT,1:num_sites) )
-allocate( psigma_vec_eta(1:NMAT,1:NMAT,1:num_sites,1:NumVec) )
+allocate( X_eta(1:NMAT,1:NMAT,1:num_sites,1:NumVec) )
+allocate( r_eta(1:NMAT,1:NMAT,1:num_sites) )
+allocate( p_eta(1:NMAT,1:NMAT,1:num_sites) )
+allocate( tmp_eta(1:NMAT,1:NMAT,1:num_sites) )
+allocate( psigma_eta(1:NMAT,1:NMAT,1:num_sites,1:NumVec) )
 !!
-allocate( r_vec_lambda(1:NMAT,1:NMAT,1:num_links) )
-allocate( p_vec_lambda(1:NMAT,1:NMAT,1:num_links) )
-allocate( tmp_vec_lambda(1:NMAT,1:NMAT,1:num_links) )
-allocate( psigma_vec_lambda(1:NMAT,1:NMAT,1:num_links,1:NumVec) )
+allocate( X_lambda(1:NMAT,1:NMAT,1:num_links,1:NumVec) )
+allocate( r_lambda(1:NMAT,1:NMAT,1:num_links) )
+allocate( p_lambda(1:NMAT,1:NMAT,1:num_links) )
+allocate( tmp_lambda(1:NMAT,1:NMAT,1:num_links) )
+allocate( psigma_lambda(1:NMAT,1:NMAT,1:num_links,1:NumVec) )
 !!
-allocate( r_vec_chi(1:NMAT,1:NMAT,1:num_faces) )
-allocate( p_vec_chi(1:NMAT,1:NMAT,1:num_faces) )
-allocate( tmp_vec_chi(1:NMAT,1:NMAT,1:num_faces) )
-allocate( psigma_vec_chi(1:NMAT,1:NMAT,1:num_faces,1:NumVec) )
+allocate( X_chi(1:NMAT,1:NMAT,1:num_faces,1:NumVec) )
+allocate( r_chi(1:NMAT,1:NMAT,1:num_faces) )
+allocate( p_chi(1:NMAT,1:NMAT,1:num_faces) )
+allocate( tmp_chi(1:NMAT,1:NMAT,1:num_faces) )
+allocate( psigma_chi(1:NMAT,1:NMAT,1:num_faces,1:NumVec) )
 
 
 
@@ -190,11 +262,17 @@ flag = 0
 Xvec=(0d0,0d0)
 r_vec = Bvec
 p_vec = Bvec
-zeta_k = 1d0
 do s=1,NumVec
     psigma_vec(:,s)=Bvec
 enddo
 
+call vec_to_mat(r_eta(:,:,:),r_lambda(:,:,:),r_chi(:,:,:),r_vec)
+do s=1,NumVec
+  call vec_to_mat(psigma_eta(:,:,:,s),psigma_lambda(:,:,:,s),psigma_chi(:,:,:,s),psigma_vec(:,s))
+call vec_to_mat(X_eta(:,:,:,s),X_lambda(:,:,:,s),X_chi(:,:,:,s),Xvec(:,s))
+enddo
+
+zeta_k = 1d0
 zeta_km1 = 1d0
 alpha_km1 = 1d0
 beta_km1 = 0d0
@@ -204,32 +282,43 @@ do ite=1,MaxIte
 
 ! (1) construct \alpha_k
  ! rkrk = (r_k, r_k)
- call InnerProd(rkrk, r_vec, r_vec, VSize) 
+ call InnerProd2(rkrk, &
+   r_eta, r_lambda, r_chi,&
+   r_eta, r_lambda, r_chi)
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!== DEPEND ON ProdMat YOU MADE ==
- call ProdMat(tmp_vec, p_vec, VSize,UMAT,PhiMat)
+! call ProdMat(tmp_vec, p_vec, VSize,UMAT,PhiMat)
+ call vec_to_mat(p_eta,p_lambda,p_chi,p_vec)
+ call ProdMat(&
+   tmp_eta,tmp_lambda,tmp_chi,&
+   p_eta,p_lambda,p_chi,&
+   UMAT,PhiMat)
+
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
- call InnerProd(tmp_c1, p_vec, tmp_vec, VSize)
+ !call InnerProd(tmp_c1, p_vec, tmp_vec, VSize)
+ call InnerProd2(tmp_c1, &
+   p_eta, p_lambda, p_chi,&
+   tmp_eta, tmp_lambda, tmp_chi)
  alpha_k = rkrk / dble(tmp_c1)
 
 ! (2) update r_k --> r_{k+1}
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!== DEPEND ON ProdMat YOU MADE ==
- call ProdMat(tmp_vec, p_vec, VSize,UMAT,PhiMat)
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
- do i=1,VSize
-   r_vec(i) = r_vec(i) - dcmplx(alpha_k) * tmp_vec(i)
- enddo
+  r_eta = r_eta - dcmplx(alpha_k) * tmp_eta
+  r_lambda = r_lambda - dcmplx(alpha_k) * tmp_lambda
+  r_chi = r_chi - dcmplx(alpha_k) * tmp_chi
 
 ! (3) construct beta_k
- call InnerProd(tmp_c1, r_vec, r_vec, VSize) 
+ call InnerProd2(tmp_c1, &
+   r_eta, r_lambda, r_chi,&
+   r_eta, r_lambda, r_chi)
  beta_k = dble(tmp_c1) / rkrk
 
 ! (4) update p_k --> p_{k+1}
- do i=1,VSize
-   p_vec(i) = r_vec(i) + dcmplx(beta_k) * p_vec(i)
- enddo
+  p_eta = r_eta + cmplx(beta_k) * p_eta
+  p_lambda = r_lambda + cmplx(beta_k) * p_lambda
+  p_chi = r_chi + cmplx(beta_k) * p_chi
+
+
 ! (5) update zeta^{sigma}_{k} --> zeta^{sigma}_{k+1}
  do s=1,NumVec
    if ( flag(s) .ne. 1 ) then
@@ -246,17 +335,30 @@ do ite=1,MaxIte
    if ( flag(s) .ne. 1 ) then
      tmp_c1 = dcmplx(zeta_k(s)/zeta_km1(s)*alpha_k)
      tmp_c2 = dcmplx((zeta_k(s)*zeta_k(s))/(zeta_km1(s)*zeta_km1(s))*beta_k)
- do i=1, VSize
-     Xvec(i,s) = Xvec(i,s) + tmp_c1 * psigma_vec(i,s)
-     psigma_vec(i,s) = dcmplx(zeta_k(s))*r_vec(i) + tmp_c2*psigma_vec(i,s) 
- enddo
- endif
- !write(*,*) ite,s,zeta_k(s),zeta_km1(s)
+! ここは要チェック
+! このブロックを下のブロックに交換すると結果が変わる。
+! do i=1, VSize
+!     Xvec(i,s) = Xvec(i,s) + tmp_c1 * psigma_vec(i,s)
+!     psigma_vec(i,s) = dcmplx(zeta_k(s))*r_vec(i) + tmp_c2*psigma_vec(i,s) 
+! enddo
+     X_eta(:,:,:,s) =  X_eta(:,:,:,s) + tmp_c1 * psigma_eta(:,:,:,s)
+     X_lambda(:,:,:,s) = X_lambda(:,:,:,s) + tmp_c1 * psigma_lambda(:,:,:,s)
+     X_chi(:,:,:,s) =  X_chi(:,:,:,s) + tmp_c1 * psigma_chi(:,:,:,s)
+     !!
+     psigma_eta(:,:,:,s) = cmplx(zeta_k(s))*r_eta(:,:,:) &
+       + tmp_c2*psigma_eta(:,:,:,s) 
+     psigma_lambda(:,:,:,s) = cmplx(zeta_k(s))*r_lambda(:,:,:) &
+       + tmp_c2*psigma_lambda(:,:,:,s) 
+     psigma_chi(:,:,:,s) = cmplx(zeta_k(s))*r_chi(:,:,:) &
+       + tmp_c2*psigma_chi(:,:,:,s) 
+   endif
  enddo
    
 ! conservation check
  ff=1
- call InnerProd( tmp_c1, r_vec, r_vec, VSize)
+ call InnerProd2(tmp_c1, &
+   r_eta, r_lambda, r_chi,&
+   r_eta, r_lambda, r_chi)
  tmp_r1 = dsqrt( dble(tmp_c1) )
  do s=1,NumVec
      if ( dabs(zeta_k(s)*tmp_r1) < epsilon ) then
@@ -503,7 +605,56 @@ end subroutine
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!   ProdMat( result_vec, MAT, given_vec, VSize )
-!!    result_vec: MAT * v
+!!    result_ve
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! subroutine to take inner product for matrix value
+!!  (V1,V2) = V1^\dagger_i V2_i
+subroutine InnerProd2(v1v2, &
+   vec1_eta, vec1_lambda, vec1_chi, &
+   vec2_eta, vec2_lambda, vec2_chi)
+implicit none
+
+integer :: NMAT,num_sites,num_links,num_faces
+complex(kind(0d0)), intent(in) :: vec1_eta(:,:,:)
+complex(kind(0d0)), intent(in) :: vec1_lambda(:,:,:)
+complex(kind(0d0)), intent(in) :: vec1_chi(:,:,:)
+complex(kind(0d0)), intent(in) :: vec2_eta(:,:,:)
+complex(kind(0d0)), intent(in) :: vec2_lambda(:,:,:)
+complex(kind(0d0)), intent(in) :: vec2_chi(:,:,:)
+complex(kind(0d0)), intent(out) :: v1v2
+
+integer :: s,l,f,i,j
+
+NMAT=size(vec1_eta,1)
+num_sites=size(vec1_eta,3)
+num_links=size(vec1_lambda,3)
+num_faces=size(vec1_chi,3)
+
+v1v2=(0d0,0d0)
+do s=1,num_sites
+  do j=1,NMAT
+    do i=1,NMAT
+      v1v2=v1v2+conjg( vec1_eta(i,j,s) ) *vec2_eta(i,j,s) 
+    enddo
+  enddo
+enddo
+do l=1,num_links
+  do j=1,NMAT
+    do i=1,NMAT
+      v1v2=v1v2+conjg( vec1_lambda(i,j,l) ) *vec2_lambda(i,j,l) 
+    enddo
+  enddo
+enddo
+do f=1,num_faces
+  do j=1,NMAT
+    do i=1,NMAT
+      v1v2=v1v2+conjg( vec1_chi(i,j,f) ) *vec2_chi(i,j,f) 
+    enddo
+  enddo
+enddo
+
+end subroutine InnerProd2
+
 !!    MAT: a given matrix
 !!    given_vec: a vector v 
 !!    VSize: size of the vector

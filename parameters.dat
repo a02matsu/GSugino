@@ -21,7 +21,7 @@ ab_tetra.dat	! data of alpha and beta
 10000	    	! CG_max ; maximum number of CG iteration
 10     	! num_ite ; number of iterations
 5		! NTAU
-0.001d0			! DTAU base
+0.2d0			! DTAU base
 6d0				! R_phi ; Dtau_phi=R_phi * Dtau
 1d0				! R_A   ; Dtau_A=R_A * Dtau
 conSU3m1a0.7598PM0.1_000.dat ! input configuration 

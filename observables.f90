@@ -392,7 +392,7 @@ do s=1,num_sites
         obs = obs &
           + (0.25d0, 0d0) * cmplx(alpha_s(s) * overall_factor**2 * mass_square_phi) &
             * comm_a * Phi(b,t) &
-            * Dirac_inv(site_index(a,s), site_index(b,t)) 
+            * Dirac_inv(site_index(a,s,NMAT), site_index(b,t,NMAT)) 
       enddo
     enddo
   enddo
@@ -440,7 +440,7 @@ do l=1,num_links
         obs=obs &
           + (0d0, -1d0) * cmplx(alpha_l(l) * overall_factor**2 * mass_square_phi) &
             * dphi_a * Phi(b,s) &
-            * Dirac_inv(link_index(a,l),site_index(b,s)) 
+            * Dirac_inv(link_index(a,l,NMAT,num_sites),site_index(b,s,NMAT)) 
       enddo
     enddo
   enddo
@@ -478,7 +478,7 @@ do f=1,num_faces
           + (0d0, -0.5d0) * cmplx(alpha_f(f) * beta_f(f) &
                                 * overall_factor**2 * mass_square_phi) &
             * Omega_a * Phi(b,s) &
-            * Dirac_inv(face_index(a,f),site_index(b,s)) 
+            * Dirac_inv(face_index(a,f,NMAT,num_sites,num_links),site_index(b,s,NMAT)) 
       enddo
     enddo
   enddo
@@ -598,7 +598,7 @@ do s=1,num_sites
           bPhi_eta_Sigma = bPhi_eta_Sigma &
             + cmplx(alpha_s(t) * overall_factor * 0.25d0 ) * comm_b & 
               * bPhi(a,s) &
-              * Dirac_inv(site_index(a,s), site_index(b,t)) 
+              * Dirac_inv(site_index(a,s,NMAT), site_index(b,t,NMAT)) 
       enddo
     enddo
     ! \Sigma_l
@@ -609,7 +609,7 @@ do s=1,num_sites
         bPhi_eta_Sigma = bPhi_eta_Sigma &
           + cmplx(alpha_l(l) * overall_factor) * (0d0,-1d0) * dphi_b &
             * bPhi(a,s) &
-            * Dirac_inv(site_index(a,s), link_index(b,l)) 
+            * Dirac_inv(site_index(a,s,NMAT), link_index(b,l,NMAT,num_sites)) 
       enddo
     enddo
     ! ¥Sigma_f
@@ -622,7 +622,7 @@ do s=1,num_sites
         bPhi_eta_Sigma = bPhi_eta_Sigma &
           + cmplx(alpha_f(f) * beta_f(f) * overall_factor) * (0d0,-0.5d0) * Omega_b &
             * bPhi(a,s) &
-            * Dirac_inv(site_index(a,s), face_index(b,f)) 
+            * Dirac_inv(site_index(a,s,NMAT), face_index(b,f,NMAT,num_sites,num_links)) 
       enddo
     enddo
   enddo
@@ -648,8 +648,8 @@ do s=1,num_sites
     do a=1,dimG
       do b=1,dimG
         obs_site = obs_site + (0.5d0,0d0) &
-          * Dirac( site_index(a,s), site_index(b,t) ) &
-          * Dirac_inv( site_index(b,t), site_index(a,s) )
+          * Dirac( site_index(a,s,NMAT), site_index(b,t,NMAT) ) &
+          * Dirac_inv( site_index(b,t,NMAT), site_index(a,s,NMAT) )
       enddo
     enddo
   enddo
@@ -661,12 +661,12 @@ do l=1,num_links
     do a=1,dimG
       do b=1,dimG
         obs_link = obs_link + (0.5d0,0d0) &
-          * Dirac( link_index(a,l), site_index(b,t) ) &
-          * Dirac_inv( site_index(b,t), link_index(a,l) )
+          * Dirac( link_index(a,l,NMAT,num_sites), site_index(b,t,NMAT) ) &
+          * Dirac_inv( site_index(b,t,NMAT), link_index(a,l,NMAT,num_sites) )
         !!
         obs_link = obs_link + (0.5d0,0d0) &
-          * Dirac( site_index(a,t), link_index(b,l) ) &
-          * Dirac_inv( link_index(b,l), site_index(a,t) )
+          * Dirac( site_index(a,t,NMAT), link_index(b,l,NMAT,num_sites) ) &
+          * Dirac_inv( link_index(b,l,NMAT,num_sites), site_index(a,t,NMAT) )
       enddo
     enddo
   enddo
@@ -676,8 +676,8 @@ do l=1,num_links
     do a=1,dimG
       do b=1,dimG
         obs_link = obs_link + (0.5d0,0d0) &
-          * Dirac( link_index(a,l), link_index(b,l2) ) &
-          * Dirac_inv( link_index(b,l2), link_index(a,l) )
+          * Dirac( link_index(a,l,NMAT,num_sites), link_index(b,l2,NMAT,num_sites) ) &
+          * Dirac_inv( link_index(b,l2,NMAT,num_sites), link_index(a,l,NMAT,num_sites) )
       enddo
     enddo
   enddo
@@ -689,12 +689,12 @@ do f=1,num_faces
     do a=1,dimG
       do b=1,dimG
         obs_face = obs_face + (0.5d0,0d0) &
-          * Dirac( face_index(a,f), link_index(b,l) ) &
-          * Dirac_inv( link_index(b,l), face_index(a,f) )
+          * Dirac( face_index(a,f,NMAT,num_sites,num_links), link_index(b,l,NMAT,num_sites) ) &
+          * Dirac_inv( link_index(b,l,NMAT,num_sites), face_index(a,f,NMAT,num_sites,num_links) )
         !!
         obs_face = obs_face + (0.5d0,0d0) &
-          * Dirac( link_index(a,l), face_index(b,f) ) &
-          * Dirac_inv( face_index(b,f), link_index(a,l) )
+          * Dirac( link_index(a,l,NMAT,num_sites), face_index(b,f,NMAT,num_sites,num_links) ) &
+          * Dirac_inv( face_index(b,f,NMAT,num_sites,num_links), link_index(a,l,NMAT,num_sites) )
       enddo
     enddo
   enddo
@@ -704,8 +704,8 @@ do f=1,num_faces
     do a=1,dimG
       do b=1,dimG
         obs_face = obs_face + (0.5d0,0d0) &
-          * Dirac( face_index(a,f), face_index(b,f2) ) &
-          * Dirac_inv( face_index(b,f2), face_index(a,f) )
+          * Dirac( face_index(a,f,NMAT,num_sites,num_links), face_index(b,f2,NMAT,num_sites,num_links) ) &
+          * Dirac_inv( face_index(b,f2,NMAT,num_sites,num_links), face_index(a,f,NMAT,num_sites,num_links) )
       enddo
     enddo
   enddo
@@ -784,7 +784,7 @@ do l=1,num_links
     call TtimesM(tmpmat, UphiUdag+phi_org, c, NMAT)
 
     base_mat=base_mat &
-      + (0d0,0.5d0) * f_abc * Dirac_inv( link_index(a,l), link_index(b,l) ) &
+      + (0d0,0.5d0) * f_abc * Dirac_inv( link_index(a,l,NMAT,num_sites), link_index(b,l,NMAT,num_sites) ) &
         * tmpmat
   enddo
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -850,7 +850,7 @@ do l=1,num_links
     call TtimesM(tmpmat, UphiUdag+phi_org, c, NMAT)
 
     base_mat=base_mat &
-      + (0d0,0.5d0) * f_abc * Dirac_inv( link_index(a,l), link_index(b,l) ) &
+      + (0d0,0.5d0) * f_abc * Dirac_inv( link_index(a,l,NMAT,num_sites), link_index(b,l,NMAT,num_sites) ) &
         * tmpmat
   enddo
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

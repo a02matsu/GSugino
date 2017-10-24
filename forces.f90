@@ -585,7 +585,7 @@ dSdA_fermion=(0d0,0d0)
 !write(*,*) "   mmBiCG start"
 !call check_Dirac(UMAT,Phi)
 call mmBiCG( vec, PF, Remez_beta4, sizeD, N_Remez4, epsilon, &
-             CG_max, info, CGite, UMAT, PhiMat, Prod_DdagD, &
+             CG_max, info, CGite, UMAT, PhiMat, Prod_DdagD_mat, &
              num_sites, num_links, num_faces)
 !write(*,*) "   mmBiCG end", cgite
 do r=1,N_Remez4

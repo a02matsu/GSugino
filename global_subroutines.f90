@@ -1179,32 +1179,35 @@ end subroutine calc_diffdiff_Ul_in_face
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!
-integer function site_index(a,s) 
+integer function site_index(a,s,NMAT) 
 implicit none
 
 integer, intent(in) :: a,s
+integer, intent(in) :: NMAT
 
-site_index=a+dimG*(s-1)
+site_index=a+(NMAT*NMAT-1)*(s-1)
 
 end function site_index
 
 !!!!!!!!!!!!!
-integer function link_index(a,l) 
+integer function link_index(a,l,NMAT,num_sites) 
 implicit none
 
 integer, intent(in) :: a,l
+integer, intent(in) :: NMAT,num_sites
 
-link_index=a+dimG*(num_sites + l - 1)
+link_index=a+(NMAT*NMAT-1)*(num_sites + l - 1)
 
 end function link_index
 
 !!!!!!!!!!!!!
-integer function face_index(a,f)
+integer function face_index(a,f,NMAT,num_sites,num_links)
 implicit none
 
 integer, intent(in) :: a,f
+integer, intent(in) :: NMAT,num_sites,num_links
 
-face_index=a+dimG*(num_sites + num_links + f - 1)
+face_index=a+(NMAT*NMAT-1)*(num_sites + num_links + f - 1)
 
 end function face_index
 
@@ -2179,21 +2182,21 @@ allocate( ele(1:dimG) )
 
 do s=1,num_sites
   do a=1,dimG
-    ele(a)=vec(site_index(a,s))
+    ele(a)=vec(site_index(a,s,NMAT))
   enddo
   call make_traceless_matrix_from_modes(eta(:,:,s),NMAT,ele)
 enddo
 
 do l=1,num_links
   do a=1,dimG
-    ele(a)=vec(link_index(a,l))
+    ele(a)=vec(link_index(a,l,NMAT,num_sites))
   enddo
   call make_traceless_matrix_from_modes(lambda(:,:,l),NMAT,ele)
 enddo
 
 do f=1,num_faces
   do a=1,dimG
-    ele(a)=vec(face_index(a,f))
+    ele(a)=vec(face_index(a,f,NMAT,num_sites,num_links))
   enddo
   call make_traceless_matrix_from_modes(chi(:,:,f),NMAT,ele)
 enddo
@@ -2226,22 +2229,23 @@ num_faces=size(chi,3)
 sizeD=size(vec,1)
 dimG=NMAT*NMAT-1
 
+vec=(0d0,0d0)
 do s=1,num_sites
   do a=1,dimG
     call trace_MTa(trace,eta(:,:,s),a,NMAT)
-    vec(site_index(a,s))=vec(site_index(a,s))+trace
+    vec(site_index(a,s,NMAT))=vec(site_index(a,s,NMAT))+trace
   enddo
 enddo
 do l=1,num_links
   do a=1,dimG
     call trace_MTa(trace,lambda(:,:,l),a,NMAT)
-    vec(link_index(a,l))=vec(link_index(a,l))+trace
+    vec(link_index(a,l,NMAT,num_sites))=vec(link_index(a,l,NMAT,num_sites))+trace
   enddo
 enddo
 do f=1,num_faces
   do a=1,dimG
     call trace_MTa(trace,chi(:,:,f),a,NMAT)
-    vec(face_index(a,f))=vec(face_index(a,f))+trace
+    vec(face_index(a,f,NMAT,num_sites,num_links))=vec(face_index(a,f,NMAT,num_sites,num_links))+trace
   enddo
 enddo
 end subroutine mat_to_vec
