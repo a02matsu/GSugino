@@ -2155,13 +2155,27 @@ subroutine vec_to_mat(eta,lambda,chi,vec)
 use SUN_generators, only : make_traceless_matrix_from_modes
 implicit none
 
-complex(kind(0d0)), intent(out) :: eta(1:NMAT,1:NMAT,1:num_sites)
-complex(kind(0d0)), intent(out) :: lambda(1:NMAT,1:NMAT,1:num_links)
-complex(kind(0d0)), intent(out) :: chi(1:NMAT,1:NMAT,1:num_faces)
-complex(kind(0d0)), intent(in) :: vec(1:sizeD)
+!complex(kind(0d0)), intent(out) :: eta(1:NMAT,1:NMAT,1:num_sites)
+!complex(kind(0d0)), intent(out) :: lambda(1:NMAT,1:NMAT,1:num_links)
+!complex(kind(0d0)), intent(out) :: chi(1:NMAT,1:NMAT,1:num_faces)
+!complex(kind(0d0)), intent(in) :: vec(1:sizeD)
+complex(kind(0d0)), intent(out) :: eta(:,:,:)
+complex(kind(0d0)), intent(out) :: lambda(:,:,:)
+complex(kind(0d0)), intent(out) :: chi(:,:,:)
+complex(kind(0d0)), intent(in) :: vec(:)
 
-complex(kind(0d0)) :: ele(1:dimG)
+complex(kind(0d0)), allocatable :: ele(:)
 integer :: s,l,f,a
+integer :: dimG,sizeD,NMAT,num_sites,num_links,num_faces
+
+NMAT=size(eta,1)
+num_sites=size(eta,3)
+num_links=size(lambda,3)
+num_faces=size(chi,3)
+sizeD=size(vec,1)
+dimG=NMAT*NMAT-1
+
+allocate( ele(1:dimG) )
 
 do s=1,num_sites
   do a=1,dimG
@@ -2192,13 +2206,25 @@ subroutine mat_to_vec(vec,eta,lambda,chi)
 use SUN_generators, only : trace_MTa
 implicit none
 
-complex(kind(0d0)), intent(in) :: eta(1:NMAT,1:NMAT,1:num_sites)
-complex(kind(0d0)), intent(in) :: lambda(1:NMAT,1:NMAT,1:num_links)
-complex(kind(0d0)), intent(in) :: chi(1:NMAT,1:NMAT,1:num_faces)
-complex(kind(0d0)), intent(out) :: vec(1:sizeD)
+!complex(kind(0d0)), intent(in) :: eta(1:NMAT,1:NMAT,1:num_sites)
+!complex(kind(0d0)), intent(in) :: lambda(1:NMAT,1:NMAT,1:num_links)
+!complex(kind(0d0)), intent(in) :: chi(1:NMAT,1:NMAT,1:num_faces)
+!complex(kind(0d0)), intent(out) :: vec(1:sizeD)
+complex(kind(0d0)), intent(in) :: eta(:,:,:)
+complex(kind(0d0)), intent(in) :: lambda(:,:,:)
+complex(kind(0d0)), intent(in) :: chi(:,:,:)
+complex(kind(0d0)), intent(out) :: vec(:)
 
 complex(kind(0d0)) :: trace
 integer :: s,l,f,a
+integer :: dimG,sizeD,NMAT,num_sites,num_links,num_faces
+
+NMAT=size(eta,1)
+num_sites=size(eta,3)
+num_links=size(lambda,3)
+num_faces=size(chi,3)
+sizeD=size(vec,1)
+dimG=NMAT*NMAT-1
 
 do s=1,num_sites
   do a=1,dimG

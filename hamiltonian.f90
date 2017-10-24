@@ -287,7 +287,8 @@ integer :: j
 !  DdagD4_PF, PF, sizeD, N_Remez4, epsilon, CG_max, info, CGite, &
 !  Remez_alpha4, Remez_beta4, prod_DdagD)
 call mmBiCG( chi, PF, Remez_beta4, sizeD, N_Remez4, epsilon, CG_max, info, &
-             CGite, UMAT, PhiMat, Prod_DdagD )
+             CGite, UMAT, PhiMat, Prod_DdagD, &
+             num_sites, num_links, num_faces)
 DdagD4_PF=Remez_alpha4(0)*PF
 do r=1,N_Remez4
   DdagD4_PF=DdagD4_PF + Remez_alpha4(r)*chi(:,r)

@@ -690,7 +690,8 @@ PF=(0d0,0d0)
 !enddo
 call calc_matrix_rational_power(&
   PF, gauss, sizeD, N_Remez8, epsilon, CG_max, info, CGite, &
-  Remez_alpha8, Remez_beta8, UMAT,PhiMat, prod_DdagD)
+  Remez_alpha8, Remez_beta8, UMAT,PhiMat, prod_DdagD, &
+  num_sites, num_links, num_faces)
 
 end subroutine make_pseudo_fermion
 
