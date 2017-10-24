@@ -84,7 +84,8 @@ call genrand_init( put=seed )
 call set_randomP(P_AMat,P_PhiMat)
 
 ! produce pseudo-fermion
-call make_pseudo_fermion(PFsite,PFlink,PFface,UMAT,PhiMat)
+!call make_pseudo_fermion(PFsite,PFlink,PFface,UMAT,PhiMat)
+call make_pseudo_fermion(PF,UMAT,PhiMat)
 
 !PF_bak=PF
 !call MPI_BCAST(PF,sizeD,MPI_DOUBLE_COMPLEX,1,MPI_COMM_WORLD,IERR)

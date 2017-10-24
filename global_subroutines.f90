@@ -2274,14 +2274,14 @@ end function arg
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! 必要な変数を通信するsubroutine
-subroutine variables_syncronizer(PhiMat, UMat)
-#ifdef PARALLEL
-use parallel
-
-integer s,l,f
-
-
-#endif
-end subroutine variables_syncronizer
+!subroutine variables_syncronizer(PhiMat, UMat)
+!#ifdef PARALLEL
+!use parallel
+!
+!integer s,l,f
+!
+!
+!#endif
+!end subroutine variables_syncronizer
 
 end module global_subroutines
