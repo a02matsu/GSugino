@@ -4,6 +4,9 @@
 !! DO NOT CHANGE THE VALUES OF VARIABLES IN GLOBASL_PARAMETERS
 module global_subroutines
 use global_parameters
+#ifdef PARALLEL
+use parallel
+#endif
 !use simplicial_complex
 implicit none
 contains
@@ -77,7 +80,7 @@ implicit none
 
 complex(kind(0d0)), intent(out) :: Dphi(1:NMAT,1:NMAT)
 integer, intent(in) :: l
-complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_links)
+complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_necessary_links)
 complex(kind(0d0)), intent(in) :: Phi(1:dimG,1:num_sites)
 integer :: i,j
 complex(kind(0d0)) :: Phi_tip(1:NMAT,1:NMAT)
@@ -112,16 +115,12 @@ implicit none
 
 complex(kind(0d0)), intent(out) :: Dphi(1:NMAT,1:NMAT)
 integer, intent(in) :: l
-complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_links)
-complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_sites)
+complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_necessary_links)
+complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_necessary_sites)
 integer :: i,j
 !complex(kind(0d0)) :: Phi_tip(1:NMAT,1:NMAT)
 !complex(kind(0d0)) :: Phi_org(1:NMAT,1:NMAT)
 complex(kind(0d0)) :: tmpmat1(1:NMAT,1:NMAT)
-
-!call Make_traceless_matrix_from_modes(Phi_tip,NMAT,Phi(:,link_tip(l)))
-!call Make_traceless_matrix_from_modes(Phi_org,NMAT,Phi(:,link_org(l)))
-!call Make_traceless_matrix_from_modes(Dphi,NMAT,Phi(:,link_org(l)))
 
 Dphi=PhiMat(:,:,link_org(l))
 
@@ -148,6 +147,7 @@ implicit none
 
 complex(kind(0d0)), intent(out) :: Omega(1:NMAT,1:NMAT)
 complex(kind(0d0)), intent(in) :: Uf(1:NMAT,1:NMAT)
+complex(kind(0d0)) ::  trace
 integer :: i,j
 
 do i=1,NMAT
@@ -156,7 +156,75 @@ do i=1,NMAT
   enddo
 enddo
 
+if (NMAT > 2) then
+  trace=(0d0,0d0)
+  do i=1,NMAT
+    trace=trace+Omega(i,i)
+  enddo
+  do i=1,NMAT
+    Omega(i,i)=Omega(i,i)-trace / dcmplx(dble( NMAT ))
+  enddo
+endif
 end subroutine Make_moment_map0
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! subroutine to make moment map \Omega(Uf)
+subroutine Make_moment_map_adm(Omega,Uf)
+use matrix_functions, only : make_matrix_traceless
+implicit none
+
+complex(kind(0d0)), intent(out) :: Omega(1:NMAT,1:NMAT)
+complex(kind(0d0)), intent(in) :: Uf(1:NMAT,1:NMAT)
+complex(kind(0d0)) ::  trace,Bval
+integer :: i,j
+
+
+Bval=(1d0,0d0)
+do i=1,NMAT
+  Bval=Bval - (1d0,0d0)/(e_max*e_max) * dcmplx( 2d0 - 2d0*dble(Uf(i,i)) )
+enddo
+
+do j=1,NMAT
+  do i=1,NMAT
+    Omega(i,j)=Uf(i,j)-dconjg(Uf(j,i))
+  enddo
+enddo
+Omega=Omega*(0d0,-1d0)/Bval
+
+if ( NMAT > 2 ) then
+  call make_matrix_traceless(Omega)
+endif
+
+end subroutine Make_moment_map_adm
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! subroutine to calclate dB(f)/DA(ll) for administration method
+subroutine calc_dUfdA_dBdA(Mae,Ushiro,factor,dBdA,Umat,f,ll_place)
+use matrix_functions, only : matrix_product,make_matrix_traceless
+implicit none
+
+complex(kind(0d0)), intent(out) :: dBdA(1:NMAT,1:NMAT)
+complex(kind(0d0)), intent(out) :: Mae(1:NMAT,1:NMAT)
+complex(kind(0d0)), intent(out) :: Ushiro(1:NMAT,1:NMAT)
+complex(kind(0d0)), intent(out) :: factor
+complex(kind(0d0)), intent(in) :: Umat(1:NMAT,1:NMAT,1:num_necessary_links)
+integer, intent(in) :: f,ll_place 
+
+complex(kind(0d0)) :: tmpmat1(1:NMAT,1:NMAT)
+integer :: a,b
+
+  !!!!!!!!!!!!!!!!!!
+  !! Prepare dsin(U_f)/dA, dB/dA, dUf/DA
+  call div_dUfdA(Mae,Ushiro,factor,f,ll_place,UMAT)
+  call matrix_product(tmpmat1,Ushiro,Mae,'N','N',factor/(e_max*e_max)) 
+  do b=1,NMAT
+    do a=1,NMAT
+      dBdA(a,b) = tmpmat1(a,b) + dconjg( tmpmat1(b,a) ) !これは正しい
+    enddo
+  enddo
+  call make_matrix_traceless(dBdA)
+end subroutine calc_dUfdA_dBdA
 
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -209,7 +277,7 @@ if (NMAT > 2) then
     trace=trace+Omega(i,i)
   enddo
   do i=1,NMAT
-    Omega(i,i)=Omega(i,i)-trace / cmplx(dble( NMAT ))
+    Omega(i,i)=Omega(i,i)-trace / dcmplx(dble( NMAT ))
   enddo
 endif
 
@@ -224,7 +292,7 @@ implicit none
 
 complex(kind(0d0)), intent(out) :: Uf(1:NMAT,1:NMAT)
 integer, intent(in) :: f
-complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_links)
+complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_necessary_links)
 !integer :: FaceSize
 !integer, allocatable :: sites(:),link_labels(:),link_dirs(:)
 character(1) :: char1
@@ -275,7 +343,7 @@ implicit none
 complex(kind(0d0)), intent(out) :: diff_Omega(1:NMAT,1:NMAT,1:dimG)
 integer, intent(in) :: f, l
 complex(kind(0d0)), intent(in) :: Uf(1:NMAT,1:NMAT), Ufm(1:NMAT,1:NMAT)
-complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_links)
+complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_necessary_links)
 complex(kind(0d0)) :: diff_S(1:NMAT,1:NMAT,1:dimG), diff_C(1:NMAT,1:NMAT,1:dimG)
 complex(kind(0d0)) :: SMAT(1:NMAT,1:NMAT), Cinv(1:NMAT,1:NMAT)
 complex(kind(0d0)) :: tmpmat(1:NMAT,1:NMAT)
@@ -337,7 +405,7 @@ subroutine calc_diff_SandC(diff_S,diff_C, Uf, f, l,UMAT)
 complex(kind(0d0)), intent(out) :: diff_S(1:NMAT,1:NMAT,1:dimG)
 complex(kind(0d0)), intent(out) :: diff_C(1:NMAT,1:NMAT,1:dimG)
 complex(kind(0d0)), intent(in) :: Uf(1:NMAT,1:NMAT)
-complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_links)
+complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_necessary_links)
 integer, intent(in) :: f, l
 
 complex(kind(0d0)) :: diff_Ufm(1:NMAT,1:NMAT,1:dimG)
@@ -369,7 +437,7 @@ implicit none
 
 complex(kind(0d0)), intent(out) :: diff_Ufm(1:NMAT,1:NMAT,1:dimG)
 complex(kind(0d0)), intent(in) :: Uf(1:NMAT,1:NMAT)
-complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_links)
+complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_necessary_links)
 complex(kind(0d0)) :: XMAT(1:NMAT,1:NMAT), YMAT(1:NMAT,1:NMAT)
 integer, intent(in) :: l,f
 
@@ -436,7 +504,7 @@ implicit none
 
 complex(kind(0d0)), intent(out) :: diff_Uf(1:NMAT,1:NMAT,1:dimG)
 complex(kind(0d0)), intent(in) :: Uf(1:NMAT,1:NMAT)
-complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_links)
+complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_necessary_links)
 integer, intent(in) :: l,f
 
 complex(kind(0d0)) :: XMAT(1:NMAT,1:NMAT)
@@ -674,7 +742,7 @@ subroutine calc_diffdiff_SandC(diffdiff_S,diffdiff_C, Uf,f,l1,l2,UMAT)
 complex(kind(0d0)), intent(out) :: diffdiff_S(1:NMAT,1:NMAT,1:dimG,1:dimG)
 complex(kind(0d0)), intent(out) :: diffdiff_C(1:NMAT,1:NMAT,1:dimG,1:dimG)
 complex(kind(0d0)), intent(in) :: Uf(1:NMAT,1:NMAT)
-complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_links)
+complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_necessary_links)
 integer, intent(in) :: f,l1,l2
 
 complex(kind(0d0)) :: diffdiff_Ufm(1:NMAT,1:NMAT,1:dimG,1:dimG)
@@ -720,7 +788,7 @@ implicit none
 
 complex(kind(0d0)), intent(out) :: diffdiff_Ufm(1:NMAT,1:NMAT,1:dimG,1:dimG)
 complex(kind(0d0)), intent(in) :: Uf(1:NMAT,1:NMAT)
-complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_links)
+complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_necessary_links)
 integer, intent(in) :: f,l1,l2
 
 complex(kind(0d0)) :: diffdiff_Uf(1:NMAT,1:NMAT,1:dimG,1:dimG)
@@ -860,7 +928,7 @@ subroutine calc_diffdiff_Uf(diffdiff_Uf, Uf, f, l1, l2, UMAT)
 
 complex(kind(0d0)), intent(out) :: diffdiff_Uf(1:NMAT,1:NMAT,1:dimG,1:dimG)
 complex(kind(0d0)), intent(in) :: Uf(1:NMAT,1:NMAT)
-complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_links)
+complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_necessary_links)
 integer, intent(in) :: l1,l2,f
 
 integer :: place_l1, place_l2
@@ -1017,7 +1085,7 @@ implicit none
 
 complex(kind(0d0)), intent(out) :: ProdU(1:NMAT,1:NMAT)
 integer, intent(in) :: f,n1,n2
-complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_links)
+complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_necessary_links)
 
 complex(kind(0d0)) :: tmpmat(1:NMAT,1:NMAT)
 character(1) :: char1
@@ -1066,7 +1134,7 @@ implicit none
 
 complex(kind(0d0)), intent(out) :: diff_UlAl(1:NMAT,1:NMAT,1:dimG)
 integer, intent(in) :: f,link_place
-complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_links)
+complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_necessary_links)
 
 complex(kind(0d0)) :: Uinv_times_minus_i(1:NMAT,1:NMAT)
 integer :: l,a,i,j
@@ -1129,7 +1197,7 @@ implicit none
 
 complex(kind(0d0)), intent(out) :: diffdiff_UlAl(1:NMAT,1:NMAT,1:dimG,1:dimG)
 integer, intent(in) :: f,link_place
-complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_links)
+complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_necessary_links)
 
 complex(kind(0d0)) :: tmpmat(1:NMAT,1:NMAT)
 complex(kind(0d0)) :: Uinv_times_minus_1(1:NMAT,1:NMAT)
@@ -1176,32 +1244,35 @@ end subroutine calc_diffdiff_Ul_in_face
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!
-integer function site_index(a,s) 
+integer function site_index(a,s,NMAT) 
 implicit none
 
 integer, intent(in) :: a,s
+integer, intent(in) :: NMAT
 
-site_index=a+dimG*(s-1)
+site_index=a+(NMAT*NMAT-1)*(s-1)
 
 end function site_index
 
 !!!!!!!!!!!!!
-integer function link_index(a,l) 
+integer function link_index(a,l,NMAT,num_sites) 
 implicit none
 
 integer, intent(in) :: a,l
+integer, intent(in) :: NMAT,num_sites
 
-link_index=a+dimG*(num_sites + l - 1)
+link_index=a+(NMAT*NMAT-1)*(num_sites + l - 1)
 
 end function link_index
 
 !!!!!!!!!!!!!
-integer function face_index(a,f)
+integer function face_index(a,f,NMAT,num_sites,num_links)
 implicit none
 
 integer, intent(in) :: a,f
+integer, intent(in) :: NMAT,num_sites,num_links
 
-face_index=a+dimG*(num_sites + num_links + f - 1)
+face_index=a+(NMAT*NMAT-1)*(num_sites + num_links + f - 1)
 
 end function face_index
 
@@ -1214,7 +1285,7 @@ implicit none
 
 complex(kind(0d0)), intent(out) :: Ufla(1:NMAT,1:NMAT,1:dimG)
 complex(kind(0d0)), intent(in) :: Uf(1:NMAT,1:NMAT)
-complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_links)
+complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_necessary_links)
 complex(kind(0d0)) :: XMAT(1:NMAT,1:NMAT), YMAT(1:NMAT,1:NMAT)
 integer, intent(in) :: l,f
 
@@ -1368,7 +1439,7 @@ implicit none
 ! 
 complex(kind(0d0)), intent(out) :: diffdiff_Uf(1:NMAT,1:NMAT,1:dimG,1:dimG)
 complex(kind(0d0)), intent(in) :: Uf(1:NMAT,1:NMAT)
-complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_links)
+complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_necessary_links)
 integer, intent(in) :: l_1,l_2,f
 complex(kind(0d0)) :: XMAT(1:NMAT,1:NMAT), YMAT(1:NMAT,1:NMAT), ZMAT(1:NMAT,1:NMAT)
 
@@ -1722,6 +1793,435 @@ endif
 end subroutine tmp_calc_diffdiff_Uf
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! calculate Xmat of
+!!   d(Uf)_{ij}/dA_{l,ab} = X_{ia} Y_{bj}
+subroutine calc_Xmat(Xmat,f,l_place,UMAT)
+implicit none
+
+complex(kind(0d0)), intent(out) :: Xmat(1:NMAT,1:NMAT)
+complex(kind(0d0)), intent(in) :: Umat(1:NMAT,1:NMAT,1:num_necessary_links)
+integer, intent(in) :: f,l_place
+
+if( links_in_f(f)%link_dirs_(l_place) == 1 ) then
+  call calc_prodUl_from_n1_to_n2_in_Uf(Xmat,f,1,l_place-1,Umat)
+else
+  call calc_prodUl_from_n1_to_n2_in_Uf(Xmat,f,1,l_place,Umat)
+endif
+
+end subroutine calc_Xmat
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! calculate Ymat of
+!!   d(Uf)_{ij}/dA_{l,ab} = X_{ia} Y_{bj}
+subroutine calc_Ymat(Ymat,f,l_place,UMAT)
+implicit none
+
+complex(kind(0d0)), intent(out) :: Ymat(1:NMAT,1:NMAT)
+complex(kind(0d0)), intent(in) :: Umat(1:NMAT,1:NMAT,1:num_necessary_links)
+integer, intent(in) :: f,l_place
+
+if( links_in_f(f)%link_dirs_(l_place) == 1 ) then
+  call calc_prodUl_from_n1_to_n2_in_Uf(Ymat,f,l_place,links_in_f(f)%num_,Umat)
+else
+  call calc_prodUl_from_n1_to_n2_in_Uf(Ymat,f,l_place+1,links_in_f(f)%num_,Umat)
+endif
+
+end subroutine calc_Ymat
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! calculate Xmat of
+!!   d(Uf)_{ij}/dA_{l,ab} = X_{ia} Y_{bj}
+subroutine calc_XYmat(Xmat,Ymat,f,l_place,UMAT)
+implicit none
+
+complex(kind(0d0)), intent(out) :: Xmat(1:NMAT,1:NMAT)
+complex(kind(0d0)), intent(out) :: Ymat(1:NMAT,1:NMAT)
+complex(kind(0d0)), intent(in) :: Umat(1:NMAT,1:NMAT,1:num_necessary_links)
+integer, intent(in) :: f,l_place
+
+if( links_in_f(f)%link_dirs_(l_place) == 1 ) then
+  call calc_prodUl_from_n1_to_n2_in_Uf(Xmat,f,1,l_place-1,Umat)
+  call calc_prodUl_from_n1_to_n2_in_Uf(Ymat,f,l_place,links_in_f(f)%num_,Umat)
+else
+  call calc_prodUl_from_n1_to_n2_in_Uf(Xmat,f,1,l_place,Umat)
+  call calc_prodUl_from_n1_to_n2_in_Uf(Ymat,f,l_place+1,links_in_f(f)%num_,Umat)
+endif
+
+end subroutine calc_XYmat
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! calculate 
+!!   d(Xmat_{f,l;ij})/dA_{ll,ab}
+!! where Xmat is defined by
+!!   d(Uf)_{ij}/dA_{l,ab} = X_{ia} Y_{bj}
+subroutine calc_dXdA(dXdA,f,l_place,ll_place,UMAT)
+implicit none
+
+complex(kind(0d0)), intent(out) :: dXdA(1:NMAT,1:NMAT,1:NMAT,1:NMAT)
+complex(kind(0d0)), intent(in) :: Umat(1:NMAT,1:NMAT,1:num_necessary_links)
+integer, intent(in) :: f,l_place,ll_place
+
+integer :: a,b,i,j
+integer :: Ushiro_last, Mae_last
+complex(kind(0d0)) :: dir_factor
+complex(kind(0d0)) :: Mae(1:NMAT,1:NMAT), Ushiro(1:NMAT,1:NMAT)
+
+
+dir_factor=dcmplx(dble(links_in_f(f)%link_dirs_(ll_place)))*(0d0,1d0)
+if( links_in_f(f)%link_dirs_(ll_place) == 1 ) then
+  Mae_last=ll_place-1
+else
+  Mae_last=ll_place
+endif
+
+if( links_in_f(f)%link_dirs_(l_place) == 1 ) then
+  Ushiro_last=l_place-1
+else
+  Ushiro_last=l_place
+endif
+call calc_prodUl_from_n1_to_n2_in_Uf(Mae,f,1,Mae_last,Umat)
+call calc_prodUl_from_n1_to_n2_in_Uf(Ushiro,f,Mae_last+1,Ushiro_last,Umat)
+
+do b=1,NMAT
+  do a=1,NMAT
+    do j=1,NMAT
+      do i=1,NMAT
+        dXdA(i,j,a,b)=dir_factor * Mae(i,b) * Ushiro(a,j)
+      enddo
+    enddo
+  enddo
+enddo
+end subroutine calc_dXdA
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! calculate 
+!!   d(Xmat_{f,l;ij})/dA_{ll,ab} = factor * Mae_{ib} * Ushiro_{aj}
+!! where Xmat is defined by
+!!   d(Uf)_{ij}/dA_{l,ab} = X_{ia} Y_{bj}
+subroutine div_dXdA(Mae,Ushiro,dir_factor,f,l_place,ll_place,UMAT)
+implicit none
+
+complex(kind(0d0)), intent(out) :: Mae(1:NMAT,1:NMAT), Ushiro(1:NMAT,1:NMAT)
+complex(kind(0d0)), intent(out) :: dir_factor
+complex(kind(0d0)), intent(in) :: Umat(1:NMAT,1:NMAT,1:num_necessary_links)
+integer, intent(in) :: f,l_place,ll_place
+
+integer :: Ushiro_last, Mae_last
+
+
+!dir_factor=dcmplx(dble(links_in_f(f)%link_dirs_(ll_place)))*(0d0,1d0)
+if( links_in_f(f)%link_dirs_(ll_place) == 1 ) then
+  Mae_last=ll_place-1
+  dir_factor=(0d0,1d0)
+else
+  Mae_last=ll_place
+  dir_factor=(0d0,-1d0)
+endif
+
+if( links_in_f(f)%link_dirs_(l_place) == 1 ) then
+  Ushiro_last=l_place-1
+else
+  Ushiro_last=l_place
+endif
+call calc_prodUl_from_n1_to_n2_in_Uf(Mae,f,1,Mae_last,Umat)
+call calc_prodUl_from_n1_to_n2_in_Uf(Ushiro,f,Mae_last+1,Ushiro_last,Umat)
+
+end subroutine div_dXdA
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! calculate 
+!!   d(Ymat_{f,l;ij})/dA_{ll,ab}
+!! where Xmat is defined by
+!!   d(Uf)_{ij}/dA_{l,ab} = X_{ia} Y_{bj}
+subroutine calc_dYdA(dYdA,f,l_place,ll_place,UMAT)
+implicit none
+
+complex(kind(0d0)), intent(out) :: dYdA(1:NMAT,1:NMAT,1:NMAT,1:NMAT)
+complex(kind(0d0)), intent(in) :: Umat(1:NMAT,1:NMAT,1:num_necessary_links)
+integer, intent(in) :: f,l_place,ll_place
+
+integer :: a,b,i,j
+integer :: Mae_first, Mae_last
+complex(kind(0d0)) :: dir_factor
+complex(kind(0d0)) :: Mae(1:NMAT,1:NMAT), Ushiro(1:NMAT,1:NMAT)
+
+
+if( links_in_f(f)%link_dirs_(l_place) == 1 ) then
+  Mae_first=l_place
+else
+  Mae_first=l_place+1
+endif
+
+dir_factor=dcmplx(dble(links_in_f(f)%link_dirs_(ll_place)))*(0d0,1d0)
+if( links_in_f(f)%link_dirs_(ll_place) == 1 ) then
+  Mae_last=ll_place-1
+else
+  Mae_last=ll_place
+endif
+
+call calc_prodUl_from_n1_to_n2_in_Uf(Mae,f,Mae_first,Mae_last,Umat)
+call calc_prodUl_from_n1_to_n2_in_Uf(Ushiro,f,Mae_last+1,links_in_f(f)%num_,Umat)
+
+do b=1,NMAT
+  do a=1,NMAT
+    do j=1,NMAT
+      do i=1,NMAT
+        dYdA(i,j,a,b)=dir_factor * Mae(i,b) * Ushiro(a,j)
+      enddo
+    enddo
+  enddo
+enddo
+end subroutine calc_dYdA
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! calculate 
+!!   d(Ymat_{f,l;ij})/dA_{ll,ab} = factor * Mae_{ib} * Ushiro_{aj}
+subroutine div_dYdA(Mae,Ushiro,dir_factor,f,l_place,ll_place,UMAT)
+implicit none
+
+complex(kind(0d0)), intent(out) :: Mae(1:NMAT,1:NMAT), Ushiro(1:NMAT,1:NMAT)
+complex(kind(0d0)), intent(out) :: dir_factor
+complex(kind(0d0)), intent(in) :: Umat(1:NMAT,1:NMAT,1:num_necessary_links)
+integer, intent(in) :: f,l_place,ll_place
+
+integer :: a,b,i,j
+integer :: Mae_last, Mae_first
+
+if( links_in_f(f)%link_dirs_(l_place) == 1 ) then
+  Mae_first=l_place
+else
+  Mae_first=l_place+1
+endif
+
+dir_factor=dcmplx(dble(links_in_f(f)%link_dirs_(ll_place)))*(0d0,1d0)
+if( links_in_f(f)%link_dirs_(ll_place) == 1 ) then
+  Mae_last=ll_place-1
+else
+  Mae_last=ll_place
+endif
+
+call calc_prodUl_from_n1_to_n2_in_Uf(Mae,f,Mae_first,Mae_last,Umat)
+call calc_prodUl_from_n1_to_n2_in_Uf(Ushiro,f,Mae_last+1,links_in_f(f)%num_,Umat)
+
+end subroutine div_dYdA
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! calculate 
+!!   d(Uf_{ij})/dA_{ll,ab}
+subroutine calc_dUfdA(dUfdA,f,ll_place,UMAT)
+implicit none
+
+complex(kind(0d0)), intent(out) :: dUfdA(1:NMAT,1:NMAT,1:NMAT,1:NMAT)
+complex(kind(0d0)), intent(in) :: Umat(1:NMAT,1:NMAT,1:num_necessary_links)
+integer, intent(in) :: f,ll_place
+
+integer :: a,b,i,j
+integer :: Mae_last
+complex(kind(0d0)) :: dir_factor
+complex(kind(0d0)) :: Mae(1:NMAT,1:NMAT), Ushiro(1:NMAT,1:NMAT)
+
+
+dir_factor=dcmplx(dble(links_in_f(f)%link_dirs_(ll_place)))*(0d0,1d0)
+if( links_in_f(f)%link_dirs_(ll_place) == 1 ) then
+  Mae_last=ll_place-1
+else
+  Mae_last=ll_place
+endif
+
+call calc_prodUl_from_n1_to_n2_in_Uf(Mae,f,1,Mae_last,Umat)
+call calc_prodUl_from_n1_to_n2_in_Uf(Ushiro,f,Mae_last+1,links_in_f(f)%num_,Umat)
+
+do b=1,NMAT
+  do a=1,NMAT
+    do j=1,NMAT
+      do i=1,NMAT
+        dUfdA(i,j,a,b)=dir_factor * Mae(i,b) * Ushiro(a,j)
+      enddo
+    enddo
+  enddo
+enddo
+end subroutine calc_dUfdA
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! calculate 
+!!   d(Uf_{ij})/dA_{ll,ab}=dir_factor * Mae_{ib} * Ushiro_{aj}
+subroutine div_dUfdA(Mae,Ushiro,dir_factor,f,ll_place,UMAT)
+implicit none
+
+complex(kind(0d0)), intent(in) :: Umat(1:NMAT,1:NMAT,1:num_necessary_links)
+complex(kind(0d0)), intent(out) :: dir_factor
+complex(kind(0d0)), intent(out) :: Mae(1:NMAT,1:NMAT), Ushiro(1:NMAT,1:NMAT)
+integer, intent(in) :: f,ll_place
+
+integer :: a,b,i,j
+integer :: Mae_last
+
+dir_factor=dcmplx(dble(links_in_f(f)%link_dirs_(ll_place)))*(0d0,1d0)
+if( links_in_f(f)%link_dirs_(ll_place) == 1 ) then
+  Mae_last=ll_place-1
+else
+  Mae_last=ll_place
+endif
+
+call calc_prodUl_from_n1_to_n2_in_Uf(Mae,f,1,Mae_last,Umat)
+call calc_prodUl_from_n1_to_n2_in_Uf(Ushiro,f,Mae_last+1,links_in_f(f)%num_,Umat)
+
+end subroutine div_dUfdA
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! calculate 
+!!   d(Uf_{ij})/dA_{ll,ab}
+subroutine calc_dUfkdA(dUfkdA,k,dUfdA,Uf)
+use matrix_functions, only : matrix_product, matrix_power,matrix_3_product
+implicit none
+
+complex(kind(0d0)), intent(out) :: dUfkdA(1:NMAT,1:NMAT,1:NMAT,1:NMAT)
+complex(kind(0d0)), intent(in) :: dUfdA(1:NMAT,1:NMAT,1:NMAT,1:NMAT)
+complex(kind(0d0)), intent(in) :: Uf(1:NMAT,1:NMAT)
+integer, intent(in) :: k
+
+integer :: a,b,i,j,p
+complex(kind(0d0)) :: Ufp(1:NMAT,1:NMAT), Ufq(1:NMAT,1:NMAT),tmpmat(1:NMAT,1:NMAT)
+
+if( k==1 ) then
+  dUfkdA=dUfdA
+  return
+else
+  dUfkdA=(0d0,0d0)
+  do p=0,k-1
+    if( p /= 0 ) call matrix_power(Ufp,Uf,p)
+    if( p /= k-1 ) call matrix_power(Ufq,Uf,k-p-1)
+    do b=1,NMAT
+      do a=1,NMAT
+        if( p==0 ) then
+          call matrix_product(dUfkdA(:,:,a,b),dUfdA(:,:,a,b),Ufq,&
+            'N','N',(1d0,0d0),'ADD')
+        elseif( p==k-1 ) then
+          call matrix_product(dUfkdA(:,:,a,b),Ufp,dUfdA(:,:,a,b),&
+            'N','N',(1d0,0d0),'ADD')
+        else
+          !call matrix_product(tmpmat,Ufp,dUfdA(:,:,a,b))
+          call matrix_3_product(dUfkdA(:,:,a,b),Ufp,dUfdA(:,:,a,b),Ufq,&
+            'N','N','N',(1d0,0d0),'ADD')
+        endif
+      enddo
+    enddo
+  enddo
+endif
+
+end subroutine calc_dUfkdA
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! calculate 
+!!   d(Omega)/dA 
+subroutine calc_dOmegadA_dCosinvdA(dOmegadA,dCosinvdA,dUfdA,Uf,Omega_mat,Cosinv)
+use matrix_functions, only : matrix_product, matrix_3_product,make_matrix_traceless
+implicit none
+
+complex(kind(0d0)), intent(out) :: dOmegadA(1:NMAT,1:NMAT,1:NMAT,1:NMAT)
+complex(kind(0d0)), intent(out) :: dCosinvdA(1:NMAT,1:NMAT,1:NMAT,1:NMAT)
+complex(kind(0d0)), intent(in) :: dUfdA(1:NMAT,1:NMAT,1:NMAT,1:NMAT)
+complex(kind(0d0)), intent(in) :: Uf(1:NMAT,1:NMAT)
+complex(kind(0d0)), intent(in) :: Omega_mat(1:NMAT,1:NMAT)
+complex(kind(0d0)), intent(in) :: Cosinv(1:NMAT,1:NMAT)
+
+complex(kind(0d0)) :: dUfmdA(1:NMAT,1:NMAT,1:NMAT,1:NMAT)
+complex(kind(0d0)) :: dUfminvdA(1:NMAT,1:NMAT,1:NMAT,1:NMAT)
+complex(kind(0d0)) :: trace
+integer :: a,b,i,j
+
+call calc_dUfkdA(dUfmdA,m_omega,dUfdA,Uf)
+do j=1,NMAT
+  do i=1,NMAT
+    do b=1,NMAT
+      do a=1,NMAT
+        dUfminvdA(i,j,a,b)=dconjg(dUfmdA(j,i,b,a))
+      enddo
+    enddo
+  enddo
+enddo
+!write(*,*) "========"
+!write(*,*) cosinv
+do b=1,NMAT
+  do a=1,NMAT
+    call matrix_product(dOmegadA(:,:,a,b),&
+      (0d0,-2d0)/dcmplx(dble(m_omega))&
+      *(dUfmdA(:,:,a,b)-dUfminvdA(:,:,a,b)), Cosinv)
+
+    call matrix_3_product(dOmegadA(:,:,a,b),&
+      Omega_mat,&
+      dUfmdA(:,:,a,b)+dUfminvdA(:,:,a,b), &
+      Cosinv,'N','N','N', (-1d0,0d0),'ADD')
+
+    call matrix_3_product(dCosinvdA(:,:,a,b),&
+      Cosinv,&
+      -dUfmdA(:,:,a,b)-dUfminvdA(:,:,a,b), &
+      Cosinv)
+
+    if( NMAT > 2 ) then
+      call make_matrix_traceless(dOmegadA(:,:,a,b))
+      !trace=(0d0,0d0)
+      !do i=1,NMAT
+      !  trace=trace+dOmegadA(i,i,a,b)
+      !enddo
+      !if( cdabs(trace) > epsilon ) write(*,*) trace
+
+      !do i=1,NMAT
+      !  dOmegadA(i,i,a,b)=dOmegadA(i,i,a,b)-trace/dcmplx(dble(NMAT))
+      !enddo
+    endif
+  enddo
+enddo
+
+!trace=(0d0,0d0)
+!do j=1,NMAT
+!  do i=1,NMAT
+!    do a=1,NMAT
+!      trace=trace+dCosinvdA(i,j,a,a)
+!    enddo
+!    do a=1,NMAT
+!      dCosinvdA(i,j,a,a)=dCosinvdA(i,j,a,a)-trace/dcmplx(dble(NMAT))
+!    enddo
+!  enddo
+!enddo
+end subroutine calc_dOmegadA_dCosinvdA
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! calculate 
+!!   d(U_l)/d(A_l) in the face f
+!subroutine calc_dUdA_in_Uf(dUdA,f,l_place,UMAT)
+!implicit none
+!
+!complex(kind(0d0)), intent(out) :: dUdA(1:NMAT,1:NMAT,1:NMAT,1:NMAT)
+!complex(kind(0d0)), intent(in) :: Umat(1:NMAT,1:NMAT,1:num_links)
+!integer, intent(in) :: f,l_place
+!
+!integer :: i,j,a,b
+!
+!dUdA=(0d0,0d0)
+!if( links_in_f(f)%link_dirs_(l_place) == 1 ) then
+!  do b=1,NMAT
+!    do j=1,NMAT
+!      do i=1,NMAT
+!        a=i
+!        dUdA(i,j,a,b)=(0d0,1d0)*UMAT(b,j,links_in_f(f)%link_labels_(l_place))
+!      enddo
+!    enddo
+!  enddo
+!else
+!  do b=1,NMAT
+!    j=b
+!    do a=1,NMAT
+!      do i=1,NMAT
+!        dUdA(i,j,a,b)=(0d0,-1d0)*conjg(UMAT(a,i,links_in_f(f)%link_labels_(l_place)))
+!      enddo
+!    enddo
+!  enddo
+!endif
+!end subroutine calc_dUdA_in_Uf
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! calculate Amat used in fermionic action and force
 subroutine calc_Amat(Amat,f,l_label,k,Uf,UMAT)
 use matrix_functions, only : matrix_power,matrix_product
@@ -1730,7 +2230,7 @@ implicit none
 complex(kind(0d0)), intent(out) :: Amat(1:NMAT,1:NMAT)
 integer, intent(in) :: f,l_label,k
 complex(kind(0d0)), intent(in) :: Uf(1:NMAT,1:NMAT)
-complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_links)
+complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_necessary_links)
 
 complex(kind(0d0)):: tmpmat1(1:NMAT,1:NMAT)
 complex(kind(0d0)):: tmpmat2(1:NMAT,1:NMAT)
@@ -1771,7 +2271,7 @@ implicit none
 complex(kind(0d0)), intent(out) :: Bmat(1:NMAT,1:NMAT)
 integer, intent(in) :: f,l_label,k
 complex(kind(0d0)), intent(in) :: Uf(1:NMAT,1:NMAT)
-complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_links)
+complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_necessary_links)
 
 complex(kind(0d0)):: tmpmat1(1:NMAT,1:NMAT)
 complex(kind(0d0)):: tmpmat2(1:NMAT,1:NMAT)
@@ -1820,13 +2320,13 @@ integer :: i,j
 do i=1,NMAT
   do j=1,i
     if (i==j) then
-      sinU(i,i)=Ufm(i,i) - conjg(Ufm(i,i))
-      cosUinv(i,i)=Ufm(i,i) + conjg(Ufm(i,i))
+      sinU(i,i)=Ufm(i,i) - dconjg(Ufm(i,i))
+      cosUinv(i,i)=Ufm(i,i) + dconjg(Ufm(i,i))
     else
-      sinU(i,j)=Ufm(i,j) - conjg(Ufm(j,i))
-      sinU(j,i)=Ufm(j,i) - conjg(Ufm(i,j))
-      cosUinv(i,j)=Ufm(i,j) + conjg(Ufm(j,i))
-      cosUinv(j,i)=Ufm(j,i) + conjg(Ufm(i,j))
+      sinU(i,j)=Ufm(i,j) - dconjg(Ufm(j,i))
+      sinU(j,i)=Ufm(j,i) - dconjg(Ufm(i,j))
+      cosUinv(i,j)=Ufm(i,j) + dconjg(Ufm(j,i))
+      cosUinv(j,i)=Ufm(j,i) + dconjg(Ufm(i,j))
     endif 
   enddo
 enddo
@@ -1845,7 +2345,7 @@ implicit none
 complex(kind(0d0)), intent(out) :: dSinUdA(1:NMAT,1:NMAT,1:NMAT,1:NMAT)
 !complex(kind(0d0)), intent(in) :: sinU(1:NMAT,1:NMAT)
 complex(kind(0d0)), intent(in) :: Uf(1:NMAT,1:NMAT)
-complex(kind(0d0)), intent(in) :: UMat(1:NMAT,1:NMAT,1:num_links)
+complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_necessary_links)
 integer, intent(in) :: f,ll_label
 
 complex(kind(0d0)) :: Amat(1:NMAT,1:NMAT)
@@ -1869,7 +2369,7 @@ do jj=1,NMAT
   enddo
 enddo
 
-dSinUdA=dSinUdA * cmplx(dble(links_in_f(f)%link_dirs_(ll_label)))*(0d0,1d0)
+dSinUdA=dSinUdA * dcmplx(dble(links_in_f(f)%link_dirs_(ll_label)))*(0d0,1d0)
 
 end subroutine calc_dSinUdA
 
@@ -1890,7 +2390,7 @@ complex(kind(0d0)), intent(out) :: dSinUdA(1:NMAT,1:NMAT,1:NMAT,1:NMAT)
 !complex(kind(0d0)), intent(in) :: sinU(1:NMAT,1:NMAT)
 complex(kind(0d0)), intent(in) :: cosUinv(1:NMAT,1:NMAT)
 complex(kind(0d0)), intent(in) :: Uf(1:NMAT,1:NMAT)
-complex(kind(0d0)), intent(in) :: UMat(1:NMAT,1:NMAT,1:num_links)
+complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_necessary_links)
 integer, intent(in) :: f,ll_label
 
 complex(kind(0d0)) :: Amat(1:NMAT,1:NMAT)
@@ -1930,7 +2430,7 @@ do k=1,m_omega
   enddo
 enddo
 
-factor=cmplx(dble(links_in_f(f)%link_dirs_(ll_label)))*(0d0,1d0)
+factor=dcmplx(dble(links_in_f(f)%link_dirs_(ll_label)))*(0d0,1d0)
 dCosUinvdA=dCosUinvdA*(-factor)
 dSinUdA=dSinUdA * factor
 
@@ -1948,7 +2448,7 @@ implicit none
 complex(kind(0d0)), intent(out) :: dAmatdA(1:NMAT,1:NMAT,1:NMAT,1:NMAT)
 complex(kind(0d0)), intent(out) :: dBmatdA(1:NMAT,1:NMAT,1:NMAT,1:NMAT)
 complex(kind(0d0)), intent(in) :: Uf(1:NMAT,1:NMAT)
-complex(kind(0d0)), intent(in) :: UMat(1:NMAT,1:NMAT,1:num_links)
+complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_necessary_links)
 integer, intent(in) :: f,ll_label,l_label,k
 
 complex(kind(0d0)) :: UU_initial_to_ll(1:NMAT,1:NMAT) ! 1..ll
@@ -1968,7 +2468,7 @@ integer :: i,j,ii,jj,kk
 
 dAmatdA=(0d0,0d0)
 dBmatdA=(0d0,0d0)
-epsilon_r=cmplx(dble( links_in_f(f)%link_dirs_(ll_label) ))*(0d0,1d0)
+epsilon_r=dcmplx(dble( links_in_f(f)%link_dirs_(ll_label) ))*(0d0,1d0)
 
 n=links_in_f(f)%num_
 !!!!!!!!!!!!!!
@@ -2145,38 +2645,47 @@ endif
 end subroutine calc_dABmatdA
 
 
-
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!
 subroutine vec_to_mat(eta,lambda,chi,vec)
 use SUN_generators, only : make_traceless_matrix_from_modes
 implicit none
 
-complex(kind(0d0)), intent(out) :: eta(1:NMAT,1:NMAT,1:num_sites)
-complex(kind(0d0)), intent(out) :: lambda(1:NMAT,1:NMAT,1:num_links)
-complex(kind(0d0)), intent(out) :: chi(1:NMAT,1:NMAT,1:num_faces)
-complex(kind(0d0)), intent(in) :: vec(1:sizeD)
+complex(kind(0d0)), intent(out) :: eta(:,:,:)
+complex(kind(0d0)), intent(out) :: lambda(:,:,:)
+complex(kind(0d0)), intent(out) :: chi(:,:,:)
+complex(kind(0d0)), intent(in) :: vec(:)
 
-complex(kind(0d0)) :: ele(1:dimG)
+complex(kind(0d0)), allocatable :: ele(:)
 integer :: s,l,f,a
+integer :: dimG,sizeD,NMAT,num_sites,num_links,num_faces
+
+NMAT=size(eta,1)
+num_sites=size(eta,3)
+num_links=size(lambda,3)
+num_faces=size(chi,3)
+sizeD=size(vec,1)
+dimG=NMAT*NMAT-1
+
+allocate( ele(1:dimG) )
 
 do s=1,num_sites
   do a=1,dimG
-    ele(a)=vec(site_index(a,s))
+    ele(a)=vec(site_index(a,s,NMAT))
   enddo
   call make_traceless_matrix_from_modes(eta(:,:,s),NMAT,ele)
 enddo
 
 do l=1,num_links
   do a=1,dimG
-    ele(a)=vec(link_index(a,l))
+    ele(a)=vec(link_index(a,l,NMAT,num_sites))
   enddo
   call make_traceless_matrix_from_modes(lambda(:,:,l),NMAT,ele)
 enddo
 
 do f=1,num_faces
   do a=1,dimG
-    ele(a)=vec(face_index(a,f))
+    ele(a)=vec(face_index(a,f,NMAT,num_sites,num_links))
   enddo
   call make_traceless_matrix_from_modes(chi(:,:,f),NMAT,ele)
 enddo
@@ -2184,38 +2693,195 @@ enddo
 end subroutine vec_to_mat
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!  map from global vector to local matrices (eta,lambda,chi)
+!!  global vector must be defined in all the rank
+#ifdef PARALLEL
+subroutine globalvec_to_localmat(eta,lambda,chi,vec)
+use SUN_generators, only : make_traceless_matrix_from_modes
+use parallel
+implicit none
+
+complex(kind(0d0)), intent(out) :: eta(1:NMAT,1:NMAT,1:num_necessary_sites)
+complex(kind(0d0)), intent(out) :: lambda(1:NMAT,1:NMAT,1:num_necessary_links)
+complex(kind(0d0)), intent(out) :: chi(1:NMAT,1:NMAT,1:num_necessary_faces)
+complex(kind(0d0)), intent(in) :: vec(:)
+
+complex(kind(0d0)), allocatable :: ele(:)
+integer :: s,l,f,a
+integer :: dimG,sizeD
+
+!NMAT=size(eta,1)
+!num_sites=size(eta,3)
+!num_links=size(lambda,3)
+!num_faces=size(chi,3)
+sizeD=size(vec,1)
+dimG=NMAT*NMAT-1
+
+allocate( ele(1:dimG) )
+
+do s=1,num_necessary_sites
+  do a=1,dimG
+    ele(a)=vec(site_index(a,global_site_of_local(s),NMAT))
+  enddo
+  call make_traceless_matrix_from_modes(eta(:,:,s),NMAT,ele)
+enddo
+
+do l=1,num_necessary_links
+  do a=1,dimG
+    ele(a)=vec(link_index(a,global_link_of_local(l),NMAT,global_num_sites))
+  enddo
+  call make_traceless_matrix_from_modes(lambda(:,:,l),NMAT,ele)
+enddo
+
+do f=1,num_necessary_faces
+  do a=1,dimG
+    ele(a)=vec(face_index(a,global_face_of_local(f),NMAT,global_num_sites,global_num_links))
+  enddo
+  call make_traceless_matrix_from_modes(chi(:,:,f),NMAT,ele)
+enddo
+end subroutine globalvec_to_localmat
+#endif
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!
 subroutine mat_to_vec(vec,eta,lambda,chi)
 use SUN_generators, only : trace_MTa
 implicit none
 
-complex(kind(0d0)), intent(in) :: eta(1:NMAT,1:NMAT,1:num_sites)
-complex(kind(0d0)), intent(in) :: lambda(1:NMAT,1:NMAT,1:num_links)
-complex(kind(0d0)), intent(in) :: chi(1:NMAT,1:NMAT,1:num_faces)
-complex(kind(0d0)), intent(out) :: vec(1:sizeD)
+!complex(kind(0d0)), intent(in) :: eta(1:NMAT,1:NMAT,1:num_sites)
+!complex(kind(0d0)), intent(in) :: lambda(1:NMAT,1:NMAT,1:num_links)
+!complex(kind(0d0)), intent(in) :: chi(1:NMAT,1:NMAT,1:num_faces)
+!complex(kind(0d0)), intent(out) :: vec(1:sizeD)
+complex(kind(0d0)), intent(in) :: eta(:,:,:)
+complex(kind(0d0)), intent(in) :: lambda(:,:,:)
+complex(kind(0d0)), intent(in) :: chi(:,:,:)
+complex(kind(0d0)), intent(out) :: vec(:)
 
 complex(kind(0d0)) :: trace
 integer :: s,l,f,a
+integer :: dimG,sizeD,NMAT,num_sites,num_links,num_faces
 
+NMAT=size(eta,1)
+num_sites=size(eta,3)
+num_links=size(lambda,3)
+num_faces=size(chi,3)
+sizeD=size(vec,1)
+dimG=NMAT*NMAT-1
+
+vec=(0d0,0d0)
 do s=1,num_sites
   do a=1,dimG
     call trace_MTa(trace,eta(:,:,s),a,NMAT)
-    vec(site_index(a,s))=vec(site_index(a,s))+trace
+    vec(site_index(a,s,NMAT))=vec(site_index(a,s,NMAT))+trace
   enddo
 enddo
 do l=1,num_links
   do a=1,dimG
     call trace_MTa(trace,lambda(:,:,l),a,NMAT)
-    vec(link_index(a,l))=vec(link_index(a,l))+trace
+    vec(link_index(a,l,NMAT,num_sites))=vec(link_index(a,l,NMAT,num_sites))+trace
   enddo
 enddo
 do f=1,num_faces
   do a=1,dimG
     call trace_MTa(trace,chi(:,:,f),a,NMAT)
-    vec(face_index(a,f))=vec(face_index(a,f))+trace
+    vec(face_index(a,f,NMAT,num_sites,num_links))=vec(face_index(a,f,NMAT,num_sites,num_links))+trace
   enddo
 enddo
 end subroutine mat_to_vec
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!
+#ifdef PARALLEL
+subroutine localmat_to_globalvec(vec,eta,lambda,chi)
+use parallel
+use SUN_generators, only : trace_MTa
+implicit none
+
+complex(kind(0d0)), intent(in) :: eta(1:NMAT,1:NMAT,1:num_sites) !ここは"num_necessary_sites"ではなく、"num_sites"でよい。
+complex(kind(0d0)), intent(in) :: lambda(1:NMAT,1:NMAT,1:num_links)
+complex(kind(0d0)), intent(in) :: chi(1:NMAT,1:NMAT,1:num_faces)
+complex(kind(0d0)), intent(out) :: vec(:)
+
+complex(kind(0d0)) :: trace,tmp
+integer :: s,l,f,a
+integer :: dimG,sizeD!NMAT!,num_sites,num_links,num_faces
+integer :: tag,rank,local
+
+!NMAT=size(eta,1)
+!num_sites=size(eta,3)
+!num_links=size(lambda,3)
+!num_faces=size(chi,3)
+!sizeD=size(vec,1)
+dimG=NMAT*NMAT-1
+
+vec=(0d0,0d0)
+! global siteをスキャンし、対応するlocal siteを自分が持っていたら
+! vectorを計算して、rank0に送る
+do s=1,global_num_sites
+  rank = local_site_of_global(s)%rank_ 
+  local = local_site_of_global(s)%label_ 
+  do a=1,dimG
+    tag=dimG*(s-1)+a
+    if( MYRANK == rank ) then
+      call trace_MTa(trace,eta(:,:,local),a,NMAT)
+      if( MYRANK==0 ) then
+        vec(site_index(a,s,NMAT))=vec(site_index(a,s,NMAT))+trace
+      else
+        !write(*,*) tag,"send from",myrank,"to 0"
+        call MPI_SEND(trace,1,MPI_DOUBLE_COMPLEX,0,tag,MPI_COMM_WORLD,IERR)
+      endif
+    elseif( MYRANK == 0 ) then
+        !write(*,*) tag,"receiv from",rank
+      call MPI_RECV(tmp,1,MPI_DOUBLE_COMPLEX, rank,tag,MPI_COMM_WORLD,ISTATUS,IERR)
+      vec(site_index(a,s,NMAT))=vec(site_index(a,s,NMAT))+tmp
+      !write(*,*) "site",s,"from rank",rank,"whose",local
+    endif
+  enddo
+enddo
+
+do l=1,global_num_links
+  rank = local_link_of_global(l)%rank_ 
+  local = local_link_of_global(l)%label_ 
+  do a=1,dimG
+    tag=dimG*(l+global_num_sites)+a
+    if( MYRANK == rank ) then
+      call trace_MTa(trace,lambda(:,:,local),a,NMAT)
+      if( MYRANK == 0 ) then
+        vec(link_index(a,l,NMAT,global_num_sites))&
+          =vec(link_index(a,l,NMAT,global_num_sites))+trace
+      else
+        call MPI_SEND(trace,1,MPI_DOUBLE_COMPLEX,0,tag,MPI_COMM_WORLD,IERR)
+      endif
+    elseif( MYRANK == 0 ) then
+      call MPI_RECV(trace,1,MPI_DOUBLE_COMPLEX,rank,tag,MPI_COMM_WORLD,ISTATUS,IERR)
+      vec(link_index(a,l,NMAT,global_num_sites))&
+        =vec(link_index(a,l,NMAT,global_num_sites))+trace
+    endif
+  enddo
+enddo
+
+do f=1,global_num_faces
+  rank = local_face_of_global(f)%rank_ 
+  local = local_face_of_global(f)%label_ 
+  do a=1,dimG
+    tag=dimG*(f+global_num_sites+global_num_links)+a
+    if( MYRANK == rank ) then
+      call trace_MTa(trace,chi(:,:,local),a,NMAT)
+      if( MYRANK == 0 ) then
+        vec(face_index(a,f,NMAT,global_num_sites,global_num_links))=vec(face_index(a,f,NMAT,global_num_sites,global_num_links))+trace
+      else
+        call MPI_SEND(trace,1,MPI_DOUBLE_COMPLEX,0,tag,MPI_COMM_WORLD,IERR)
+      endif
+    elseif( MYRANK == 0 ) then
+      call MPI_RECV(trace,1,MPI_DOUBLE_COMPLEX,rank,tag,MPI_COMM_WORLD,ISTATUS,IERR)
+      vec(face_index(a,f,NMAT,global_num_sites,global_num_links))&
+        =vec(face_index(a,f,NMAT,global_num_sites,global_num_links))+trace
+    endif
+  enddo
+enddo
+end subroutine localmat_to_globalvec
+#endif
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! check distance from 1 of Uf
@@ -2224,7 +2890,7 @@ use global_parameters
 use matrix_functions, only : matrix_norm, make_unit_matrix
 implicit none
 
-complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_links)
+complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_necessary_links)
 integer, intent(out) :: info
 double precision, intent(out) :: ratio
 double precision :: distance,tmp
@@ -2263,9 +2929,370 @@ implicit none
 complex(kind(0d0)), intent(in) :: z
 complex(kind(0d0)) :: phase
 
-phase = z / cmplx( abs(z) )
+phase = z / dcmplx( abs(z) )
 arg=atan2( dble((0d0,-1d0)*phase), dble(phase) )
 
 end function arg
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! 必要な変数を通信するsubroutine
+#ifdef PARALLEL
+subroutine syncronize_bosons(UMAT,Phimat)
+use parallel
+complex(kind(0d0)), intent(inout) :: UMAT(1:NMAT,1:NMAT,1:num_necessary_links)
+complex(kind(0d0)), intent(inout) :: PHIMAT(1:NMAT,1:NMAT,1:num_necessary_sites)
+
+integer :: s_send,l_send
+integer :: s_recv,l_recv
+integer :: local, rank, tag
+integer, allocatable :: ISEND(:), IRECV(:) ! for MPI_WAIT 
+
+!!!!!!!!
+allocate(ISEND(1:num_send_sites))
+allocate(IRECV(1:num_recv_sites))
+do s_send=1,num_send_sites
+  local=send_sites(s_send)%label_
+  rank=send_sites(s_send)%rank_
+  tag=10000*rank + global_site_of_local(local)
+
+  call MPI_ISEND(PhiMat(:,:,local),NMAT*NMAT,MPI_DOUBLE_COMPLEX,rank,tag,MPI_COMM_WORLD,ISEND(s_send),IERR)
+enddo
+
+do s_recv=1,num_recv_sites
+  local=recv_sites(s_recv)%label_
+  rank=recv_sites(s_recv)%rank_
+  tag=10000*MYRANK + global_site_of_local(local)
+
+  call MPI_IRECV(PhiMat(:,:,local),NMAT*NMAT,MPI_DOUBLE_COMPLEX,rank,tag,MPI_COMM_WORLD,IRECV(s_recv),IERR)
+enddo
+
+do s_send=1,num_send_sites
+  call MPI_WAIT(ISEND(s_send),ISTATUS,IERR)
+enddo
+do s_recv=1,num_recv_sites
+  call MPI_WAIT(IRECV(s_recv),ISTATUS,IERR)
+enddo
+
+deallocate(ISEND, IRECV)
+
+!!!!!!!!
+allocate(ISEND(1:num_send_links))
+allocate(IRECV(1:num_recv_links))
+do l_send=1,num_send_links
+  local=send_links(l_send)%label_
+  rank=send_links(l_send)%rank_
+  tag=10000*rank + global_link_of_local(local)
+
+  call MPI_ISEND(UMat(:,:,local),NMAT*NMAT,MPI_DOUBLE_COMPLEX,rank,tag,MPI_COMM_WORLD,ISEND(l_send),IERR)
+enddo
+
+do l_recv=1,num_recv_links
+  local=recv_links(l_recv)%label_
+  rank=recv_links(l_recv)%rank_
+  tag=10000*MYRANK + global_link_of_local(local)
+
+  call MPI_IRECV(UMat(:,:,local),NMAT*NMAT,MPI_DOUBLE_COMPLEX,rank,tag,MPI_COMM_WORLD,IRECV(l_recv),IERR)
+enddo
+
+do l_send=1,num_send_links
+  call MPI_WAIT(ISEND(l_send),ISTATUS,IERR)
+enddo
+do l_recv=1,num_recv_links
+  call MPI_WAIT(IRECV(l_recv),ISTATUS,IERR)
+enddo
+
+end subroutine syncronize_bosons
+#endif
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! 必要なサイト変数を通信するsubroutine
+#ifdef PARALLEL
+subroutine syncronize_sites(eta)
+use parallel
+complex(kind(0d0)), intent(inout) :: eta(1:NMAT,1:NMAT,1:num_necessary_sites)
+
+integer :: s_send
+integer :: s_recv
+integer :: local, rank, tag
+integer, allocatable :: ISEND(:), IRECV(:) ! for MPI_WAIT 
+
+!!!!!!!!
+allocate(ISEND(1:num_send_sites))
+allocate(IRECV(1:num_recv_sites))
+do s_send=1,num_send_sites
+  local=send_sites(s_send)%label_
+  rank=send_sites(s_send)%rank_
+  tag=10000*rank + global_site_of_local(local)
+
+  call MPI_ISEND(eta(:,:,local),NMAT*NMAT,MPI_DOUBLE_COMPLEX,rank,tag,MPI_COMM_WORLD,ISEND(s_send),IERR)
+enddo
+
+do s_recv=1,num_recv_sites
+  local=recv_sites(s_recv)%label_
+  rank=recv_sites(s_recv)%rank_
+  tag=10000*MYRANK + global_site_of_local(local)
+
+  call MPI_IRECV(eta(:,:,local),NMAT*NMAT,MPI_DOUBLE_COMPLEX,rank,tag,MPI_COMM_WORLD,IRECV(s_recv),IERR)
+enddo
+
+do s_send=1,num_send_sites
+  call MPI_WAIT(ISEND(s_send),ISTATUS,IERR)
+enddo
+do s_recv=1,num_recv_sites
+  call MPI_WAIT(IRECV(s_recv),ISTATUS,IERR)
+enddo
+
+deallocate(ISEND, IRECV)
+end subroutine syncronize_sites
+#endif
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! 必要なlink変数を通信するsubroutine
+#ifdef PARALLEL
+subroutine syncronize_links(lambda)
+use parallel
+complex(kind(0d0)), intent(inout) :: lambda(1:NMAT,1:NMAT,1:num_necessary_links)
+
+integer :: s_send
+integer :: s_recv
+integer :: local, rank, tag
+integer, allocatable :: ISEND(:), IRECV(:) ! for MPI_WAIT 
+
+!!!!!!!!
+allocate(ISEND(1:num_send_links))
+allocate(IRECV(1:num_recv_links))
+do s_send=1,num_send_links
+  local=send_links(s_send)%label_
+  rank=send_links(s_send)%rank_
+  tag=10000*rank + global_link_of_local(local)
+
+  call MPI_ISEND(lambda(:,:,local),NMAT*NMAT,MPI_DOUBLE_COMPLEX,rank,tag,MPI_COMM_WORLD,ISEND(s_send),IERR)
+enddo
+
+do s_recv=1,num_recv_links
+  local=recv_links(s_recv)%label_
+  rank=recv_links(s_recv)%rank_
+  tag=10000*MYRANK + global_link_of_local(local)
+
+  call MPI_IRECV(lambda(:,:,local),NMAT*NMAT,MPI_DOUBLE_COMPLEX,rank,tag,MPI_COMM_WORLD,IRECV(s_recv),IERR)
+enddo
+
+do s_send=1,num_send_links
+  call MPI_WAIT(ISEND(s_send),ISTATUS,IERR)
+enddo
+do s_recv=1,num_recv_links
+  call MPI_WAIT(IRECV(s_recv),ISTATUS,IERR)
+enddo
+
+deallocate(ISEND, IRECV)
+end subroutine syncronize_links
+#endif
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! 必要なface変数を通信するsubroutine
+#ifdef PARALLEL
+subroutine syncronize_faces(chi)
+use parallel
+complex(kind(0d0)), intent(inout) :: chi(1:NMAT,1:NMAT,1:num_necessary_faces)
+
+integer :: s_send
+integer :: s_recv
+integer :: local, rank, tag
+integer, allocatable :: ISEND(:), IRECV(:) ! for MPI_WAIT 
+
+!!!!!!!!
+allocate(ISEND(1:num_send_faces))
+allocate(IRECV(1:num_recv_faces))
+do s_send=1,num_send_faces
+  local=send_faces(s_send)%label_
+  rank=send_faces(s_send)%rank_
+  tag=10000*rank + global_face_of_local(local)
+
+  call MPI_ISEND(chi(:,:,local),NMAT*NMAT,MPI_DOUBLE_COMPLEX,rank,tag,MPI_COMM_WORLD,ISEND(s_send),IERR)
+enddo
+
+do s_recv=1,num_recv_faces
+  local=recv_faces(s_recv)%label_
+  rank=recv_faces(s_recv)%rank_
+  tag=10000*MYRANK + global_face_of_local(local)
+
+  call MPI_IRECV(chi(:,:,local),NMAT*NMAT,MPI_DOUBLE_COMPLEX,rank,tag,MPI_COMM_WORLD,IRECV(s_recv),IERR)
+enddo
+
+do s_send=1,num_send_faces
+  call MPI_WAIT(ISEND(s_send),ISTATUS,IERR)
+enddo
+do s_recv=1,num_recv_faces
+  call MPI_WAIT(IRECV(s_recv),ISTATUS,IERR)
+enddo
+
+deallocate(ISEND, IRECV)
+end subroutine syncronize_faces
+#endif
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!! サイト変数の絶対値の和を吐き出す関数
+double precision function site_abs(siteval)
+#ifdef PRRALLEL
+use parallel
+#endif
+implicit none
+complex(kind(0d0)), intent(in) :: siteval(1:NMAT,1:NMAT,1:num_sites)
+complex(kind(0d0)) :: tmp, tmp2
+integer :: s,i,j
+
+
+tmp=(0d0,0d0)
+tmp2=(0d0,0d0)
+do s=1,num_sites
+  do i=1,NMAT
+    do j=1,NMAT
+      tmp2=tmp2+siteval(i,j,s)*dconjg(siteval(i,j,s))
+    enddo
+  enddo
+enddo
+call MPI_REDUCE(tmp2,tmp,1,MPI_DOUBLE_COMPLEX, &
+  MPI_SUM,0,MPI_COMM_WORLD,IERR)
+
+site_abs=dble(tmp)
+
+end function site_abs
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!! リンク変数の絶対値の和を吐き出す関数
+double precision function link_abs(linkval)
+#ifdef PRRALLEL
+use parallel
+#endif
+implicit none
+complex(kind(0d0)), intent(in) :: linkval(1:NMAT,1:NMAT,1:num_links)
+complex(kind(0d0)) :: tmp, tmp2
+integer :: s,i,j
+
+
+tmp=(0d0,0d0)
+tmp2=(0d0,0d0)
+do s=1,num_links
+  do i=1,NMAT
+    do j=1,NMAT
+      tmp2=tmp2+linkval(i,j,s)*dconjg(linkval(i,j,s))
+    enddo
+  enddo
+enddo
+call MPI_REDUCE(tmp2,tmp,1,MPI_DOUBLE_COMPLEX, &
+  MPI_SUM,0,MPI_COMM_WORLD,IERR)
+
+link_abs=dble(tmp)
+
+end function link_abs
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!! フェイス変数の絶対値の和を吐き出す関数
+double precision function face_abs(faceval)
+#ifdef PRRALLEL
+use parallel
+#endif
+implicit none
+complex(kind(0d0)), intent(in) :: faceval(1:NMAT,1:NMAT,1:num_faces)
+complex(kind(0d0)) :: tmp, tmp2
+integer :: s,i,j
+
+
+tmp=(0d0,0d0)
+tmp2=(0d0,0d0)
+do s=1,num_faces
+  do i=1,NMAT
+    do j=1,NMAT
+      tmp2=tmp2+faceval(i,j,s)*dconjg(faceval(i,j,s))
+    enddo
+  enddo
+enddo
+call MPI_REDUCE(tmp2,tmp,1,MPI_DOUBLE_COMPLEX, &
+  MPI_SUM,0,MPI_COMM_WORLD,IERR)
+
+face_abs=dble(tmp)
+
+end function face_abs
+
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!! 必要なサイト変数を通信するsubroutine
+!#ifdef PARALLEL
+!subroutine syncronize_ab(alpha,C)
+!use parallel
+!complex(kind(0d0)), intent(inout) :: alpha(:)
+!character, intent(in) :: C
+!
+!integer :: num_send, num_recv
+!integer :: s_send
+!integer :: s_recv
+!integer :: local, rank, tag
+!integer, allocatable :: ISEND(:), IRECV(:) ! for MPI_WAIT 
+!
+!!!!!!!!!
+!
+!if( C=='S' ) then 
+!  num_send=num_send_sites
+!  num_recv=num_recv_sites
+!elseif( C=='L' ) then 
+!  num_send=num_send_links
+!  num_recv=num_recv_links
+!elseif( C=='F' ) then 
+!  num_send=num_send_faces
+!  num_recv=num_recv_faces
+!endif
+!
+!allocate(ISEND(1:num_send))
+!allocate(IRECV(1:num_recv))
+!do s_send=1,num_send
+!  if( C=='S' ) then
+!    local=send_sites(s_send)%label_
+!    rank=send_sites(s_send)%rank_
+!    tag=10000*rank + global_site_of_local(local)
+!  elseif( C=='L' ) then
+!    local=send_links(s_send)%label_
+!    rank=send_links(s_send)%rank_
+!    tag=10000*rank + global_link_of_local(local)
+!  elseif( C=='F' ) then
+!    local=send_faces(s_send)%label_
+!    rank=send_faces(s_send)%rank_
+!    tag=10000*rank + global_face_of_local(local)
+!  endif
+!
+!  call MPI_ISEND(alpha(local),1,MPI_DOUBLE_PRECISION,rank,tag,MPI_COMM_WORLD,ISEND(s_send),IERR)
+!enddo
+!
+!do s_recv=1,num_recv
+!  if( C=='S' ) then
+!    local=recv_sites(s_recv)%label_
+!    rank=recv_sites(s_recv)%rank_
+!    tag=10000*MYRANK + global_site_of_local(local)
+!  elseif( C=='L' ) then
+!    local=recv_links(s_recv)%label_
+!    rank=recv_links(s_recv)%rank_
+!    tag=10000*MYRANK + global_link_of_local(local)
+!  elseif( C=='F' ) then
+!    local=recv_faces(s_recv)%label_
+!    rank=recv_faces(s_recv)%rank_
+!    tag=10000*MYRANK + global_face_of_local(local)
+!  endif
+!
+!  call MPI_IRECV(alpha(local),1,MPI_DOUBLE_PRECISION,rank,tag,MPI_COMM_WORLD,IRECV(s_recv),IERR)
+!enddo
+!
+!do s_send=1,num_send
+!  call MPI_WAIT(ISEND(s_send),ISTATUS,IERR)
+!enddo
+!do s_recv=1,num_recv
+!  call MPI_WAIT(IRECV(s_recv),ISTATUS,IERR)
+!enddo
+!
+!deallocate(ISEND, IRECV)
+!end subroutine syncronize_ab
+!#endif
 
 end module global_subroutines

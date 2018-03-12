@@ -229,14 +229,14 @@ elseif( m==0 ) then
 elseif( m==1 ) then
   do i=1,NMAT
     do j=1,NMAT
-      pMAT(i,j)=conjg(MAT(j,i))
+      pMAT(i,j)=dconjg(MAT(j,i))
     enddo
   enddo
   return
 else
   do i=1,NMAT
     do j=1,NMAT
-      pMAT(i,j)=conjg(MAT(j,i))
+      pMAT(i,j)=dconjg(MAT(j,i))
     enddo
   enddo
   do i=2,m
@@ -366,15 +366,16 @@ END SUBROUTINE HermitianMatrix_Inverse
 !***********************************************************
 !***********************************************************
 ! output -> (MAT)^{-1}
-SUBROUTINE Matrix_Determinant(Det,MAT)
+SUBROUTINE Matrix_Determinant(logDet,argDet,MAT)
 implicit none
 
 double precision, parameter :: PI=dacos(-1d0)
-complex(kind(0d0)), intent(inout) :: Det
+double precision, intent(out) :: logDet
+complex(kind(0d0)), intent(out) :: argDet
 complex(kind(0d0)), intent(in) ::  MAT(:,:)
 integer ::  MatSize
+double precision :: phase
 
-double precision :: logr,phase
 
 integer i,j,k
 !lapack
@@ -395,14 +396,14 @@ lwork=2*MatSize
 
 
 call ZGEEV(jobvl,jobvr,MatSize,MAT,lda,w,vl,ldvl,vr,ldvr,work,lwork,rwork,info)
-logr=0d0
+logDet=0d0
 phase=0d0
 do i=1,MatSize
     !write(*,*) i,w(i)
   !logr = logr + 0.5d0 * dlog( dble( w(i) * dconjg(w(i)) ) )
   !phase = phase + datan( dble(w(i))/dble( (0d0,-1d0)*w(i) ) ) 
-  logr = logr + log( abs(w(i)) ) 
-  phase = phase + atan2( dble((0d0,-1d0)*w(i)), dble(w(i)) )  
+  logdet = logDet + dlog( cdabs(w(i)) ) 
+  phase = phase + datan2( dble((0d0,-1d0)*w(i)), dble(w(i)) )  
   !if ( phase >= 2*PI ) then 
     !phase = phase - 2*PI
   !elseif (phase < 0) then 
@@ -410,7 +411,7 @@ do i=1,MatSize
   !endif 
 enddo
 
-Det=cmplx( exp(logr) ) * ( cmplx( cos(phase) ) + (0d0,1d0)*cmplx( sin(phase) ) )
+argDet = dcmplx( dcos(phase) ) + (0d0,1d0)*dcmplx( dsin(phase) ) 
 
 !Det= dcmplx(dexp(logr) * dcos(phase)) &
     !+ (0d0,1d0) * dcmplx(dexp(logr) * dsin(phase))
@@ -419,18 +420,24 @@ end subroutine Matrix_Determinant
 
 !***********************************************************
 !***********************************************************
-! prod = MAT1.MAT2
-!  the size of comm, MAT1 and MAT2 must be the same
-!  conj1 and conj2 are optional and 
+! prod = alpha*MAT1.MAT2 
+!  or
+! prod = alpha*MAT1.MAT2 + prod  with ADD=A
+!  * the size of comm, MAT1 and MAT2 must be the same.
+!  * beta is potional and the default is (0d0,0d0) 
+!  * conj1 and conj2 are optional and 
 !    conj1 = N or C or T (default: N)
 !    conj2 = N or C or T (default: N)
-SUBROUTINE Matrix_Product(prod,MAT1,MAT2,char1,char2)
+SUBROUTINE Matrix_Product(prod,MAT1,MAT2,char1,char2,alpha_input,ADD)
 implicit none
 
 complex(kind(0d0)), intent(in) :: MAT1(:,:), MAT2(:,:)
 complex(kind(0d0)), intent(inout) :: prod(:,:)
 character, optional :: char1,char2
-character :: C1,C2 
+character(3), optional :: ADD
+complex(kind(0d0)), optional :: alpha_input
+character :: C1,C2
+complex(kind(0d0)) :: beta,alpha
 
 integer :: NMAT
 
@@ -448,23 +455,47 @@ else
   C2='N'
 endif
 
-call ZGEMM(C1,C2,NMAT,NMAT,NMAT,(1d0,0d0), &
+alpha=(1d0,0d0)
+beta=(0d0,0d0)
+if (present(alpha_input)) then
+  alpha=alpha_input
+endif
+
+if (present(ADD)) then
+  if( ADD == 'ADD' .or. ADD == 'A' ) then 
+    beta=(1d0,0d0)
+  endif
+endif
+
+call ZGEMM(C1,C2,NMAT,NMAT,NMAT,alpha, &
   MAT1, NMAT, &
   MAT2, NMAT, &
-  (0d0,0d0), prod, NMAT)
+  beta, prod, NMAT)
 
 end subroutine Matrix_Product
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ! product of 3 matrices
-subroutine matrix_3_product(prod,mat1,mat2,mat3,char1,char2,char3)
+! prod = alpha * MAT1.MAT2.Mat3 
+!   or
+! prod = alpha * MAT1.MAT2.Mat3 + prod for ADD="A"
+!  * the size of comm, MAT1, MAT2 and MAT3 must be the same.
+!  * beta is potional and the default is (0d0,0d0) 
+!  * conj1 and conj2 and conj3 are optional and 
+!    conj1 = N or C or T (default: N)
+!    conj2 = N or C or T (default: N)
+!    conj3 = N or C or T (default: N)
+subroutine matrix_3_product(prod,mat1,mat2,mat3,char1,char2,char3,alpha_input,ADD)
 implicit none
 
 complex(kind(0d0)), intent(in) :: MAT1(:,:), MAT2(:,:), MAT3(:,:)
 complex(kind(0d0)), intent(inout) :: prod(:,:)
 complex(kind(0d0)), allocatable :: tmp(:,:)
 character, optional :: char1,char2,char3
-character :: C1,C2 ,C3
+character(3), optional :: ADD
+complex(kind(0d0)), optional :: alpha_input
+character :: C1,C2,C3
+complex(kind(0d0)) :: beta,alpha
 
 integer :: NMAT
 
@@ -489,15 +520,25 @@ else
   C3='N'
 endif
 
+alpha=(1d0,0d0)
+if (present(alpha_input)) then
+  alpha=alpha_input
+endif
+
+beta=(0d0,0d0)
+if (present(ADD)) then
+  if (ADD == "ADD" .or. ADD == 'A') beta=(1d0,0d0)
+endif
+
 call ZGEMM(C1,C2,NMAT,NMAT,NMAT,(1d0,0d0), &
   MAT1, NMAT, &
   MAT2, NMAT, &
   (0d0,0d0), tmp, NMAT)
 
-call ZGEMM('N',C3,NMAT,NMAT,NMAT,(1d0,0d0), &
+call ZGEMM('N',C3,NMAT,NMAT,NMAT,alpha, &
   tmp, NMAT, &
   MAT3, NMAT, &
-  (0d0,0d0), prod, NMAT)
+  beta, prod, NMAT)
 
 end subroutine Matrix_3_Product
 
@@ -629,7 +670,7 @@ call ZGEEV(jobvl,jobvr,NMAT,MAT,lda,eigen,vl,ldvl,vr,ldvr,work,lwork,rwork,info)
 do i=1,NMAT
  do j=i+1,NMAT
  tako1 = eigen(i)
-  if(abs(eigen(j)).LT.abs(eigen(i))) then 
+  if(cdabs(eigen(j)).LT.cdabs(eigen(i))) then 
     eigen(i) = eigen(j)
     eigen(j) = tako1
   endif
@@ -798,9 +839,220 @@ LDA = NMAT
 call ZSKPFA('U','P',NMAT,MAT,LDA,LogPf,phase,&
 IWORK,WORK,LWORK,RWORK,INFO)
 
-abs_pf=exp(LogPf)
-arg_pf=atan2( dble((0d0,-1d0)*phase), dble(phase) )
+abs_pf=dexp(LogPf)
+arg_pf=datan2( dble((0d0,-1d0)*phase), dble(phase) )
 end subroutine CalcPfaffian
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+subroutine make_matrix_traceless(MAT)
+implicit none
+
+complex(kind(0d0)), intent(inout) :: MAT(:,:)
+integer :: NMAT
+integer :: i
+complex(kind(0d0)) :: trace
+
+NMAT=size(MAT,1)
+
+trace=(0d0,0d0)
+do i=1,NMAT
+  trace=trace+MAT(i,i)
+enddo
+do i=1,NMAT
+  MAT(i,i)=MAT(i,i)-trace/dcmplx(dble(NMAT))
+enddo
+
+end subroutine make_matrix_traceless
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! CGで逆行列。16x16くらいまではこちらの方が速い
+subroutine HermitianMatrix_Inverse_CG( invMAT, MAT, epsilon, info )
+implicit none
+
+complex(kind(0d0)), intent(out) :: invMat(:,:)
+complex(kind(0d0)), intent(in) :: Mat(:,:)
+double precision, intent(in) :: epsilon
+integer, intent(out) :: info
+
+integer :: NMAT,i,j
+complex(kind(0d0)), allocatable :: unit_vec(:)
+complex(kind(0d0)), allocatable :: tmpvec(:)
+
+NMAT=size(MAT,1)
+allocate( unit_vec(1:NMAT))
+allocate( tmpvec(1:NMAT))
+
+do i=1,NMAT
+  unit_vec=(0d0,0d0)
+  unit_vec(i)=(1d0,0d0)
+  call CG( invmat(:,i), MAT, unit_vec, epsilon, 100*NMAT, info )
+enddo
+
+end subroutine HermitianMatrix_Inverse_CG
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! Conjugate Graduate Solver 
+! evaluate Xvec of 
+!   MAT.Xvec = Bvec
+subroutine CG( Xvec, MAT, Bvec, epsilon, MaxIte, info)
+implicit none
+
+complex(kind(0d0)), intent(inout) :: Xvec(:)
+complex(kind(0d0)), intent(in) :: Bvec(:)
+real(8), intent(in) :: epsilon
+integer, intent(in) :: MaxIte
+integer, intent(out) :: info 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!== DEPEND ON ProdMat YOUR MADE ==
+complex(kind(0d0)), intent(in) :: MAT(:,:)
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+!! private variables
+integer :: NMAT
+complex(kind(0d0)), allocatable :: r_vec(:)
+complex(kind(0d0)), allocatable :: p_vec(:)
+real(8) :: alpha_k!, alpha_km1
+real(8) :: beta_k!, beta_km1
+
+
+!! for iterations
+integer :: i,ite
+real(8) :: tmp_r1
+complex(kind(0d0)) :: tmp_c1, tmp_c2, rkrk
+complex(kind(0d0)), allocatable :: tmp_vec(:)
+
+!! initialization
+info = 0
+NMAT=size(Mat,1)
+
+allocate(r_vec(1:NMAT))
+allocate(p_vec(1:NMAT))
+allocate(tmp_vec(1:NMAT))
+
+!Xvec=(0d0,0d0)
+do i=1,NMAT
+  if( cdabs(MAT(i,i)) > epsilon ) then
+    Xvec(i)=Bvec(i)/MAT(i,i)
+  else
+    Xvec(i)=(0d0,0d0)
+  endif
+enddo
+call Prod_MatVec(tmp_vec, MAT, Xvec)
+r_vec = Bvec-tmp_vec
+!r_vec = Bvec
+p_vec = r_vec
+
+!alpha_km1 = 1d0
+!beta_km1 = 0d0
+
+!! iteration start
+do ite=1,MaxIte
+
+  ! (1) construct \alpha_k
+  ! rkrk = (r_k, r_k)
+  call InnerProd(rkrk, r_vec, r_vec)
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ !!== DEPEND ON ProdMat YOUR MADE ==
+  call Prod_MatVec(tmp_vec, MAT, p_vec)
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  call InnerProd(tmp_c1, p_vec, tmp_vec)
+  alpha_k = rkrk / dble(tmp_c1)
+ 
+ ! (2) update Xvec and r_vec
+  Xvec = Xvec + dcmplx(alpha_k)*p_vec
+  r_vec = r_vec - dcmplx(alpha_k)*tmp_vec
+    
+ ! (3) conservation check
+  call InnerProd( tmp_c1, r_vec, r_vec)
+  if ( dsqrt( dble(tmp_c1) ) < epsilon ) then
+    return
+  endif
+
+! (4) update p_k --> p_{k+1}
+!construct beta_k
+  !call InnerProd(tmp_c1, r_vec, r_vec)
+  beta_k = dble(tmp_c1) / rkrk
+  p_vec = r_vec + dcmplx(beta_k) * p_vec
+enddo
+
+info = 1
+return
+end subroutine CG
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! subroutine to take inner product
+!!  MatVec = Mat . Vec
+subroutine Prod_MatVec(MatVec, MAT, vec)
+implicit none
+
+complex(kind(0d0)), intent(out) :: MatVec(:)
+complex(kind(0d0)), intent(in) :: Mat(:,:)
+complex(kind(0d0)), intent(in) :: Vec(:)
+
+integer :: NMAT,i,j
+
+NMAT=size(Mat,2)
+
+MatVec=(0d0,0d0)
+do i=1,NMAT
+  do j=1,NMAT
+    Matvec(i) = MatVec(i) + Mat(i,j)*Vec(j)
+  enddo
+enddo
+
+end subroutine Prod_MatVec
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! subroutine to take inner product
+!!  (V1,V2) = V1^\dagger_i V2_i
+subroutine InnerProd(v1v2,v1,v2)
+implicit none
+
+complex(kind(0d0)), intent(out) ::  v1v2
+complex(kind(0d0)), intent(in) :: v1(:),v2(:)
+
+integer :: Nvec,i
+
+Nvec=size(v1,1)
+v1v2=(0d0,0d0)
+do i=1,Nvec
+  v1v2=v1v2+dconjg(v1(i))*v2(i)
+enddo
+
+
+end subroutine InnerProd
+
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+complex(kind(0d0)) function tr_MdagM(MAT1,MAT2)
+implicit none
+
+
+complex(kind(0d0)), intent(in) :: MAT1(:,:)
+complex(kind(0d0)), intent(in) :: MAT2(:,:)
+
+integer :: NMAT
+integer :: i,j
+
+NMAT=size(MAT1,1)
+tr_MdagM=(0d0,0d0)
+if( size(MAT1,2)/=NMAT .or. size(MAT2,1)/=NMAT .or. size(MAT2,2)/NMAT) then
+  write(*,*) "### Check matrix size in tr_MdagM ###"
+  return
+endif
+
+do i=1,NMAT
+  do j=1,NMAT
+    tr_MdagM=tr_MdagM+dconjg(MAT1(j,i))*MAT2(i,j)
+  enddo
+enddo
+
+end function tr_MdagM
+
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !subroutine CalcPfaffian2(abs_pf,arg_pf,MAT)
