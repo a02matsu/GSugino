@@ -214,7 +214,7 @@ subroutine mmBiCG( &
 !use global_subroutines, only : mat_to_vec, vec_to_mat
 #ifdef PARALLEL
 use parallel
-use global_subroutines, only : syncronize_sites, syncronize_links, syncronize_faces, stop_for_test, site_abs, link_abs, face_abs
+use global_subroutines, only : syncronize_sites, syncronize_links, syncronize_faces, site_abs, link_abs, face_abs
 #endif
 implicit none
 interface

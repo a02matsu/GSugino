@@ -69,7 +69,13 @@ GSugino.o: \
 global_parameters.o: \
   parallel.o \
   simplicial_complex.o \
-  SUN_generators.o
+  SUN_generators.o \
+  set_theory_parameters.f90 \
+  set_simulation_parameters.f90 \
+  set_local_data.f90 \
+  set_NZF.f90 \
+  set_global_simplicial_complex.f90 \
+  set_local_data.f90
 global_subroutines.o: \
   global_parameters.o \
   parallel.o \

@@ -93,10 +93,8 @@ call set_randomP_single(P_AMat,P_PhiMat)
 ! produce pseudo-fermion
 if( pf==0 ) call make_pseudo_fermion(PF_eta,PF_lambda,PF_chi,UMAT,PhiMat)
 
-
 call system_clock(t_start)
 call Make_Hamiltonian(Hold,CGite,info,UMAT,PhiMat,PF_eta,PF_lambda,PF_chi,P_AMat,P_PhiMat)
-
 !call check_local_vals(PhiMat,UMat)
 !call stop_for_test
 
@@ -191,8 +189,10 @@ complex(kind(0d0)) :: tmp
 #ifdef PARALLEL
 if ( MYRANK == 0  ) then 
 #endif
+if( save_med_step /= 0 ) then
   open(unit=MED_CONF_FILE,status='replace',file=Fmedconf,action='write',form='unformatted')
-  call write_basic_info_to_medfile(MED_CONF_FILE)
+endif
+  !call write_basic_info_to_medfile(MED_CONF_FILE)
 #ifdef PARALLEL
 endif
 #endif
@@ -201,8 +201,9 @@ endif
 #ifdef PARALLEL
 if ( MYRANK == 0  ) then 
 #endif
+if( obs_step /= 0 ) then
   open(unit=OUTPUT_FILE,status='replace',file=Foutput,action='write')
-
+endif
   write(*,*) "# start Monte Carlo simulation"
 #ifdef PARALLEL
 endif
@@ -284,7 +285,7 @@ do ite=total_ite+1,total_ite+num_ite
     endif
   endif
   !! write out the configuration
-   if ( mod(ite,save_med_step) == 0 ) then
+   if ( save_med_step/=0 .and. mod(ite,save_med_step) == 0 ) then
 #ifdef PARALLEL
      call write_config_to_medfile(ite,UMAT,PhiMat)
      !if( MYRANK == 0 ) then
@@ -295,18 +296,18 @@ do ite=total_ite+1,total_ite+num_ite
      !endif
 #else
      write(MED_CONF_FILE) ite
-     write(MED_CONF_FILE) 1
+     !write(MED_CONF_FILE) 1
      write(MED_CONF_FILE) UMAT
      write(MED_CONF_FILE) PHIMAT
 #endif
    endif
    !! write out the observables 
-   if ( mod(ite,obs_step) == 0 ) then
+   if ( obs_step/=0 .and. mod(ite,obs_step) == 0 ) then
      call write_observables(&
        PhiMat,UMAT,ite,accept,Hnew-Hold,total_ite,CGite1,ratio)
    endif
    !! write out config file
-   if ( mod(ite,save_config_step) == 0 ) then
+   if ( save_config_step/=0 .and. mod(ite,save_config_step) == 0 ) then
      call write_config_file(ite,UMAT,PhiMat,state,srepr)
    endif 
 enddo

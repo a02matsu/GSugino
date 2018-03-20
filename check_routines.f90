@@ -188,5 +188,216 @@ write(*,*) MODES(a) - MODES2(a)
 enddo
 
 
+
 end subroutine check_Ta_expansion
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
+!! global SC の情報を出力する
+#ifdef PARALLEL
+subroutine check_global_sc
+use parallel
+
+integer :: rank, turn
+integer :: l,f
+
+turn=0
+if ( turn .ne. MYRANK ) then
+  call MPI_RECV(turn,1,MPI_INTEGER,MYRANK-1,MYRANK,MPI_COMM_WORLD,ISTATUS,IERR)
+endif
+write(*,*) "#####",MYRANK,"#####"
+
+write(*,*) "global_num_sites,links,faces:", global_num_sites,global_num_links,global_num_faces
+
+write(*,*) "### links ###"
+do l=1,global_num_links
+  write(*,'(a,I3,a,I3,a,I3,a)') "link",l,"=(",global_link_org(l),",",global_link_tip(l),")"
+enddo
+
+
+write(*,*)
+write(*,*)
+turn=MYRANK+1
+if( MYRANK .ne. NPROCS-1 ) then
+  call MPI_SEND(turn,1,MPI_INTEGER,MYRANK+1,MYRANK+1,MPI_COMM_WORLD,IERR)
+endif
+
+
+
+
+end subroutine check_global_sc
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
+!! local なラベルを出力する
+subroutine check_local_sc
+use parallel
+implicit none
+
+integer :: rank, turn
+integer :: local,global
+
+turn=0
+if ( turn .ne. MYRANK ) then
+  call MPI_RECV(turn,1,MPI_INTEGER,MYRANK-1,MYRANK,MPI_COMM_WORLD,ISTATUS,IERR)
+endif
+write(*,*) "#####",MYRANK,"#####"
+
+write(*,*) "#!!!! local data to global data !!!!"
+write(*,*) "### site ###"
+do local=1,num_necessary_sites
+  write(*,*) "local site",local,"->","global",global_site_of_local(local)
+enddo
+write(*,*) "### link ###"
+do local=1,num_necessary_links
+  write(*,*) "local link",local,"->","global",global_link_of_local(local)
+enddo
+write(*,*) "### face ###"
+do local=1,num_necessary_faces
+  write(*,*) "local face",local,"->","global",global_face_of_local(local)
+enddo
+
+
+write(*,*) "#!!!! SEND and RECV !!!!"
+write(*,*) "### send site ###"
+do local=1,size(send_sites,1)
+  write(*,*) "send local site",send_sites(local)%label_,"to RANK",send_sites(local)%rank_
+enddo
+write(*,*) "### send link ###"
+do local=1,size(send_links,1)
+  write(*,*) "send local link",send_links(local)%label_,"to RANK",send_links(local)%rank_
+enddo
+write(*,*) "### send face ###"
+do local=1,size(send_faces,1)
+  write(*,*) "send local face",send_faces(local)%label_,"to RANK",send_faces(local)%rank_
+enddo
+write(*,*) "### recv site ###"
+do local=1,size(recv_sites,1)
+  write(*,*) "recv local site",recv_sites(local)%label_,"from RANK",recv_sites(local)%rank_
+enddo
+write(*,*) "### recv link ###"
+do local=1,size(recv_links,1)
+  write(*,*) "recv local link",recv_links(local)%label_,"from RANK",recv_links(local)%rank_
+enddo
+write(*,*) "### recv face ###"
+do local=1,size(recv_faces,1)
+  write(*,*) "recv local face",recv_faces(local)%label_,"from RANK",recv_faces(local)%rank_
+enddo
+
+write(*,*) "#!!!! SITE-LINK  !!!!"
+do local = 1,num_links
+  write(*,*) "local link",local,"is",link_org(local),link_tip(local)
+enddo
+
+write(*,*) "###"
+do local=1,num_sites
+  write(*,*) "local links from",local,";",linktip_from_s(local)%labels_
+enddo
+write(*,*) "###"
+do local=1,num_sites
+  write(*,*) "local links to",local,";",linkorg_to_s(local)%labels_
+enddo
+
+
+write(*,*)
+write(*,*)
+turn=MYRANK+1
+if( MYRANK .ne. NPROCS-1 ) then
+  call MPI_SEND(turn,1,MPI_INTEGER,MYRANK+1,MYRANK+1,MPI_COMM_WORLD,IERR)
+endif
+
+end subroutine check_local_sc
+#endif
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
+!! local なラベルを出力する
+#ifdef PARALLEL
+subroutine check_local_vals(PhiMat,UMat)
+use parallel
+implicit none
+
+complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_necessary_links)
+complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_necessary_sites)
+
+integer :: rank, turn,i,j
+integer :: local,global
+complex(kind(0d0)) :: tmp
+
+turn=0
+if ( turn .ne. MYRANK ) then
+  call MPI_RECV(turn,1,MPI_INTEGER,MYRANK-1,MYRANK,MPI_COMM_WORLD,ISTATUS,IERR)
+endif
+write(*,*) "#####",MYRANK,"#####"
+
+write(*,*) "#!!!! local data to global data !!!!"
+write(*,*) "### Tr|Phi(s)|^2 ###"
+do local=1,num_necessary_sites
+  tmp=(0d0,0d0)
+  do i=1,NMAT
+    do j=1,NMAT
+      tmp=(PhiMat(i,j,local)*dconjg(PhiMat(i,j,local)))
+    enddo
+  enddo
+  write(*,*) "s=",global_site_of_local(local),":",dble(tmp)
+enddo
+write(*,*) "### sum_{ij} U(l)_{ij} ###"
+do local=1,num_necessary_links
+  tmp=(0d0,0d0)
+  do i=1,NMAT
+    do j=1,NMAT
+      tmp=tmp+UMat(i,j,local)
+    enddo
+  enddo
+  write(*,*) "l=",global_link_of_local(local),":",tmp
+enddo
+
+write(*,*)
+write(*,*)
+turn=MYRANK+1
+if( MYRANK .ne. NPROCS-1 ) then
+  call MPI_SEND(turn,1,MPI_INTEGER,MYRANK+1,MYRANK+1,MPI_COMM_WORLD,IERR)
+endif
+
+
+end subroutine check_local_vals
+#endif
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
+!! force の出力
+#ifdef PARALLEL
+subroutine check_force(force,C)
+use parallel
+implicit none
+
+integer, intent(in) :: C
+complex(kind(0d0)), intent(in) :: force(:,:,:)
+integer :: rank, turn,i,j,num
+integer :: local,global
+complex(kind(0d0)) :: tmp
+
+
+num=size(force,3)
+turn=0
+if ( turn .ne. MYRANK ) then
+  call MPI_RECV(turn,1,MPI_INTEGER,MYRANK-1,MYRANK,MPI_COMM_WORLD,ISTATUS,IERR)
+endif
+
+do local=1,num
+  tmp=(0d0,0d0)
+  do i=1,NMAT
+    do j=1,NMAT
+      tmp=(force(i,j,local)*dconjg(force(i,j,local)))
+    enddo
+  enddo
+  if(C==1) write(*,*) "s=",global_site_of_local(local),":",dble(tmp)
+  if(C==2) write(*,*) "l=",global_link_of_local(local),":",dble(tmp)
+  if(C==3) write(*,*) "f=",global_face_of_local(local),":",dble(tmp)
+enddo
+turn=MYRANK+1
+if( MYRANK .ne. NPROCS-1 ) then
+  call MPI_SEND(turn,1,MPI_INTEGER,MYRANK+1,MYRANK+1,MPI_COMM_WORLD,IERR)
+endif
+
+
+
+end subroutine check_force
+#endif
+
 end module check_routines

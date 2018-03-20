@@ -66,7 +66,7 @@ endif
 !! (4) Dirac from face 1
 if ( p4 == 0 ) then
   do f=1,num_necessary_faces
-    if( ss==local_sites_in_f(f)%label_(1) ) then
+    if( ss==sites_in_f(f)%label_(1) ) then
       do r=1,N_Remez4
         call matrix_commutator(tmpmat1,Dchi(:,:,f,r),chi(:,:,f,r),'C','N')
         force = force - dcmplx( 2d0*Remez_alpha4(r)*alpha_f(f) ) * tmpmat1

@@ -203,6 +203,7 @@ complex(kind(0d0)) :: dPhi(1:NMAT,1:NMAT)
 
 SB_L=0d0
 do l=1,num_links
+  !write(*,*) l,link_org(l),link_tip(l)
   dPhi=-PhiMat(:,:,link_org(l))
   call matrix_3_product(dPhi,Umat(:,:,l),PhiMat(:,:,link_tip(l)),Umat(:,:,l),'N','N','C',(1d0,0d0),'ADD')
 

@@ -225,12 +225,15 @@ dSdPhi_boson_link=(0d0,0d0)
 do s=1,num_sites
   do i=1,linkorg_to_s(s)%num_
     l_i=linkorg_to_s(s)%Labels_(i)
+    !write(*,*) "org",s,l_i
     call Make_diff_PhiMat(dPhi,l_i,UMAT,PhiMat)
     call matrix_3_product(Ud_dPhibar_U,UMAT(:,:,l_i),dPhi,UMAT(:,:,l_i),'C','C','N')
     dSdPhi_boson_link(:,:,s)=dSdPhi_boson_link(:,:,s) &
       + alpha_l(l_i) *  Ud_dPhibar_U
   enddo
 
+  !write(*,*) "tip",linktip_from_s(s)%num_
+  !write(*,*) "org",linkorg_to_s(s)%num_
   do i=1,linktip_from_s(s)%num_
     l_i=linktip_from_s(s)%Labels_(i)
     call Make_diff_PhiMat(dPhi,l_i,UMAT,PhiMat)

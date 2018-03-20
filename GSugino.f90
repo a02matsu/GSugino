@@ -16,7 +16,7 @@ implicit none
 complex(kind(0d0)), allocatable :: UMAT(:,:,:) ! unitary link variables
 complex(kind(0d0)), allocatable :: PHIMAT(:,:,:) ! complex scalar at sites
 
-integer :: total_ite ! total iteration
+!integer :: total_ite ! total iteration
 integer :: seed, time
 type(genrand_state) :: state_mt95 ! state of mt95
 double precision :: tmp
@@ -26,6 +26,8 @@ integer :: s,l,i,j
 integer num_para, iargc
 
 #ifdef PARALLEL
+type(SITE_DIST), allocatable,save :: local_site_list(:) !(0:NPROCS-1)
+
 ! for type genrand_srepr
 !integer :: MPI_GENRAND_SREPR, MPI_LOCAL_LABEL, MPI_GENRAND_STATE
 integer IBLOCK1(1),IDISP1(1),ITYPE1(1)
@@ -49,69 +51,68 @@ ITYPE2(1)=MPI_INTEGER
 call MPI_TYPE_STRUCT(1,IBLOCK2,IDISP2,ITYPE2,MPI_LOCAL_LABEL,IERR)
 call MPI_TYPE_COMMIT(MPI_LOCAL_LABEL,IERR)
 
+allocate(local_site_list(0:NPROCS-1) )
 #endif
 
-num_para = iargc()
-if(num_para > 0) then
- call getarg(1,PAR_FILE_NAME)
-endif
+
+
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! 設計
+!! 1) simulationに共通のパラメータを設定( parameters.datの読み込み ）
+!! 2) α,βもふくめて単体的複体のデータを読み込む。この段階ではglobalな値として。
+!! 3) 今回のsimulationのパラメータを設定( inputfileの読み込み )
+!!    この時に、coreの数と各rankが担当するデータも割り振ってしまう。
 !! set the parameters in the module "global_parameters"
 ! read input parameter from the parameter file
-  call set_parameters(seed)
-!  write(*,*) NMAT
-!  write(*,*) LatticeSpacing
-!  write(*,*) SC_FILE_NAME
-!  write(*,*) FsubSC
-!  write(*,*) ALPHA_BETA
-!  write(*,*) test_mode
-!  write(*,*) force_measurement
-!  write(*,*) new_config
-!  write(*,*) fix_seed
-!  write(*,*) reset_ite
-!  write(*,*) read_alpha
-!  write(*,*) save_med_step
-!  write(*,*) save_config_step
-!  write(*,*) obs_step
-!  write(*,*) seed
-!  write(*,*) m_omega
-!  write(*,*) phys_mass_square_phi
-!  write(*,*) mass_f
-!  write(*,*) Remez_factor4
-!  write(*,*) Remez_factor8
-!  write(*,*) epsilon
-!  write(*,*) CG_max
-!  write(*,*) num_ite
-!  write(*,*) Ntau_base
-!  write(*,*) FBPhi_ratio
-!  write(*,*) FBA_ratio
-!  write(*,*) Dtau
-!  write(*,*) Fconfigin
-!  write(*,*) Foutput
-!  write(*,*) Fconfigout
-!  write(*,*) Fmedconf
 
-  !call stop_for_test
+!! set directories
+#ifdef PARALLEL
+if(MYRANK==0) then
+#endif
+call system('if [ ! -d CONFIG ]; then mkdir -p CONFIG; fi')
+call system('if [ ! -d OUTPUT ]; then mkdir -p OUTPUT; fi')
+call system('if [ ! -d MEDCONF ]; then mkdir -p MEDCONF; fi')
+#ifdef PARALLEL
+endif
+#endif
+
+call set_theory_parameters(seed)
 ! set the structure constant of SU(NMAT)
-  call set_NZF
-! set the data of the simplicial complex
-!  "sizeD" is set here
-  !call set_sc 
-#ifdef PARALLEL
-  call set_sc_alpha_beta_parallel
-#else
-  call set_sc_alpha_beta
-#endif
-! remove comment if test of the module is needed
-!    call test_module_simplicial_complex(sc)
+call set_NZF
+! set global data of the simplicial complex
+call set_global_simplicial_complex 
+! set global parameters
+overall_factor=dble(NMAT)/(2d0*LatticeSpacing*LatticeSpacing)
+mass_square_phi = phys_mass_square_phi * (LatticeSpacing*latticeSpacing)
+! set simulation data
+!   ここで、inputfileを読み込み、各コアに必要な情報を設定して、
+!   Rank=0にたまっているalphaを振り分ける。
+!   この段階で、
+!      num_sites,num_links,num_faces
+!      local_{site,link,face}_of_globalの(1:num_{sites,links,faces})が確定する。
+call set_simulation_parameters(local_site_list)
 
-! set necesarry data in each node
-#ifdef PARALLEL
-  call set_sub_SC
-  call switch_globalnum_to_localnum
-  call set_local_alpha_beta
-#endif
+! set local data
+call set_local_data(local_site_list)
+!call check_local_sc
+!call stop_for_test
+
+!  !call set_sc 
+!#ifdef PARALLEL
+!  call set_sc_alpha_beta_parallel
+!#else
+!  call set_sc_alpha_beta
+!#endif
+!! remove comment if test of the module is needed
+!!    call test_module_simplicial_complex(sc)
+!
+!! set necesarry data in each node
+!#ifdef PARALLEL
+!  call set_sub_SC
+!  call switch_globalnum_to_localnum
+!  call set_local_alpha_beta
+!#endif
 
 if( check_sub_sc == 1 ) then
 #ifdef PARALLEL
@@ -119,7 +120,6 @@ if( check_sub_sc == 1 ) then
   call stop_for_test
 #endif
 endif
- 
 
 !write(*,*) MYRANK, num_sites,num_links,num_faces,num_necessary_sites,num_necessary_links, num_necessary_faces
 ! initialize the size of the variables
@@ -147,10 +147,17 @@ endif
 ! set the variables depending on simulation_mode and test_mode
   !if (test_mode==1 .or. new_config==1) then
   if (new_config==1) then
-    call set_random_config(UMAT,PHIMAT) 
     total_ite=0
+    job_number=1
+    call set_random_config(UMAT,PHIMAT) 
   else
-    call read_config(total_ite,UMAT,PHIMat,state_mt95,seed)
+    !call read_config(total_ite,UMAT,PHIMat,state_mt95,seed)
+    if( job_number <= 0 ) then
+      Fconfigin="CONFIG/latestconf"
+    else
+      write(Fconfigin, '("CONFIG/inputconf_", i4.4, ".dat")') job_number-1
+    endif
+    call read_config(UMAT,PHIMat,state_mt95,seed)
   endif
   if( fix_seed == 0 ) then
     call genrand_init( put=state_mt95 )
@@ -164,8 +171,6 @@ endif
     call set_Remez_data
 !! check unitaryty
     !call check_unitary
-!! check the distance from 1_N 
-    !call check_distance
 !! check mode expansion
     !call check_Ta_expansion
     !stop
@@ -184,6 +189,9 @@ endif
     !call check_Dirac(UMAT,Phi)
     call test_hamiltonian(UMAT,PhiMat,seed)
   else
+    write(Fconfigout, '("CONFIG/inputconf_", i4.4, ".dat")') job_number
+    write(Foutput, '("OUTPUT/output_", i4.4, ".dat")') job_number
+    write(Fmedconf, '("MEDCONF/medconfig_", i6.6,"+",i5.5,".dat")') total_ite,num_ite
     call HybridMonteCarlo(UMAT,PhiMat,seed,total_ite)
   endif
 
@@ -196,7 +204,8 @@ end program main
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! read the preevious configuration
-subroutine read_config(total_ite,UMAT,PhiMat,state_mt95,seed)
+!subroutine read_config(total_ite,UMAT,PhiMat,state_mt95,seed)
+subroutine read_config(UMAT,PhiMat,state_mt95,seed)
 use global_parameters
 use mt95
 #ifdef PARALLEL
@@ -205,7 +214,7 @@ use global_subroutines, only : syncronize_bosons,site_abs,link_abs,face_abs
 #endif
 implicit none
 
-integer, intent(inout) :: total_ite
+!integer, intent(inout) :: total_ite
 type(genrand_state), intent(inout) :: state_mt95
 integer :: num_core
 complex(kind(0d0)), intent(inout) :: UMAT(1:NMAT,1:NMAT,1:num_necessary_links)
@@ -224,9 +233,12 @@ type(genrand_srepr) :: char_mt95
 #ifdef PARALLEL
 if( MYRANK == 0 ) then
   open(IN_CONF_FILE, file=Fconfigin, status='OLD',action='READ',form='unformatted')
+  read(IN_CONF_FILE) job_number
+  job_number=job_number+1
   read(IN_CONF_FILE) total_ite
 endif
 call MPI_BCAST(total_ite,1,MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
+call MPI_BCAST(job_number,1,MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
 !!!!!!!!!!!!!!!!!!!!
 !! Umat
 do l=1,global_num_links
@@ -262,17 +274,6 @@ do s=1,global_num_sites
   endif
 enddo
 
-!rtmp=site_abs(PhiMat(:,:,1:num_sites))
-!if( MYRANK == 0 ) then
-!  write(*,'(a,E25.18)') "|PhiMat|^2=",rtmp
-!endif
-!rtmp=link_abs(UMat(:,:,1:num_links))
-!if( MYRANK == 0 ) then
-!  write(*,'(a,E25.18)') "|UMat|^2=",rtmp
-!endif
-!call stop_for_test
-!!!!!!!!!!!!!!!!!!!!!!!!1
-!! syncronize 
 call syncronize_bosons(UMAT,Phimat)
 
 !!!!!!!!!!!!!!!!!!!!!!!!!
@@ -300,12 +301,6 @@ if( fix_seed==0 ) then
       call MPI_RECV(char_mt95,1,MPI_GENRAND_SREPR,0,MYRANK,MPI_COMM_WORLD,ISTATUS,IERR)
     endif
   endif
-!  if( err0==0 ) then
-!    state_mt95=char_mt95
-!    call genrand_init( put=state_mt95 )
-!  else
-!    call genrand_init( put=seed )
-!  endif
 endif
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!
 if( MYRANK == 0 ) then

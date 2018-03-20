@@ -82,6 +82,11 @@ integer, intent(in) :: output
 write(output,'(a,a)') "# simplicial complex : ",trim(SC_FILE_NAME)
 write(output,'(A,F6.4)') "# lattice spacing (\lambda=1)= ",LatticeSpacing
 write(output,'(A,I5)') "# NMAT= ",NMAT
+write(output,'(A,E12.5)') "# mass_square_phi= ",mass_square_phi
+write(output,'(A,E12.5)') "# phys_mass_square_phi= ",phys_mass_square_phi
+write(output,'(A,E12.5)') "# mass_f= ",mass_f
+write(output,'(A)') "######################"
+write(output,'(A,I5)') "# job_number= ",job_number
 write(output,'(a)') "#"
 write(output,'(A,F10.8)') "# Tau= ",Tau
 write(output,'(A,I5)') "# Nfermion= ",Nfermion
@@ -89,9 +94,6 @@ write(output,'(A,I5)') "# Nboson= ",Nboson
 write(output,'(A,I5)') "# iterations= ", num_ite
 write(output,'(a)') "#"
 write(output,'(A,I5)') "# m_omega= ",m_omega
-write(output,'(A,E12.5)') "# mass_square_phi= ",mass_square_phi
-write(output,'(A,E12.5)') "# phys_mass_square_phi= ",phys_mass_square_phi
-write(output,'(A,E12.5)') "# mass_f= ",mass_f
 write(output,'(A,E12.5)') "# Remez_factor4= ",Remez_factor4
 write(output,'(A,E12.5)') "# Remez_factor8= ",Remez_factor8
 write(output,'(A,E12.5)') "# minimal eigenvalue of DD^\dagger= ",dble(min_eigen*conjg(min_eigen))
@@ -200,7 +202,7 @@ integer, intent(in) :: MED_CONF_FILE
 write(MED_CONF_FILE) NMAT
 write(MED_CONF_FILE) LatticeSpacing
 write(MED_CONF_FILE) SC_FILE_NAME
-write(MED_CONF_FILE) FsubSC
+!write(MED_CONF_FILE) FsubSC
 !write(MED_CONF_FILE) ALPHA_BETA
 write(MED_CONF_FILE) test_mode
 write(MED_CONF_FILE) force_measurement
@@ -243,6 +245,10 @@ integer :: l,s,ll,ls,info,tag,rank
 complex(kind(0d0)) :: tmpmat(1:NMAT,1:NMAT)
 
 
+!! write present iteration
+write(MED_CONF_FILE) ite
+
+!! write Umat
 do l=1,global_num_links
   tag=l
   ll=local_link_of_global(l)%label_
@@ -261,6 +267,7 @@ do l=1,global_num_links
 enddo
 
 
+!! write Phimat
 do s=1,global_num_sites
   tag=global_num_links+s
   ls=local_site_of_global(s)%label_
@@ -299,6 +306,7 @@ type(genrand_srepr) :: tmp_srepr
 
 if(MYRANK==0) then
   open(unit=OUT_CONF_FILE,status='replace',file=Fconfigout,action='write',form='unformatted')
+  write(OUT_CONF_FILE) job_number
   write(OUT_CONF_FILE) ite-1
 endif
 
@@ -354,7 +362,11 @@ else
 endif 
 if(MYRANK==0) then
   close( OUT_CONF_FILE)
+  call system('cd CONFIG; FILE=$(ls inputconf* | tail -1); &
+    LINK="latestconf"; if [ -e "$LINK" ]; then /bin/rm $LINK; &
+    fi; ln -s $FILE $LINK; cd ..' )
 endif
+
 #else
 open(unit=OUT_CONF_FILE,status='replace',file=Fconfigout,action='write',form='unformatted')
 write(OUT_CONF_FILE) ite-1
@@ -364,6 +376,9 @@ call genrand_init( get=state )
 srepr=state ! mt95では"="がassignmentされている
 write(OUT_CONF_FILE) srepr%repr
 close( OUT_CONF_FILE)
+call system('cd CONFIG; FILE=$(ls inputconf* | tail -1); &
+  LINK="latestconf"; if [ -e "$LINK" ]; then /bin/rm $LINK; &
+  fi; ln -s $FILE $LINK; cd ..' )
 #endif 
 
 end subroutine write_config_file
