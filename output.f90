@@ -145,7 +145,7 @@ integer :: output,i,s,a
 
 call calc_bosonic_action(OBS(1),UMAT,PhiMat)
 call calc_TrX2(OBS(2),PhiMat)
-call calc_PCSC(OBS(3),OBS(4),Umat,PhiMat,1)
+!call calc_PCSC(OBS(3),OBS(4),Umat,PhiMat,1)
 
 #ifdef PARALLEL
 if( MYRANK == 0 ) then 

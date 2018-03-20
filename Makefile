@@ -6,9 +6,9 @@ FC=mpiifort
 #PARA=-DPARALLEL -DPARATEST
 PARA=-DPARALLEL
 #PARA=-DNOPARALLEL
-FLAGS_IFORT=-mkl -fpp $(PARA) -CB -traceback -g 
+#FLAGS_IFORT=-mkl -fpp $(PARA) -CB -traceback -g 
 #FLAGS_IFORT=-mkl -parallel -ipo
-#FLAGS_IFORT=-mkl -O2 
+FLAGS_IFORT=-mkl -fpp $(PARA) -O3 -ipo
 FLAGS_GCC=-llapack -lblas
 # コンパイルのために順番が大事。下層ほど先に書く。 
 SRCS=\
@@ -41,7 +41,7 @@ $(PROG): $(OBJS) $(OBJ_MAIN)
 ifeq ($(FC),gfortran)
 	$(FC) -O2 $(FLAGS_GCC) -o $@ $(OBJS) $(OBJ_MAIN) $(LIB)
 else
-	$(FC) -O2 $(FLAGS_IFORT) -o $@ $(OBJS) $(OBJ_MAIN) $(LIB)
+	$(FC) $(FLAGS_IFORT) -o $@ $(OBJS) $(OBJ_MAIN) $(LIB)
 endif
 
 # moduleをコンパイルするときの依存性を解消
