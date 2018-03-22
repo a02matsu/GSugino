@@ -190,7 +190,7 @@ endif
     call test_hamiltonian(UMAT,PhiMat,seed)
   else
     write(Fconfigout, '("CONFIG/inputconf_", i4.4, ".dat")') job_number
-    write(Foutput, '("OUTPUT/output_",i6.6,"+",i6.6,".dat")') total_ite,num_ite
+    write(Foutput, '("OUTPUT/output_",i4.4,":",i6.6,"+",i6.6,".dat")') job_number,total_ite,num_ite
     write(Fmedconf, '("MEDCONF/medconfig_", i6.6,"+",i6.6,".dat")') total_ite,num_ite
     call HybridMonteCarlo(UMAT,PhiMat,seed,total_ite)
   endif
