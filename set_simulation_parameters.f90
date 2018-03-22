@@ -19,6 +19,9 @@ if (MYRANK==0) then
 !! Tau ; trajectory length
   read(INPUT_FILE,'()') 
   read(INPUT_FILE,*) Tau
+!! eval_eigan !! 0:SKIP the calculation of eigenvalues of Dirac
+  read(INPUT_FILE,'()') 
+  read(INPUT_FILE,*) eval_eigen
 !! Nfermion 
   read(INPUT_FILE,'()') 
   read(INPUT_FILE,*) Nfermion
@@ -58,6 +61,7 @@ endif
 
 call MPI_BCAST(job_number,1,MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
 call MPI_BCAST(Tau,1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERR)
+call MPI_BCAST(eval_eigen,1,MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
 call MPI_BCAST(Nfermion,1,MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
 call MPI_BCAST(FB_ratio,1,MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
 call MPI_BCAST(num_ite,1,MPI_INTEGER,0,MPI_COMM_WORLD,IERR)

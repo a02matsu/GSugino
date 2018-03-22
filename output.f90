@@ -24,7 +24,9 @@ integer :: output
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! compute the eigenvalues of D
-call calc_smallset_and_largest_eigenvalues_of_D(min_eigen,max_eigen,UMAT,PhiMat)
+if( eval_eigen/=0 ) then 
+  call calc_smallset_and_largest_eigenvalues_of_D(min_eigen,max_eigen,UMAT,PhiMat)
+endif
 
 !!!!!!!!!!!!!!!!!!!!!!!!!
 !! for standard output
@@ -96,8 +98,12 @@ write(output,'(a)') "#"
 write(output,'(A,I5)') "# m_omega= ",m_omega
 write(output,'(A,E12.5)') "# Remez_factor4= ",Remez_factor4
 write(output,'(A,E12.5)') "# Remez_factor8= ",Remez_factor8
-write(output,'(A,E12.5)') "# minimal eigenvalue of DD^\dagger= ",dble(min_eigen*conjg(min_eigen))
-write(output,'(A,E12.5)') "# maximal eigenvalue of DD^\dagger= ",dble(max_eigen*conjg(max_eigen))
+if( eval_eigen /= 0 ) then 
+  write(output,'(A,E12.5)') "# minimal eigenvalue of DD^\dagger= ",dble(min_eigen*conjg(min_eigen))
+  write(output,'(A,E12.5)') "# maximal eigenvalue of DD^\dagger= ",dble(max_eigen*conjg(max_eigen))
+else
+  write(output,'(A)') "# omitted the evaluation of the eigenvalues"
+endif
 
 end subroutine write_header_to
 

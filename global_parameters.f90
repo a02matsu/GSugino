@@ -218,6 +218,7 @@ integer, save :: save_med_step !! steps to write out configurations
 integer, save :: obs_step !! steps to compute observables
 integer, save :: reset_ite !! 0:iteration number continue, 1:iteration number reset 
 integer, save :: save_config_step !! save config by this step. 
+integer, save :: eval_eigen !! 0:SKIP the calculation of eigenvalues of Dirac
 
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

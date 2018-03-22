@@ -1,4 +1,5 @@
 VER=01
+VER=debug
 VER_CALCOBS=02
 #FC=gfortran
 #FC=ifort
@@ -6,9 +7,9 @@ FC=mpiifort
 #PARA=-DPARALLEL -DPARATEST
 PARA=-DPARALLEL
 #PARA=-DNOPARALLEL
-#FLAGS_IFORT=-mkl -fpp $(PARA) -CB -traceback -g 
+FLAGS_IFORT=-mkl -fpp $(PARA) -CB -traceback -g 
 #FLAGS_IFORT=-mkl -parallel -ipo
-FLAGS_IFORT=-mkl -fpp $(PARA) -O3 -ipo
+#FLAGS_IFORT=-mkl -fpp $(PARA) -O3 -ipo
 FLAGS_GCC=-llapack -lblas
 # コンパイルのために順番が大事。下層ほど先に書く。 
 SRCS=\
