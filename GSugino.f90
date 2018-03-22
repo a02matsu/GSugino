@@ -61,7 +61,7 @@ allocate(local_site_list(0:NPROCS-1) )
 !! 設計
 !! 1) simulationに共通のパラメータを設定( parameters.datの読み込み ）
 !! 2) α,βもふくめて単体的複体のデータを読み込む。この段階ではglobalな値として。
-!! 3) 今回のsimulationのパラメータを設定( inputfileの読み込み )
+!! 3) 今回のsimulationのパラメータを設定( inputfileの読み込み 
 !!    この時に、coreの数と各rankが担当するデータも割り振ってしまう。
 !! set the parameters in the module "global_parameters"
 ! read input parameter from the parameter file
@@ -190,8 +190,8 @@ endif
     call test_hamiltonian(UMAT,PhiMat,seed)
   else
     write(Fconfigout, '("CONFIG/inputconf_", i4.4, ".dat")') job_number
-    write(Foutput, '("OUTPUT/output_", i4.4, ".dat")') job_number
-    write(Fmedconf, '("MEDCONF/medconfig_", i6.6,"+",i5.5,".dat")') total_ite,num_ite
+    write(Foutput, '("OUTPUT/output_",i6.6,"+","i6.6",".dat")') total_ite,num_ite
+    write(Fmedconf, '("MEDCONF/medconfig_", i6.6,"+",i6.6,".dat")') total_ite,num_ite
     call HybridMonteCarlo(UMAT,PhiMat,seed,total_ite)
   endif
 
