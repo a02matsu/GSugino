@@ -126,4 +126,4 @@ differential_Dirac.o: \
 
 .PHONY: clean
 clean:
-	mv $(PROG) $(PROG).bak; rm -f *.o *.mod $(PROG) core $(PROG_CALCOBS)
+	mv $(PROG) $(PROG).bak; rm -f *.o *.mod core 
