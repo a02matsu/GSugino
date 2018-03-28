@@ -70,6 +70,12 @@ integer, save :: b_phi_count, f_phi_count, b_A_count, f_A_count
 ! writedown_mode=1 : write down config, hamiltonian and forces
 integer, parameter :: writedown_mode=0
 
+#ifdef COUNT_TIME
+real :: t_site0,t_site1,t_site
+real :: t_link0,t_link1,t_link
+real :: t_face0,t_face1,t_face
+#endif
+
 
 
 

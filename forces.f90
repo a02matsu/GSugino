@@ -31,6 +31,7 @@ dSdPhi_boson_link=(0d0,0d0)
 dSdA=(0d0,0d0)
 dSdA_boson_face=(0d0,0d0)
 dSdA_boson_link=(0d0,0d0)
+
 !! force for Phi from boson
 if(pb_mass==0) call Make_bosonic_force_Phi_mass(dSdPhi_boson_mass,PhiMat)
 if(pb_site==0) call Make_bosonic_force_Phi_site(dSdPhi_boson_site,PhiMat)
