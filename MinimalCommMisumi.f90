@@ -352,6 +352,7 @@ enddo
 allocate( tmp_YD_list(1:num_YD) )
 
 do j=2,num_allbox
+  write(*,*) j
   deallocate( tmp_YD_list )
   allocate( tmp_YD_list(1:num_YD) )
   tmp_YD_list=YD_list
@@ -398,6 +399,26 @@ enddo
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!11
 end subroutine get_diagrams
 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! N-boxのヤング盤に、自然数1～Nを、
+!! 各列が単調増加するように配置させる。
+subroutine make_regular_diagram(D)
+implicit none
+
+type(YD), intent(inout) :: D
+integer :: i,j,num
+
+num=0
+do i=1,D%num_row
+  do j=1,size(D%row(i)%arr)
+    num=num+1
+    D%row(i)%arr(j)=num
+  enddo
+enddo
+
+
+end subroutine make_regular_diagram
+
 end module YoungTableau
 
 
@@ -416,11 +437,14 @@ use simplicial_complex
 use YoungTableau
 implicit none
 
+integer, parameter :: ALL_TABLEAU=0
+integer, parameter :: MINIMAL_SEARCH=0
 
 type(YT), allocatable :: P_list(:)
 type(YD) :: D1,D2
 type(YD), allocatable :: YD_list(:)
 type(YD), allocatable :: YD_MIN(:)
+type(YD) :: tmp_YD
 
 integer :: num_part
 integer s,l,f,i,j,k
@@ -436,41 +460,45 @@ SC_FILE_NAME="S2MisumiM20N20R1.dat"
 
 call set_global_sc
 
-!call get_possible_partitions(P_list,global_num_sites,NUMDIV)
-!num_part=size(P_list)
-
-num_part=1
-allocate(P_list(1:1))
-call init_YT(P_list(1),NUMDIV)
-tmp_num = global_num_sites/NUMDIV
-diff = global_num_sites - tmp_num*NUMDIV
-do i=1,NUMDIV
-  P_list(1)%num_box(i)=tmp_num
-enddo
-if( diff > 0 ) then
-  do i=2,NUMDIV
-    P_list(1)%num_box(i)=P_list(1)%num_box(i)+1
-    diff=diff-1
-    if( diff==0 ) exit
+if( ALL_TABLEAU /= 0) then 
+!! 可能な分割方法を全て用意する
+  call get_possible_partitions(P_list,global_num_sites,NUMDIV)
+  num_part=size(P_list)
+else 
+!! siteの数を均等に割り振るように分ける
+  num_part=1
+  allocate(P_list(1:1))
+  call init_YT(P_list(1),NUMDIV)
+  tmp_num = global_num_sites/NUMDIV
+  diff = global_num_sites - tmp_num*NUMDIV
+  do i=1,NUMDIV
+    P_list(1)%num_box(i)=tmp_num
   enddo
+  if( diff > 0 ) then
+    do i=2,NUMDIV
+      P_list(1)%num_box(i)=P_list(1)%num_box(i)+1
+      diff=diff-1
+      if( diff==0 ) exit
+    enddo
+  endif
 endif
 
 
 !write(*,*) num_part
-allocate(YD_MIN(1:num_part))
-allocate(NUM_COMM_MIN(1:num_part),num_max_calc(1:num_part))
+if( MINIMAL_SEARCH /= 0 ) then  
+!! 与えられた分割に関して、可能なsiteの割り振りを全て試して、
+!! 通信が最小になるようなものを選ぶ
+  allocate(YD_MIN(1:num_part))
+  allocate(NUM_COMM_MIN(1:num_part),num_max_calc(1:num_part))
 
-do k=1,num_part
-  !write(*,*) P_list(k)%num_box(NUMDIV), P_list(k)%num_box(1)
-  write(*,*) P_list(k)%num_box
-enddo
+  do k=1,num_part
+    !write(*,*) P_list(k)%num_box(NUMDIV), P_list(k)%num_box(1)
+    write(*,*) P_list(k)%num_box
+  enddo
 
-NUM_COMM_MIN=0
-do k=1,num_part
-  if( -P_list(k)%num_box(NUMDIV)+P_list(k)%num_box(1) < 2 ) then 
-    write(*,*) "#start"
+  NUM_COMM_MIN=0
+  do k=1,num_part
     call get_diagrams(YD_list,P_list(k))
-    write(*,*) "#(YD)=",size(YD_list)
     call init_YD(YD_MIN(k),P_list(k))
     do j=1,size(YD_list)
       write(*,*) "## j=",j
@@ -484,19 +512,30 @@ do k=1,num_part
         !call COPY_YD(YD_MIN(k),YD_list(j))
         YD_MIN(k)=YD_list(j)
       endif
-   enddo
- endif
-enddo
+    enddo
+  enddo
+else
+!! siteを順番に割り振り、最小の通信量を見つける
+  allocate(YD_MIN(1:num_part))
+  allocate(NUM_COMM_MIN(1:num_part),num_max_calc(1:num_part))
+
+  NUM_COMM_MIN=0
+  do k=1,num_part
+    call init_YD(YD_MIN(k),P_list(k))
+
+    call make_regular_diagram(YD_MIN(k))
+    call count_num_comm(NUM_COMM_MIN(k),num_max_calc(k),YD_MIN(k))
+  enddo
+endif
+
 
 do k=1,num_part
-  if( -P_list(k)%num_box(NUMDIV)+P_list(k)%num_box(1) < 2 ) then 
     write(*,*) "#########################################"
     write(*,*) "#########################################"
     write(*,*) "# #(calculation)=",num_max_calc(k)
     write(*,*) "# #(communication)=",num_comm_min(k)
     write(*,*) "##"
     call writedown_inputfile(YD_MIN(k))
-  endif
 enddo
 
 end program main
@@ -509,15 +548,17 @@ use YoungTableau
 implicit none
 
 type(YD), intent(in) :: Y
-
-integer :: rank
+integer :: rank,k
 
 write(*,*) "############################"
 do rank=1,Y%num_row
   write(*,'(a,I3,a)') "## Rank ",rank,", number of sites,"
   write(*,'(I3,a,I3)') rank," ",size(Y%row(rank)%arr(:))
   write(*,'(a)') "## list of sites"
-  write(*,*) Y%row(rank)%arr(:)
+  do k=1,size(Y%row(rank)%arr)
+    write(*,'(I3,X)',advance='no') Y%row(rank)%arr(k)
+  enddo
+  write(*,*)
 enddo
 
 
