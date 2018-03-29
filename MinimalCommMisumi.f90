@@ -552,6 +552,7 @@ integer :: rank,k
 
 write(*,*) "############################"
 do rank=1,Y%num_row
+  write(*,'(a)') "###########################################"
   write(*,'(a,I3,a)') "## Rank ",rank,", number of sites,"
   write(*,'(I3,a,I3)') rank," ",size(Y%row(rank)%arr(:))
   write(*,'(a)') "## list of sites"
