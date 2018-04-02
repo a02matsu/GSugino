@@ -136,6 +136,72 @@ enddo
 end subroutine calc_eigenvalues_Dirac
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+subroutine calc_eigenvalues_DdagD(eigenvalues,UMAT,PhiMat)
+use Dirac_operator, only : make_DdagD
+implicit none
+
+complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_necessary_links)
+complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_necessary_sites)
+!complex(kind(0d0)), intent(inout) :: eigenvalues(1:sizeD)
+complex(kind(0d0)), intent(inout) :: eigenvalues(:)
+
+!complex(kind(0d0)) :: Dirac(1:sizeD,1:sizeD)
+!complex(kind(0d0)) VL(1,1:sizeD), VR(1,1:sizeD)
+!double precision RWORK(1:2*sizeD)
+!complex(kind(0d0)) WORK(2*(sizeD)),tako1
+complex(kind(0d0)), allocatable :: DdagD(:,:)
+complex(kind(0d0)), allocatable :: VL(:,:), VR(:,:)
+double precision, allocatable :: RWORK(:)
+complex(kind(0d0)), allocatable :: WORK(:)
+complex(kind(0d0)) tako1
+character JOBVL,JOBVR
+integer info,lwork
+integer i,j
+integer :: sizeD
+
+sizeD=size(eigenvalues,1)
+
+allocate( DdagD(1:sizeD,1:sizeD) )
+allocate( VL(1,1:sizeD), VR(1,1:sizeD) )
+allocate( RWORK(1:2*sizeD) )
+allocate( WORK(2*(sizeD)) )
+
+lwork=2*sizeD
+JOBVL='N'
+JOBVR='N'
+
+call make_DdagD(DdagD,UMAT,PhiMat)
+!if( MYRANK==0 ) then 
+!do i=1,sizeD
+!  do j=1,sizeD
+!    write(*,*) i,j,DdagD(i,j)
+!  enddo
+!enddo
+!endif
+
+#ifdef PARALLEL
+if( MYRANK==0 ) then 
+#endif
+call ZGEEV(JOBVL,JOBVR,sizeD,&
+     DdagD,sizeD,eigenvalues,VL,1,VR,1,WORK,lwork,RWORK,info)
+#ifdef PARALLEL
+endif
+#endif
+
+! sort the eigenvalues
+do i=1,sizeD
+ do j=i+1,sizeD
+  tako1 = eigenvalues(i)
+  if(abs(eigenvalues(j)).LT.abs(eigenvalues(i))) then 
+    eigenvalues(i) = eigenvalues(j)
+    eigenvalues(j) = tako1
+  endif
+ enddo
+enddo
+
+end subroutine calc_eigenvalues_DdagD
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !subroutine calc_eigenvalues_Dirac2(eigenvalues,Dirac)
 !implicit none
 !
@@ -1028,6 +1094,367 @@ XiPhiEta=tmp
 
 end subroutine calc_XiPhiEta
 
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! Maximal eigenvalue of (D^dag D)
+subroutine max_eigen_DdagD(eigen,Umat,PhiMat)
+use Dirac_operator, only :prod_DdagD
+implicit none
+
+complex(kind(0d0)), intent(out) :: eigen
+complex(kind(0d0)), intent(in) :: Umat(1:NMAT,1:NMAT,1:num_necessary_links)
+complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_necessary_sites)
+
+complex(kind(0d0)) :: eta(1:NMAT,1:NMAT,1:num_necessary_sites)
+complex(kind(0d0)) :: lambda(1:NMAT,1:NMAT,1:num_necessary_links)
+complex(kind(0d0)) :: chi(1:NMAT,1:NMAT,1:num_necessary_faces)
+complex(kind(0d0)) :: Xeta(1:NMAT,1:NMAT,1:num_sites)
+complex(kind(0d0)) :: Xlambda(1:NMAT,1:NMAT,1:num_links)
+complex(kind(0d0)) :: Xchi(1:NMAT,1:NMAT,1:num_faces)
+
+complex(kind(0d0)) :: gauss(1:(NMAT*NMAT-1)*(num_sites+num_links+num_faces) ) 
+double precision :: gauss2(1:2*(NMAT*NMAT-1)*(num_sites+num_links+num_faces) ) 
+
+complex(kind(0d0)) :: val,tmp_val, num,denom,eigen_pre
+integer :: i,j,s,l,f,info,ite
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!! random eta/lambda/chi
+call BoxMuller2(gauss2, (NMAT*NMAT-1)*(num_sites+num_links+num_faces) )
+val=(0d0,0d0)
+do i=1,(NMAT*NMAT-1)*(num_sites+num_links+num_faces)
+  gauss(i)=(gauss2(2*i-1) + gauss2(2*i)*(0d0,1d0)) * dcmplx(dsqrt(0.5d0))
+  val=val+gauss(i)*dconjg(gauss(i))
+enddo
+val=dcmplx(dsqrt( dble(val) ))
+do i=1,(NMAT*NMAT-1)*(num_sites+num_links+num_faces)
+  gauss(i)=gauss(i)/val
+enddo
+call vec_to_mat(eta(:,:,1:num_sites),lambda(:,:,1:num_links),chi(:,:,1:num_faces),gauss)
+#ifdef PARALLEL
+  call syncronize_sites(eta)
+  call syncronize_links(lambda)
+  call syncronize_faces(chi)
+#endif
+
+eigen=(0d0,0d0)
+do ite=1,100
+  !!
+  eigen_pre=eigen
+  !!
+  call prod_DdagD(Xeta,Xlambda,Xchi,eta,lambda,chi,Umat,PhiMat)
+  call InnerProd(num, &
+    Xeta, Xlambda, Xchi, &
+    eta, lambda, chi)
+  call InnerProd(denom, &
+    eta, lambda, chi, &
+    eta, lambda, chi)
+  eigen=num/denom
+  !!
+  if( cdabs(eigen-eigen_pre) < epsilon) exit
+  eta(:,:,1:num_sites)=Xeta
+  lambda(:,:,1:num_links)=Xlambda
+  chi(:,:,1:num_faces)=Xchi
+  !! normalization
+  tmp_val=(0d0,0d0)
+  do s=1,num_sites
+    do j=1,NMAT
+      do i=1,NMAT
+        tmp_val=tmp_val+eta(i,j,s)*dconjg( eta(i,j,s) )
+      enddo
+    enddo
+  enddo
+  do l=1,num_links
+    do j=1,NMAT
+      do i=1,NMAT
+        tmp_val=tmp_val+lambda(i,j,l)*dconjg( lambda(i,j,l) )
+      enddo
+    enddo
+  enddo
+  do f=1,num_faces
+    do j=1,NMAT
+      do i=1,NMAT
+        tmp_val=tmp_val+chi(i,j,f)*dconjg( chi(i,j,f) )
+      enddo
+    enddo
+  enddo
+  val=(0d0,0d0)
+#ifdef PARALLEL
+  call MPI_ALLREDUCE(tmp_val,val,1,MPI_DOUBLE_COMPLEX,MPI_SUM,MPI_COMM_WORLD,IERR)
+#else
+  val=tmp_val
+#endif
+  val=dcmplx(dsqrt(dble(val)))
+  do s=1,num_sites
+    do j=1,NMAT
+      do i=1,NMAT
+        eta(i,j,s)=eta(i,j,s)/val
+      enddo
+    enddo
+  enddo
+  do l=1,num_links
+    do j=1,NMAT
+      do i=1,NMAT
+        lambda(i,j,l)=lambda(i,j,l)/val
+      enddo
+    enddo
+  enddo
+  do f=1,num_faces
+    do j=1,NMAT
+      do i=1,NMAT
+        chi(i,j,f)=chi(i,j,f)/val
+      enddo
+    enddo
+  enddo
+#ifdef PARALLEL
+  call syncronize_sites(eta)
+  call syncronize_links(lambda)
+  call syncronize_faces(chi)
+#endif
+enddo
+
+end subroutine max_eigen_DdagD
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! Minimal eigenvalue of (D^dag D)
+subroutine min_eigen_DdagD(eigen,Umat,PhiMat)
+use Dirac_operator, only :prod_DdagD
+implicit none
+
+complex(kind(0d0)), intent(out) :: eigen
+complex(kind(0d0)), intent(in) :: Umat(1:NMAT,1:NMAT,1:num_necessary_links)
+complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_necessary_sites)
+
+complex(kind(0d0)) :: eta(1:NMAT,1:NMAT,1:num_necessary_sites)
+complex(kind(0d0)) :: lambda(1:NMAT,1:NMAT,1:num_necessary_links)
+complex(kind(0d0)) :: chi(1:NMAT,1:NMAT,1:num_necessary_faces)
+complex(kind(0d0)) :: Xeta(1:NMAT,1:NMAT,1:num_sites)
+complex(kind(0d0)) :: Xlambda(1:NMAT,1:NMAT,1:num_links)
+complex(kind(0d0)) :: Xchi(1:NMAT,1:NMAT,1:num_faces)
+
+complex(kind(0d0)) :: gauss(1:(NMAT*NMAT-1)*(num_sites+num_links+num_faces) ) 
+double precision :: gauss2(1:2*(NMAT*NMAT-1)*(num_sites+num_links+num_faces) ) 
+
+complex(kind(0d0)) :: val,tmp_val, num,denom,eigen_pre
+integer :: i,j,s,l,f,info,ite
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!! random eta/lambda/chi
+call BoxMuller2(gauss2, (NMAT*NMAT-1)*(num_sites+num_links+num_faces) )
+val=(0d0,0d0)
+do i=1,(NMAT*NMAT-1)*(num_sites+num_links+num_faces)
+  gauss(i)=(gauss2(2*i-1) + gauss2(2*i)*(0d0,1d0)) * dcmplx(dsqrt(0.5d0))
+  val=val+gauss(i)*dconjg(gauss(i))
+enddo
+val=dcmplx(dsqrt( dble(val) ))
+do i=1,(NMAT*NMAT-1)*(num_sites+num_links+num_faces)
+  gauss(i)=gauss(i)/val
+enddo
+call vec_to_mat(eta(:,:,1:num_sites),lambda(:,:,1:num_links),chi(:,:,1:num_faces),gauss)
+#ifdef PARALLEL
+  call syncronize_sites(eta)
+  call syncronize_links(lambda)
+  call syncronize_faces(chi)
+#endif
+
+eigen=(0d0,0d0)
+do ite=1,100
+  !!
+  eigen_pre=eigen
+  !!
+  call calc_DdagDinvF(Xeta,Xlambda,Xchi,eta,lambda,chi,Umat,Phimat,info)
+  call InnerProd(num, &
+    Xeta, Xlambda, Xchi, &
+    eta, lambda, chi)
+  call InnerProd(denom, &
+    eta, lambda, chi, &
+    eta, lambda, chi)
+  eigen=num/denom
+  !!
+  if( cdabs(eigen-eigen_pre) < epsilon) exit
+  eta(:,:,1:num_sites)=Xeta
+  lambda(:,:,1:num_links)=Xlambda
+  chi(:,:,1:num_faces)=Xchi
+  !! normalization
+  tmp_val=(0d0,0d0)
+  do s=1,num_sites
+    do j=1,NMAT
+      do i=1,NMAT
+        tmp_val=tmp_val+eta(i,j,s)*dconjg( eta(i,j,s) )
+      enddo
+    enddo
+  enddo
+  do l=1,num_links
+    do j=1,NMAT
+      do i=1,NMAT
+        tmp_val=tmp_val+lambda(i,j,l)*dconjg( lambda(i,j,l) )
+      enddo
+    enddo
+  enddo
+  do f=1,num_faces
+    do j=1,NMAT
+      do i=1,NMAT
+        tmp_val=tmp_val+chi(i,j,f)*dconjg( chi(i,j,f) )
+      enddo
+    enddo
+  enddo
+  val=(0d0,0d0)
+#ifdef PARALLEL
+  call MPI_ALLREDUCE(tmp_val,val,1,MPI_DOUBLE_COMPLEX,MPI_SUM,MPI_COMM_WORLD,IERR)
+#else
+  val=tmp_val
+#endif
+  val=dcmplx(dsqrt(dble(val)))
+  do s=1,num_sites
+    do j=1,NMAT
+      do i=1,NMAT
+        eta(i,j,s)=eta(i,j,s)/val
+      enddo
+    enddo
+  enddo
+  do l=1,num_links
+    do j=1,NMAT
+      do i=1,NMAT
+        lambda(i,j,l)=lambda(i,j,l)/val
+      enddo
+    enddo
+  enddo
+  do f=1,num_faces
+    do j=1,NMAT
+      do i=1,NMAT
+        chi(i,j,f)=chi(i,j,f)/val
+      enddo
+    enddo
+  enddo
+#ifdef PARALLEL
+  call syncronize_sites(eta)
+  call syncronize_links(lambda)
+  call syncronize_faces(chi)
+#endif
+enddo
+eigen=(1d0,0d0)/eigen
+
+
+end subroutine min_eigen_DdagD
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! (D D†~)^{-1} F
+subroutine calc_DdagDinvF(X_eta,X_lambda,X_chi,eta,lambda,chi,Umat,Phimat,info)
+use Dirac_operator, only :prod_DdagD
+#ifdef PARALLEL
+use parallel
+use global_subroutines, only : syncronize_sites, syncronize_links, syncronize_faces
+#endif
+implicit none 
+
+complex(kind(0d0)), intent(out) :: X_eta(1:NMAT,1:NMAT,1:num_sites)
+complex(kind(0d0)), intent(out) :: X_lambda(1:NMAT,1:NMAT,1:num_links)
+complex(kind(0d0)), intent(out) :: X_chi(1:NMAT,1:NMAT,1:num_faces)
+complex(kind(0d0)), intent(in) :: eta(1:NMAT,1:NMAT,1:num_necessary_sites)
+complex(kind(0d0)), intent(in) :: lambda(1:NMAT,1:NMAT,1:num_necessary_links)
+complex(kind(0d0)), intent(in) :: chi(1:NMAT,1:NMAT,1:num_necessary_faces)
+complex(kind(0d0)), intent(in) :: Umat(1:NMAT,1:NMAT,1:num_necessary_links)
+complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_necessary_sites)
+integer, intent(out) :: info
+
+complex(kind(0d0)) :: r_eta(1:NMAT,1:NMAT,1:num_necessary_sites)
+complex(kind(0d0)) :: r_lambda(1:NMAT,1:NMAT,1:num_necessary_links)
+complex(kind(0d0)) :: r_chi(1:NMAT,1:NMAT,1:num_necessary_faces)
+complex(kind(0d0)) :: p_eta(1:NMAT,1:NMAT,1:num_necessary_sites)
+complex(kind(0d0)) :: p_lambda(1:NMAT,1:NMAT,1:num_necessary_links)
+complex(kind(0d0)) :: p_chi(1:NMAT,1:NMAT,1:num_necessary_faces)
+!complex(kind(0d0)) :: s_eta(1:NMAT,1:NMAT,1:num_sites)
+!complex(kind(0d0)) :: s_lambda(1:NMAT,1:NMAT,1:num_links)
+!complex(kind(0d0)) :: s_chi(1:NMAT,1:NMAT,1:num_faces)
+complex(kind(0d0)) :: tmp_eta(1:NMAT,1:NMAT,1:num_sites)
+complex(kind(0d0)) :: tmp_lambda(1:NMAT,1:NMAT,1:num_links)
+complex(kind(0d0)) :: tmp_chi(1:NMAT,1:NMAT,1:num_faces)
+
+complex(kind(0d0)) :: rkrk,alpha_k,tmp_c1,beta_k
+integer :: MaxIte=10000
+
+integer :: ite,s,l,f
+
+
+!! 初期配置
+!Xvec=(0d0,0d0)
+X_eta=(0d0,0d0)
+X_lambda=(0d0,0d0)
+X_chi=(0d0,0d0)
+!r_vec = Bvec
+r_eta=eta
+r_lambda=lambda
+r_chi=chi
+
+p_eta=r_eta
+p_lambda=r_lambda
+p_chi=r_chi
+
+info=0
+!! iteration start
+do ite=1,MaxIte
+    ! (1) construct \alpha_k
+  ! rkrk = (r_k, r_k)
+  call InnerProd(rkrk, &
+    r_eta, r_lambda, r_chi, &
+    r_eta, r_lambda, r_chi)
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ !!== DEPEND ON ProdMat YOUR MADE ==
+  call Prod_DdagD(&
+    tmp_eta,tmp_lambda,tmp_chi, &
+    p_eta,p_lambda,p_chi, &
+    Umat,PhiMat)
+
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  call InnerProd(tmp_c1, &
+    p_eta,p_lambda,p_chi, &
+    tmp_eta, tmp_lambda, tmp_chi)
+  alpha_k = rkrk / dcmplx(dble(tmp_c1))
+ 
+ ! (2) update Xvec and r_vec
+  X_eta = X_eta + dcmplx(alpha_k)*p_eta(:,:,1:num_sites)
+  X_lambda = X_lambda + dcmplx(alpha_k)*p_lambda(:,:,1:num_links)
+  X_chi = X_chi + dcmplx(alpha_k)*p_chi(:,:,1:num_faces)
+
+  r_eta(:,:,1:num_sites) = r_eta(:,:,1:num_sites) - dcmplx(alpha_k)*tmp_eta
+  r_lambda(:,:,1:num_links) = r_lambda(:,:,1:num_links) - dcmplx(alpha_k)*tmp_lambda
+  r_chi(:,:,1:num_faces) = r_chi(:,:,1:num_faces) - dcmplx(alpha_k)*tmp_chi
+#ifdef PARALLEL
+  call syncronize_sites(r_eta)
+  call syncronize_faces(r_chi)
+  call syncronize_links(r_lambda)
+#endif
+    
+ ! (3) conservation check
+  call InnerProd( tmp_c1, &
+    r_eta(:,:,1:num_sites), r_lambda(:,:,1:num_links), r_chi(:,:,1:num_faces), &
+    r_eta(:,:,1:num_sites), r_lambda(:,:,1:num_links), r_chi(:,:,1:num_faces))
+  if ( dsqrt( dble(tmp_c1) ) < epsilon ) then
+    return
+  endif
+
+! (4) update p_k --> p_{k+1}
+!construct beta_k
+  !call InnerProd(tmp_c1, r_vec, r_vec)
+  beta_k = tmp_c1 / rkrk
+  p_eta(:,:,1:num_sites) = r_eta(:,:,1:num_sites) + dcmplx(beta_k) * p_eta(:,:,1:num_sites)
+  p_lambda(:,:,1:num_links) = r_lambda(:,:,1:num_links) + dcmplx(beta_k) * p_lambda(:,:,1:num_links)
+  p_chi(:,:,1:num_faces) = r_chi(:,:,1:num_faces) + dcmplx(beta_k) * p_chi(:,:,1:num_faces)
+#ifdef PARALLEL
+  call syncronize_sites(p_eta)
+  call syncronize_faces(p_chi)
+  call syncronize_links(p_lambda)
+#endif
+enddo
+
+info = 1
+return
+
+
+
+
+
+end subroutine calc_DdagDinvF
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! Dirac inverse by CG

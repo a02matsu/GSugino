@@ -25,7 +25,9 @@ integer :: output
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! compute the eigenvalues of D
 if( eval_eigen/=0 ) then 
-  call calc_smallset_and_largest_eigenvalues_of_D(min_eigen,max_eigen,UMAT,PhiMat)
+  !call calc_smallest_and_largest_eigenvalues_of_DdagD(min_eigen,max_eigen,UMAT,PhiMat)
+call max_eigen_DdagD(max_eigen,Umat,PhiMat)
+call min_eigen_DdagD(min_eigen,Umat,PhiMat)
 endif
 
 !!!!!!!!!!!!!!!!!!!!!!!!!
@@ -148,6 +150,8 @@ complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_necessary_sites)
 double precision, intent(in) :: delta_Ham, ratio
 integer, intent(in) :: ite, accept, total_ite, CGite
 integer :: output,i,s,a
+
+complex(kind(0d0)) :: min_eigen,max_eigen
 
 call calc_bosonic_action(OBS(1),UMAT,PhiMat)
 call calc_TrX2(OBS(2),PhiMat)
@@ -394,7 +398,7 @@ end subroutine write_config_file
 
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-subroutine calc_smallset_and_largest_eigenvalues_of_D(min_eigen,max_eigen,UMAT,PhiMat)
+subroutine calc_smallest_and_largest_eigenvalues_of_DdagD(min_eigen,max_eigen,UMAT,PhiMat)
 !use observables, only : calc_eigenvalues_Dirac
 implicit none
 
@@ -412,10 +416,10 @@ sizeD=dimG*(num_sites+num_links+num_faces)
 #endif
 allocate(eigenvalues(1:sizeD))
 
-call calc_eigenvalues_Dirac(eigenvalues,UMAT,PhiMat)
+call calc_eigenvalues_DdagD(eigenvalues,UMAT,PhiMat)
 
 min_eigen=eigenvalues(1)
 max_eigen=eigenvalues(sizeD)
 
-end subroutine calc_smallset_and_largest_eigenvalues_of_D
+end subroutine calc_smallest_and_largest_eigenvalues_of_DdagD
 !end module output
