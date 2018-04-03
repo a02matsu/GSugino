@@ -20,6 +20,10 @@ S2Misumi.dat
 42342
 ## m_omega ;integer to avoid vacuum degeneracy (mm>=NMAT/4)
 -1
+##  Remez data for x^{-1/4}
+remez_Q24_1ov-4.dat
+##  Remez data for x^{1/8}
+remez_Q24_1ov8.dat
 ## Remez_factor4 ; range of remez approx( min*factor .. max*factor) 
 1d7
 ## Remez_factor8 ; range of remez approx( min*factor .. max*factor) 

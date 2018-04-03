@@ -261,8 +261,8 @@ double precision, save :: maximal_dist ! the largest allowed value of |U_f|
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! parameters for Remez algorithm
-character(128), parameter :: Remez_1ovminus4="remez_Q24_1ov-4.dat"
-character(128), parameter :: Remez_1ov8="remez_Q24_1ov8.dat" 
+character(128), save :: Remez_1ovminus4
+character(128), save :: Remez_1ov8
 integer, save :: N_Remez4 ! number of the rational function in rational approximation 
 integer, save :: N_Remez8 ! number of the rational function in rational approximation 
 double precision, save :: Remez_min4

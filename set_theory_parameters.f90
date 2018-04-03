@@ -48,6 +48,12 @@ open(PAR_FILE, file=PAR_FILE_NAME, status='old',action='READ')
 !! m_omega ;integer to avoid vacuum degeneracy (mm>=NMAT/4)
   read(PAR_FILE,'()') 
   read(PAR_FILE,*) m_omega
+!!  Remez data for x^{-1/4}
+  read(PAR_FILE,'()') 
+  read(PAR_FILE,*) Remez_1ovminus4
+!!  Remez data for x^{1/8}
+  read(PAR_FILE,'()') 
+  read(PAR_FILE,*) Remez_1ov8
 !! Remez_factor4 ; range of remez approx( min*factor .. max*factor) 
   read(PAR_FILE,'()') 
   read(PAR_FILE,*) Remez_factor4
@@ -94,6 +100,10 @@ call MPI_BCAST(m_omega,1,MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
 call MPI_BCAST(phys_mass_square_phi,1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERR)
   !read(PAR_FILE,*) mass_f
 call MPI_BCAST(mass_f,1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERR)
+  !read(PAR_FILE,*) Remez_1ovminus4
+call MPI_BCAST(Remez_1ovminus4,128,MPI_CHARACTER,0,MPI_COMM_WORLD,IERR)
+  !read(PAR_FILE,*) Remez_1ov8
+call MPI_BCAST(Remez_1ov8,128,MPI_CHARACTER,0,MPI_COMM_WORLD,IERR)
   !read(PAR_FILE,*) Remez_factor4
 call MPI_BCAST(Remez_factor4,1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERR)
   !read(PAR_FILE,*) Remez_factor8
