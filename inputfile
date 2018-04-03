@@ -1,1 +1,42 @@
-inputfile_M8N8
+## job_number: Job Number(0:read the previous job, (say) 123: use config 122
+0
+## Tau ; trajectory length
+0.70d0
+# eval_eigen !! 0:SKIP the calculation of eigenvalues of Dirac
+0
+## Nfermion 
+20
+## FB_ratio ; force計算のfermion/boson比
+10
+## num_ite: Number of trajectories
+500
+## save_med_step: Interval to save configs
+10
+## save_config_step: Interval to save the last_config
+0
+## obs_step: Interval to compute observables
+1
+## num_sub_SC: Number of cores
+4
+############################
+## Rank 0, number of sites, 
+0 8 
+## list of sites
+1 2 3 4 5 6 7 8
+############################
+## Rank 1, number of sites, 
+1 8 
+## list of sites
+9 10 11 12 13 14 15 16 
+############################
+## Rank 2, number of sites, 
+2 8 
+## list of sites
+17 18 19 20 21 22 23 24
+############################
+## Rank 3, number of sites, 
+3 8 
+## list of sites
+25 26 27 28 29 30 31 32
+
+

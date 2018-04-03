@@ -77,7 +77,8 @@ global_parameters.o: \
   set_local_data.f90 \
   set_NZF.f90 \
   set_global_simplicial_complex.f90 \
-  set_local_data.f90
+  set_local_data.f90 \
+  set_Remez_data.f90
 global_subroutines.o: \
   global_parameters.o \
   parallel.o \

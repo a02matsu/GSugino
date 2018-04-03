@@ -1138,7 +1138,7 @@ call vec_to_mat(eta(:,:,1:num_sites),lambda(:,:,1:num_links),chi(:,:,1:num_faces
 #endif
 
 eigen=(0d0,0d0)
-do ite=1,100
+do ite=1,10000
   !!
   eigen_pre=eigen
   !!
@@ -1258,7 +1258,7 @@ call vec_to_mat(eta(:,:,1:num_sites),lambda(:,:,1:num_links),chi(:,:,1:num_faces
 #endif
 
 eigen=(0d0,0d0)
-do ite=1,100
+do ite=1,10000
   !!
   eigen_pre=eigen
   !!
