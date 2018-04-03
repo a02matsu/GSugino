@@ -74,6 +74,7 @@ open(PAR_FILE, file=PAR_FILE_NAME, status='old',action='READ')
 !  read(PAR_FILE,*) FB_ratio
 close(PAR_FILE)
 
+if( p_mass /= 0 ) mass_f=0d0
 
 #ifdef PARALLEL
 endif
