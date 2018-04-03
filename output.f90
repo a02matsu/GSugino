@@ -98,12 +98,12 @@ write(output,'(A,I5)') "# Nboson= ",Nboson
 write(output,'(A,I5)') "# iterations= ", num_ite
 write(output,'(a)') "#"
 write(output,'(A,I5)') "# m_omega= ",m_omega
-write(output,'(A,E12.5,a,2E12.5)') "# Remez_factor4= ",Remez_factor4,&
-  "range:",Remez_min4*Remez_factor4,Remez_max4*Remez_factor4
-write(output,'(A,E12.5,a,2E12.5)') "# Remez_factor8= ",Remez_factor8, &
-  "range:",Remez_min8*Remez_factor8,Remez_max8*Remez_factor8
+write(output,'(A,E12.5,X,a,2E12.5)') "# Remez_factor4= ",Remez_factor4,&
+  "range:",Remez_min4*Remez_factor4,"...",Remez_max4*Remez_factor4
+write(output,'(A,E12.5,a,E12.5,a,E12.5)') "# Remez_factor8= ",Remez_factor8, &
+  "range:",Remez_min8*Remez_factor8,"...",Remez_max8*Remez_factor8
 if( eval_eigen /= 0 ) then 
-  write(output,'(A,2E12.5)') "# eigenvalue of DD^\dagger: ",dble(min_eigen*conjg(min_eigen)),dble(max_eigen*conjg(max_eigen))
+  write(output,'(A,E12.5,a,E12.5)') "# eigenvalue of DD^\dagger: ",dble(min_eigen*conjg(min_eigen)),"...",dble(max_eigen*conjg(max_eigen))
 else
   write(output,'(A)') "# omitted the evaluation of the eigenvalues"
 endif
