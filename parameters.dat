@@ -5,7 +5,7 @@
 ## mass_f; fermion mass
 1d-1
 ##  data of the simplicial complex
-S2Misumi.dat
+S2Misumi44.dat
 ## test_mode ; 0:Simulation mode 1:Test mode, 
 0
 ## force_measurement ; 1:measure forces  

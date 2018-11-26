@@ -32,6 +32,11 @@ SRC_MAIN=GSugino.f90
 OBJ_MAIN=GSugino.o
 PROG=gsugino$(VER).exe
 LIB=libpfapack.a
+#########################
+SRC_OBS=calcobs.f90  
+OBJ_OBS=calcobs.o
+PROG_OBS=calcobs.exe
+LIB=libpfapack.a
 
 
 #.SUFFIXES : .o .f90 # .oを作るときは必ず.f90から作るよ
@@ -45,6 +50,16 @@ ifeq ($(FC),gfortran)
 else
 	$(FC) $(FLAGS_IFORT) -o $@ $(OBJS) $(OBJ_MAIN) $(LIB)
 endif
+
+obs:$(PROG_OBS)
+
+$(PROG_OBS): $(OBJ_OBS) $(OBJ_MAIN)
+ifeq ($(FC),gfortran)
+	$(FC) -O2 $(FLAGS_GCC) -o $@ $(OBJS) $(OBJ_OBS) $(LIB)
+else
+	$(FC) $(FLAGS_IFORT) -o $@ $(OBJS) $(OBJ_OBS) $(LIB)
+endif
+
 
 # moduleをコンパイルするときの依存性を解消
 #structure_constant.o: structure_constant.f90

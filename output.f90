@@ -214,18 +214,14 @@ integer, intent(in) :: MED_CONF_FILE
 write(MED_CONF_FILE) NMAT
 write(MED_CONF_FILE) LatticeSpacing
 write(MED_CONF_FILE) SC_FILE_NAME
-!write(MED_CONF_FILE) FsubSC
-!write(MED_CONF_FILE) ALPHA_BETA
 write(MED_CONF_FILE) test_mode
 write(MED_CONF_FILE) force_measurement
 write(MED_CONF_FILE) new_config
 write(MED_CONF_FILE) fix_seed
 write(MED_CONF_FILE) reset_ite
-!write(MED_CONF_FILE) read_alpha
 write(MED_CONF_FILE) save_med_step
 write(MED_CONF_FILE) save_config_step
 write(MED_CONF_FILE) obs_step
-!write(MED_CONF_FILE) seed
 write(MED_CONF_FILE) m_omega
 write(MED_CONF_FILE) phys_mass_square_phi
 write(MED_CONF_FILE) mass_f
@@ -243,6 +239,47 @@ write(MED_CONF_FILE) Fconfigout
 write(MED_CONF_FILE) Fmedconf
 
 end subroutine write_basic_info_to_medfile
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
+subroutine read_basic_info_from_medfile(N_MEDFILE)
+implicit none
+
+integer, intent(in) :: N_MEDFILE
+
+  write(*,*) NMAT,Nfermion, FB_ratio
+  read(N_MEDFILE) NMAT
+  write(*,*) NMAT,Nfermion, FB_ratio
+  read(N_MEDFILE) LatticeSpacing
+  read(N_MEDFILE) SC_FILE_NAME
+  read(N_MEDFILE) test_mode
+  read(N_MEDFILE) force_measurement
+  read(N_MEDFILE) new_config
+  read(N_MEDFILE) fix_seed
+  read(N_MEDFILE) reset_ite
+  read(N_MEDFILE) save_med_step
+  read(N_MEDFILE) save_config_step
+  read(N_MEDFILE) obs_step
+  read(N_MEDFILE) m_omega
+  read(N_MEDFILE) phys_mass_square_phi
+  read(N_MEDFILE) mass_f
+  read(N_MEDFILE) Remez_factor4
+  read(N_MEDFILE) Remez_factor8
+  read(N_MEDFILE) epsilon
+  read(N_MEDFILE) CG_max
+  read(N_MEDFILE) num_ite
+  read(N_MEDFILE) Nfermion
+  read(N_MEDFILE) FB_ratio
+  write(*,*) NMAT,Nfermion, FB_ratio
+  read(N_MEDFILE) Tau
+  read(N_MEDFILE) Fconfigin
+  read(N_MEDFILE) Foutput
+  read(N_MEDFILE) Fconfigout
+  read(N_MEDFILE) Fmedconf
+
+end subroutine read_basic_info_from_medfile
+
+
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 subroutine write_config_to_medfile(ite,UMAT,PhiMat)
@@ -296,8 +333,68 @@ do s=1,global_num_sites
     call MPI_SEND(PhiMat(:,:,ls),NMAT*NMAT,MPI_DOUBLE_COMPLEX,0,tag,MPI_COMM_WORLD,IERR)
   endif
 enddo
-
 end subroutine write_config_to_medfile
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+subroutine read_config_from_medfile(UMAT,PhiMat,ite,N_MEDFILE)
+use global_parameters
+use parallel
+implicit none
+
+integer, intent(in) :: N_MEDFILE
+integer, intent(out) :: ite
+complex(kind(0d0)), intent(out) :: UMAT(1:NMAT,1:NMAT,1:num_necessary_links)
+complex(kind(0d0)), intent(out) :: PhiMat(1:NMAT,1:NMAT,1:num_necessary_links)
+complex(kind(0d0)) :: tmpmat(1:NMAT,1:NMAT)
+integer :: l,ll,s,ls,tag,rank,i
+
+if( MYRANK == 0 ) then
+  read(N_MEDFILE, END=700) ite
+endif
+do l=1,global_num_links
+  tag=l
+  ll=local_link_of_global(l)%label_
+  rank=local_link_of_global(l)%rank_
+  if( MYRANK == 0 ) then
+    read(N_MEDFILE, END=700) tmpmat
+    if( rank == 0 ) then
+      Umat(:,:,ll) = tmpmat
+    else
+      call MPI_SEND(tmpmat,NMAT*NMAT,MPI_DOUBLE_COMPLEX,rank,tag,MPI_COMM_WORLD,IERR)
+    endif
+  else
+    if( rank == MYRANK ) then
+      call MPI_RECV(Umat(:,:,ll),NMAT*NMAT,MPI_DOUBLE_COMPLEX,0,tag,MPI_COMM_WORLD,ISTATUS,IERR)
+    endif
+  endif
+enddo
+
+do s=1,global_num_sites
+  tag=global_num_links+s
+  ls=local_site_of_global(s)%label_
+  rank=local_site_of_global(s)%rank_
+  if( MYRANK == 0 ) then
+    read(N_MEDFILE, END=700) tmpmat
+    if( rank == 0 ) then
+      PhiMat(:,:,ls) = tmpmat
+    else
+      call MPI_SEND(tmpmat,NMAT*NMAT,MPI_DOUBLE_COMPLEX,rank,tag,MPI_COMM_WORLD,IERR)
+    endif
+  else
+    if( rank == MYRANK ) then
+      call MPI_RECV(PhiMat(:,:,ls),NMAT*NMAT,MPI_DOUBLE_COMPLEX,0,tag,MPI_COMM_WORLD,ISTATUS,IERR)
+    endif
+  endif
+enddo
+!!! syncronize
+call syncronize_links(Umat)
+call syncronize_sites(PhiMat)
+return
+  
+700 stop
+
+end subroutine read_config_from_medfile
+
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 subroutine write_config_file(ite,UMAT,PhiMat,state,srepr)
