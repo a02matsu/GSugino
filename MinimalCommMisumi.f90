@@ -33,7 +33,7 @@ type SITE_DIST
   integer, allocatable :: site_list_(:)
 end type SITE_DIST
 
-character(20) :: SC_FILE_NAME
+character(50) :: SC_FILE_NAME
 integer, parameter :: SC_FILE=10
 
 !!!!!!!!!!!!!!!!!!! global !!!!!!!!!!!!!!!!!!!!!
