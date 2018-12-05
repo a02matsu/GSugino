@@ -3,16 +3,18 @@ implicit none
 
 character(128), parameter :: PARAFILE="parameters_calcobs.dat"
 character(128) :: MEDFILE
-integer, parameter :: num_calcobs=2 ! 考えているobservableの数
+integer, parameter :: num_calcobs=3 ! 考えているobservableの数
 integer :: trig_obs(1:num_calcobs)
 
 double precision :: Sb, TrX2
+complex(kind(0d0)) :: Acomp ! compensator
+complex(kind(0d0)) :: APQ_phase ! A*/|A|
+integer :: num_fermion ! total fermion number
 
 integer, parameter :: N_MEDFILE=100
 integer, parameter :: N_PARAFILE=101
 
-integer :: trig_trx2
-integer :: trig_Sb
+integer :: Sb_computed ! if Sb_computed=1, Sb has been already computed
 
 end module global_calcobs
 
@@ -40,6 +42,9 @@ type(SITE_DIST), allocatable,save :: local_site_list(:) !(0:NPROCS-1)
 integer IBLOCK1(1),IDISP1(1),ITYPE1(1)
 integer IBLOCK2(1),IDISP2(1),ITYPE2(1)
 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+complex(kind(0d0)) tmpobs1, tmpobs2
+complex(kind(0d0)) XiPhiEta
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 integer :: seed
@@ -106,8 +111,12 @@ if( MYRANK == 0 ) then
   !call read_basic_info_from_medfile(N_MEDFILE) ! in output.f90
 endif
 
+num_fermion=(global_num_sites+global_num_links+global_num_faces)*(NMAT*NMAT-1)
 do
   call read_config_from_medfile(Umat,PhiMat,ite,N_MEDFILE)
+  call calc_trace_compensator(Acomp,PhiMat)
+  APQ_phase = dconjg(Acomp) / cdabs(Acomp) 
+  Sb_computed=0
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !! calculate observables
   if( MYRANK == 0 ) then
@@ -118,12 +127,26 @@ do
     if( MYRANK == 0 ) write(*,*) TrX2
   endif
   if( trig_obs(2) == 0 ) then 
+    Sb_computed=1
     call calc_bosonic_action(Sb,Umat,PhiMat)
     if( MYRANK == 0 ) write(*,*) Sb
   endif
 
+  if( trig_obs(3) == 0 ) then 
+    if ( Sb_computed==0 ) call calc_bosonic_action(Sb,Umat,PhiMat)
+    call calc_XiPhiEta(XiPhiEta,Umat,PhiMat)
+    if( MYRANK == 0 ) then
+      tmpobs1= cdabs(Acomp) * &
+        ( dcmplx(Sb) &
+        + dcmplx(0.5d0*mass_square_phi)*XiPhiEta &
+        - dcmplx(0.5d0*dble(num_fermion)) )  
+      write(*,*) dble(tmpobs1), dble((0d0,-1d0)*tmpobs1)
+    endif
+  endif
 
 enddo
+
+
 
 end program main
 

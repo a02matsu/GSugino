@@ -1,3 +1,5 @@
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!  % ./a.out [SC_FILE_NAME] [NUMDIV]."
 module global
 use simplicial_complex
 implicit none
@@ -454,9 +456,20 @@ integer :: tmp_num, diff
 integer :: NUM_COMM
 integer, allocatable :: NUM_COMM_MIN(:),num_max_calc(:)
 integer :: NUMDIV=20
-SC_FILE_NAME="S2MisumiM20N20R1.dat"
+integer :: iarg
+character(50) :: C_NUMDIV
+!SC_FILE_NAME="S2MisumiM20N20R1.dat"
 !integer :: NUMDIV=3
 !SC_FILE_NAME="S2Misumi.dat"
+
+iarg=iargc()
+if( iarg /= 2 ) then
+  write(*,*) "use as ./a.out [SC_FILE_NAME] [NUMDIV]."
+  stop
+endif
+call getarg(1,SC_FILE_NAME)
+call getarg(2,C_NUMDIV)
+read(C_NUMDIV,*) NUMDIV
 
 call set_global_sc
 
