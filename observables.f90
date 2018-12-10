@@ -1162,6 +1162,7 @@ integer :: i,j,s,l,f,info,ite
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!! random eta/lambda/chi
 call BoxMuller2(gauss2, (NMAT*NMAT-1)*(num_sites+num_links+num_faces) )
+
 val=(0d0,0d0)
 do i=1,(NMAT*NMAT-1)*(num_sites+num_links+num_faces)
   gauss(i)=(gauss2(2*i-1) + gauss2(2*i)*(0d0,1d0)) * dcmplx(dsqrt(0.5d0))
@@ -1277,11 +1278,12 @@ complex(kind(0d0)) :: gauss(1:(NMAT*NMAT-1)*(num_sites+num_links+num_faces) )
 double precision :: gauss2(1:2*(NMAT*NMAT-1)*(num_sites+num_links+num_faces) ) 
 
 complex(kind(0d0)) :: val,tmp_val, num,denom,eigen_pre
-integer :: i,j,s,l,f,info,ite
+integer :: i,j,s,l,f,info,ite,counter
 
+counter=0
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!! random eta/lambda/chi
-call BoxMuller2(gauss2, (NMAT*NMAT-1)*(num_sites+num_links+num_faces) )
+1111 call BoxMuller2(gauss2, (NMAT*NMAT-1)*(num_sites+num_links+num_faces) )
 val=(0d0,0d0)
 do i=1,(NMAT*NMAT-1)*(num_sites+num_links+num_faces)
   gauss(i)=(gauss2(2*i-1) + gauss2(2*i)*(0d0,1d0)) * dcmplx(dsqrt(0.5d0))
@@ -1304,6 +1306,14 @@ do ite=1,10000
   eigen_pre=eigen
   !!
   call calc_DdagDinvF(Xeta,Xlambda,Xchi,eta,lambda,chi,Umat,Phimat,info)
+  if( info == 1 .and. counter<5 ) then
+    if( counter < 5 ) then
+      counter=counter+1
+      goto 1111
+    else
+      exit
+    endif
+  endif
   call InnerProd(num, &
     Xeta, Xlambda, Xchi, &
     eta, lambda, chi)
@@ -1312,7 +1322,11 @@ do ite=1,10000
     eta, lambda, chi)
   eigen=num/denom
   !!
-  if( cdabs(eigen-eigen_pre) < epsilon) exit
+  if( cdabs(eigen-eigen_pre) < epsilon) then
+    !if(MYRANK==0) write(*,*) cdabs(eigen-eigen_pre)
+    exit
+  endif
+
   eta(:,:,1:num_sites)=Xeta
   lambda(:,:,1:num_links)=Xlambda
   chi(:,:,1:num_faces)=Xchi
@@ -1373,6 +1387,7 @@ do ite=1,10000
   call syncronize_faces(chi)
 #endif
 enddo
+if( info==1 ) write(*,*) "Dirac is singular"
 eigen=(1d0,0d0)/eigen
 
 

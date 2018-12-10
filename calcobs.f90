@@ -3,12 +3,13 @@ implicit none
 
 character(128), parameter :: PARAFILE="parameters_calcobs.dat"
 character(128) :: MEDFILE
-integer, parameter :: num_calcobs=3 ! 考えているobservableの数
+integer, parameter :: num_calcobs=4 ! 考えているobservableの数
 integer :: trig_obs(1:num_calcobs)
 
 double precision :: Sb, TrX2
 complex(kind(0d0)) :: Acomp ! compensator
 complex(kind(0d0)) :: APQ_phase ! A*/|A|
+complex(kind(0d0)) :: min_eigen
 integer :: num_fermion ! total fermion number
 integer :: num_sitelink ! total fermion number
 
@@ -142,10 +143,16 @@ do
         ( dcmplx(Sb) &
         + dcmplx(0.5d0*mass_square_phi)*XiPhiEta &
         - dcmplx(0.5d0*dble(num_sitelink)) )  
-      write(*,'(E15.8,2X,E15.8,2X)') dble(tmpobs1), dble((0d0,-1d0)*tmpobs1)
+      write(*,'(E15.8,2X,E15.8,2X)',advance='no') dble(tmpobs1), dble((0d0,-1d0)*tmpobs1)
     endif
   endif
 
+  if( trig_obs(4) == 0 ) then
+    call min_eigen_DdagD(min_eigen,Umat,PhiMat)
+    if( MYRANK == 0 ) then
+      write(*,'(E15.8,2X)') dble(min_eigen)
+    endif
+  endif
   !write(*,*)
 
 enddo
