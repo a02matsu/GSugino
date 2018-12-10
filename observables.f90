@@ -1098,7 +1098,13 @@ integer :: i,j,s
 integer :: info
 
 call make_XiVec(Xi_eta,Xi_lambda,Xi_chi,Umat,PhiMat)
-call calc_DinvF(DinvXi_eta,DinvXi_lambda,DinvXi_chi,Xi_eta,Xi_lambda,Xi_chi,Umat,PhiMat,info)
+info=0
+
+!call test_calc_DinvF(Xi_eta,Xi_lambda,Xi_chi,Umat,PhiMat)
+!stop
+!call calc_DinvF(DinvXi_eta,DinvXi_lambda,DinvXi_chi,Xi_eta,Xi_lambda,Xi_chi,Umat,PhiMat,info)
+call calc_DinvF_direct(DinvXi_eta,DinvXi_lambda,DinvXi_chi,Xi_eta,Xi_lambda,Xi_chi,Umat,PhiMat)
+
 
 XiPhiEta=(0d0,0d0)
 if( info==1 ) then
@@ -1486,6 +1492,120 @@ info = 1
 return
 
 end subroutine calc_DdagDinvF
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! check calc_DinvF
+subroutine test_calc_DinvF(eta,lambda,chi,Umat,Phimat)
+use Dirac_operator
+use matrix_functions
+implicit none
+
+complex(kind(0d0)), intent(in) :: eta(1:NMAT,1:NMAT,1:num_necessary_sites)
+complex(kind(0d0)), intent(in) :: lambda(1:NMAT,1:NMAT,1:num_necessary_links)
+complex(kind(0d0)), intent(in) :: chi(1:NMAT,1:NMAT,1:num_necessary_faces)
+complex(kind(0d0)), intent(in) :: Umat(1:NMAT,1:NMAT,1:num_necessary_links)
+complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_necessary_sites)
+
+integer :: info
+complex(kind(0d0)) :: X_eta1(1:NMAT,1:NMAT,1:num_necessary_sites)
+complex(kind(0d0)) :: X_lambda1(1:NMAT,1:NMAT,1:num_necessary_links)
+complex(kind(0d0)) :: X_chi1(1:NMAT,1:NMAT,1:num_necessary_faces)
+complex(kind(0d0)) :: X_eta2(1:NMAT,1:NMAT,1:num_necessary_sites)
+complex(kind(0d0)) :: X_lambda2(1:NMAT,1:NMAT,1:num_necessary_links)
+complex(kind(0d0)) :: X_chi2(1:NMAT,1:NMAT,1:num_necessary_faces)
+complex(kind(0d0)), allocatable :: Dinv(:,:),vec(:),DinvV(:)
+integer :: sizeD,i,j
+
+sizeD=(NMAT*NMAT-1)*(global_num_sites+global_num_links+global_num_faces)
+allocate( Dinv(1:sizeD,1:sizeD) )
+allocate( vec(1:sizeD) )
+allocate( DinvV(1:sizeD) )
+call make_Dirac(Dinv,Umat,PhiMat)
+call Matrix_Inverse(Dinv)
+call MPI_BCAST(Dinv, sizeD*sizeD, MPI_DOUBLE_COMPLEX,0,MPI_COMM_WORLD,IERR)
+
+call localmat_to_globalvec(vec, eta,lambda,chi)
+call MPI_BCAST(vec, sizeD, MPI_DOUBLE_COMPLEX,0,MPI_COMM_WORLD,IERR)
+
+DinvV=(0d0,0d0)
+do i=1,sizeD
+  do j=1,sizeD
+    DinvV(j) = DinvV(j) + Dinv(j,i)*vec(i)
+  enddo
+enddo
+call globalvec_to_localmat(X_eta1,X_lambda1,X_chi1,DinvV)
+
+call calc_DinvF(X_eta2,X_lambda2,X_chi2,eta,lambda,chi,Umat,Phimat,info)
+
+do i=1, num_sites
+  write(*,*) X_eta1(:,:,i)-X_eta2(:,:,i)
+enddo
+do i=1, num_links
+  write(*,*) X_lambda1(:,:,i)-X_lambda2(:,:,i)
+enddo
+do i=1, num_faces
+  write(*,*) X_chi1(:,:,i)-X_chi2(:,:,i)
+enddo
+
+
+end subroutine test_calc_DinvF
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! Dirac inverse by direct computation
+subroutine calc_DinvF_direct(X_eta,X_lambda,X_chi,eta,lambda,chi,Umat,Phimat)
+use Dirac_operator
+use matrix_functions
+implicit none
+
+complex(kind(0d0)), intent(out) :: X_eta(1:NMAT,1:NMAT,1:num_sites)
+complex(kind(0d0)), intent(out) :: X_lambda(1:NMAT,1:NMAT,1:num_links)
+complex(kind(0d0)), intent(out) :: X_chi(1:NMAT,1:NMAT,1:num_faces)
+complex(kind(0d0)), intent(in) :: eta(1:NMAT,1:NMAT,1:num_necessary_sites)
+complex(kind(0d0)), intent(in) :: lambda(1:NMAT,1:NMAT,1:num_necessary_links)
+complex(kind(0d0)), intent(in) :: chi(1:NMAT,1:NMAT,1:num_necessary_faces)
+complex(kind(0d0)), intent(in) :: Umat(1:NMAT,1:NMAT,1:num_necessary_links)
+complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_necessary_sites)
+
+complex(kind(0d0)), allocatable :: Dinv(:,:),vec(:),DinvV(:)
+complex(kind(0d0)) :: tmpX_eta(1:NMAT,1:NMAT,1:num_necessary_sites)
+complex(kind(0d0)) :: tmpX_lambda(1:NMAT,1:NMAT,1:num_necessary_links)
+complex(kind(0d0)) :: tmpX_chi(1:NMAT,1:NMAT,1:num_necessary_faces)
+integer :: sizeD,i,j
+
+sizeD=(NMAT*NMAT-1)*(global_num_sites+global_num_links+global_num_faces)
+allocate( Dinv(1:sizeD,1:sizeD) )
+allocate( vec(1:sizeD) )
+allocate( DinvV(1:sizeD) )
+
+call make_Dirac(Dinv,Umat,PhiMat)
+call localmat_to_globalvec(vec, eta,lambda,chi)
+
+if( MYRANK == 0 ) then 
+  call Matrix_Inverse(Dinv)
+  DinvV=(0d0,0d0)
+  do i=1,sizeD
+    do j=1,sizeD
+      DinvV(j) = DinvV(j) + Dinv(j,i)*vec(i)
+    enddo
+  enddo
+endif
+call MPI_BCAST(DinvV, sizeD, MPI_DOUBLE_COMPLEX,0,MPI_COMM_WORLD,IERR)
+call globalvec_to_localmat(tmpX_eta,tmpX_lambda,tmpX_chi,DinvV)
+
+do i=1,num_sites
+  X_eta(:,:,i)=tmpX_eta(:,:,i)
+enddo
+do i=1,num_links
+  X_lambda(:,:,i)=tmpX_lambda(:,:,i)
+enddo
+do i=1,num_faces
+  X_chi(:,:,i)=tmpX_chi(:,:,i)
+enddo
+
+
+deallocate( Dinv,vec,DinvV)
+
+end subroutine calc_DinvF_direct
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! Dirac inverse by CG

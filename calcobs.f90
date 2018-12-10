@@ -145,6 +145,7 @@ do
       write(*,'(E15.8,2X,E15.8,2X)') dble(tmpobs1), dble((0d0,-1d0)*tmpobs1)
     endif
   endif
+
   !write(*,*)
 
 enddo
