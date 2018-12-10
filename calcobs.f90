@@ -10,6 +10,7 @@ double precision :: Sb, TrX2
 complex(kind(0d0)) :: Acomp ! compensator
 complex(kind(0d0)) :: APQ_phase ! A*/|A|
 integer :: num_fermion ! total fermion number
+integer :: num_sitelink ! total fermion number
 
 integer, parameter :: N_MEDFILE=100
 integer, parameter :: N_PARAFILE=101
@@ -112,6 +113,7 @@ if( MYRANK == 0 ) then
 endif
 
 num_fermion=(global_num_sites+global_num_links+global_num_faces)*(NMAT*NMAT-1)
+num_sitelink=(global_num_sites+global_num_links)*(NMAT*NMAT-1)
 do
   call read_config_from_medfile(Umat,PhiMat,ite,N_MEDFILE)
   call calc_trace_compensator(Acomp,PhiMat)
@@ -120,16 +122,16 @@ do
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !! calculate observables
   if( MYRANK == 0 ) then
-    write(*,*) ite
+    write(*,'(I7,2X)',advance='no') ite
   endif
   if( trig_obs(1) == 0 ) then 
     call calc_TrX2(TrX2,PhiMat)
-    if( MYRANK == 0 ) write(*,*) TrX2
+    if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') TrX2
   endif
   if( trig_obs(2) == 0 ) then 
     Sb_computed=1
     call calc_bosonic_action(Sb,Umat,PhiMat)
-    if( MYRANK == 0 ) write(*,*) Sb
+    if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') Sb
   endif
 
   if( trig_obs(3) == 0 ) then 
@@ -139,10 +141,11 @@ do
       tmpobs1= cdabs(Acomp) * &
         ( dcmplx(Sb) &
         + dcmplx(0.5d0*mass_square_phi)*XiPhiEta &
-        - dcmplx(0.5d0*dble(num_fermion)) )  
-      write(*,*) dble(tmpobs1), dble((0d0,-1d0)*tmpobs1)
+        - dcmplx(0.5d0*dble(num_sitelink)) )  
+      write(*,'(E15.8,2X,E15.8,2X)') dble(tmpobs1), dble((0d0,-1d0)*tmpobs1)
     endif
   endif
+  !write(*,*)
 
 enddo
 
