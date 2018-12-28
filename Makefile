@@ -127,7 +127,8 @@ simulation.o: \
   hamiltonian.f90 \
   observables.f90 \
   output.f90 \
-  forces.f90 
+  forces.f90 \
+  WT_identities.f90 
 Dirac_operator.o: \
   global_parameters.o \
   global_subroutines.o \
@@ -140,6 +141,7 @@ differential_Dirac.o: \
   parallel.o \
   SUN_generators.o \
   matrix_functions.o
+
 
 .PHONY: clean
 clean:

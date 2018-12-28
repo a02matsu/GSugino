@@ -9,7 +9,7 @@ integer :: fsize
 integer, allocatable :: fsites(:), faces_l(:), sites_f(:)
 integer :: FaceSize
 integer, allocatable :: sites(:)
-integer k,j
+integer k,j,i
 character(128) tmp
 double precision :: alpha
 ! open SC_FILE 
@@ -152,6 +152,30 @@ do f=1,global_num_faces
   allocate(global_sites_in_f(f)%label_(1:size(sites_f)))
   global_sites_in_f(f)%label_=sites_f
 enddo
+
+! faces touching site s
+allocate(global_face_in_s(1:global_num_sites))
+do s=1,global_num_sites
+  global_face_in_s(s)%num_=0
+enddo
+do f=1,global_num_faces
+  do i=1,global_sites_in_f(f)%num_
+    s=global_sites_in_f(f)%label_(i)
+    global_face_in_s(s)%num_= global_face_in_s(s)%num_ + 1
+  enddo
+enddo
+do s=1,global_num_sites
+  allocate(global_face_in_s(s)%label_(1:global_face_in_s(s)%num_))
+  global_face_in_s(s)%num_=0
+enddo
+do f=1,global_num_faces
+  do i=1,global_sites_in_f(f)%num_
+    s=global_sites_in_f(f)%label_(i)
+    global_face_in_s(s)%num_= global_face_in_s(s)%num_ + 1
+    global_face_in_s(s)%label_( global_face_in_s(s)%num_ ) = f
+  enddo
+enddo
+
 
 end subroutine set_global_simplicial_complex
 

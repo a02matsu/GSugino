@@ -4,7 +4,7 @@ use parallel
 #endif
 implicit none
 type(SITE_DIST), intent(in) :: local_site_list(0:NPROCS-1)
-integer :: s,l,f,i
+integer :: s,l,f,i,j
 
 #ifdef PARALLEL
   !! global {site,link,face} から local {site,link,face}へのmapを作成
@@ -35,10 +35,24 @@ integer :: s,l,f,i
   call set_local_links_in_f
   !! localなlinkを共有するfaceのlocalラベルを設定
   call set_local_face_in_l
+!  do l=1,num_links
+!    do i=1,face_in_l(l)%num_
+!      f=face_in_l(l)%label_(i)
+!      do j=1,links_in_f(f)%num_
+!        if( links_in_f(f)%link_labels_(j)==l ) then
+!          write(*,*) MYRANK, global_face_of_local(f), global_link_of_local(l), links_in_f(f)%link_dirs_(j)
+!        endif
+!      enddo
+!    enddo
+!  enddo
+!  call stop_for_test
   !! localなfaceに含まれるsiteのlocalラベルを設定
   !! ただし、使うのは sites_in_f(f)%label_(1)だけなので、
   !! はじめから size=1 にしておく。
   call set_local_sites_in_f
+
+  call set_num_local_faces_in_s
+
   !! alpha と beta を割り振る
   call set_local_alpha_beta
 #else
@@ -871,28 +885,51 @@ use parallel
 implicit none
 
 integer f,s,global_s,info
+integer gf,i
+integer Nsites
 
 allocate( sites_in_f(1:num_necessary_faces) )
 do f=1,num_necessary_faces
-  sites_in_f(f)%num_=1 
-  allocate( sites_in_f(f)%label_(1:1) )
+  gf=global_face_of_local(f)
+  Nsites = global_sites_in_f(gf)%num_
 
-  global_s=global_sites_in_f(global_face_of_local(f))%label_(1)
-  do s=1,num_necessary_sites
-    
-    if( global_s == global_site_of_local(s) ) then
-      sites_in_f(f)%label_(1) = s
-      info=1
-      exit
+  sites_in_f(f)%num_ = Nsites
+  allocate( sites_in_f(f)%label_(1:Nsites) )
+
+  do i=1, Nsites
+    global_s=global_sites_in_f(global_face_of_local(f))%label_(i)
+    info=0
+    do s=1,num_necessary_sites
+      if( global_s == global_site_of_local(s) ) then
+        sites_in_f(f)%label_(i) = s
+        info=1
+        exit
+      endif
+    enddo
+    if( info == 0 ) then
+      write(*,*) "something happened in set_local_sites_in_f"
+      call stop_for_test
     endif
   enddo
-  if( info == 0 ) then
-    write(*,*) "something happened in set_local_sites_in_f"
-    call stop_for_test
-  endif
 enddo
 
 end subroutine set_local_sites_in_f
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+subroutine set_num_local_faces_in_s
+use parallel
+implicit none
+integer s,global_s
+
+allocate( num_faces_in_s(1:num_sites) )
+do s=1,num_sites
+  global_s = global_site_of_local(s)
+  num_faces_in_s(s)=global_face_in_s(global_s)%num_
+enddo
+
+
+end subroutine set_num_local_faces_in_s
+
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! set alpha and beta

@@ -125,6 +125,9 @@ type(LINKDAT), allocatable, save :: global_links_in_f(:) ! fに含まれるリ�
 type(FACEDAT), allocatable, save :: global_face_in_l(:) ! lに含まれるface
 type(SITEDAT), allocatable, save :: global_sites_in_f(:) ! face f に含まれるサイト
 
+type(FACEDAT), allocatable, save :: global_face_in_s(:) ! faces touching at site
+
+
 
 
 integer, save :: num_sites ! number of sites
@@ -143,6 +146,8 @@ type(LINKDAT), allocatable, save :: links_in_f(:) ! fに含まれるリンクの
 type(FACEDAT), allocatable, save :: face_in_l(:) ! lに含まれるface
 !!
 type(SITEDAT), allocatable, save :: sites_in_f(:) ! face f に含まれるサイト
+!! 
+integer, allocatable, save :: num_faces_in_s(:) ! number of faces touching on s
 
 double precision, allocatable, save :: alpha_s(:)
 double precision, allocatable, save :: alpha_l(:)

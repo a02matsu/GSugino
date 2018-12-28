@@ -6,6 +6,47 @@ implicit none
 contains
 !***********************************************************
 !***********************************************************
+!  Trace of matrix  
+SUBROUTINE MATRIX_TRACE(trace,MAT)
+implicit none
+
+complex(kind(0d0)), intent(in) :: MAT(:,:)
+complex(kind(0d0)), intent(out) :: trace
+
+integer :: NMAT,i,j
+
+NMAT=size(MAT,1)
+trace=(0d0,0d0)
+do i=1,NMAT
+  trace=trace+MAT(i,i)
+enddo
+
+end SUBROUTINE MATRIX_TRACE
+  
+!***********************************************************
+!***********************************************************
+!  Trace of matrix product
+SUBROUTINE TRACE_MM(trace,MAT1,MAT2)
+implicit none
+
+complex(kind(0d0)), intent(in) :: MAT1(:,:)
+complex(kind(0d0)), intent(in) :: MAT2(:,:)
+complex(kind(0d0)), intent(out) :: trace
+
+integer :: NMAT,i,j
+
+NMAT=size(MAT1,1)
+trace=(0d0,0d0)
+do i=1,NMAT
+  do j=1,NMAT
+    trace=trace+MAT1(i,j)*MAT2(j,i)
+  enddo
+enddo
+
+end SUBROUTINE TRACE_MM
+
+!***********************************************************
+!***********************************************************
 !   Log of a matrix : P -> Log(P)
 SUBROUTINE MATRIX_LOG(MATLOG,MAT)
 
