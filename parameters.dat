@@ -5,12 +5,18 @@
 ## mass_f; fermion mass
 1d-1
 ##  data of the simplicial complex
-S2Misumi44.dat
+S2MisumiM8N8R10.dat
 ## test_mode ; 0:Simulation mode 1:Test mode, 
 0
+## branch_mode !! 0:normal, 1:make branch
+0
+## branch_root ! make branch from this config. default:0
+1
+## branch_num !! label of branch
+2
 ## force_measurement ; 1:measure forces  
 1
-## new_config ; 0:Old Config 1:New Config
+## new_config ; 0:Old Config 1:New Config 2:New config all accept 3:Old config all accept
 0
 ## fix_seed ; 0:previous value 1:fix 2:system time 
 0
@@ -20,7 +26,7 @@ S2Misumi44.dat
 42342
 ## m_omega ;integer to avoid vacuum degeneracy (mm>=NMAT/4)
 -1
-##  Remez data for x^{-1/4}
+#  Remez data for x^{-1/4}
 remez_Q24_1ov-4.dat
 ##  Remez data for x^{1/8}
 remez_Q24_1ov8.dat

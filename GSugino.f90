@@ -21,7 +21,7 @@ integer :: seed, time
 type(genrand_state) :: state_mt95 ! state of mt95
 double precision :: tmp
 
-integer :: s,l,i,j
+integer :: s,l,i,j,b
 
 integer num_para, iargc
 
@@ -32,6 +32,9 @@ type(SITE_DIST), allocatable,save :: local_site_list(:) !(0:NPROCS-1)
 !integer :: MPI_GENRAND_SREPR, MPI_LOCAL_LABEL, MPI_GENRAND_STATE
 integer IBLOCK1(1),IDISP1(1),ITYPE1(1)
 integer IBLOCK2(1),IDISP2(1),ITYPE2(1)
+
+character(128) DIRNAME,COMMAND,CONFDIR0,CONFDIR1
+character(128) tmpc,tmpc2
 
 call MPI_INIT(IERR)
 call MPI_COMM_SIZE(MPI_COMM_WORLD,NPROCS,IERR)
@@ -66,16 +69,6 @@ allocate(local_site_list(0:NPROCS-1) )
 !! set the parameters in the module "global_parameters"
 ! read input parameter from the parameter file
 
-!! set directories
-#ifdef PARALLEL
-if(MYRANK==0) then
-#endif
-call system('if [ ! -d CONFIG ]; then mkdir -p CONFIG; fi')
-call system('if [ ! -d OUTPUT ]; then mkdir -p OUTPUT; fi')
-call system('if [ ! -d MEDCONF ]; then mkdir -p MEDCONF; fi')
-#ifdef PARALLEL
-endif
-#endif
 
 call set_theory_parameters(seed)
 ! set the structure constant of SU(NMAT)
@@ -92,6 +85,46 @@ mass_square_phi = phys_mass_square_phi * (LatticeSpacing*latticeSpacing)
 !      num_sites,num_links,num_faces
 !      local_{site,link,face}_of_globalの(1:num_{sites,links,faces})が確定する。
 call set_simulation_parameters(local_site_list)
+
+!! set directories
+#ifdef PARALLEL
+if(MYRANK==0) then
+#endif
+if( branch_use == 0 ) then 
+  call system('if [ ! -d CONFIG ]; then mkdir -p CONFIG; fi')
+  call system('if [ ! -d OUTPUT ]; then mkdir -p OUTPUT; fi')
+  call system('if [ ! -d MEDCONF ]; then mkdir -p MEDCONF; fi')
+else
+  write(tmpc,*) branch_use
+  DIRNAME="CONFIG"//trim(adjustl(tmpc))
+  COMMAND='if [ ! -d '//trim(DIRNAME)//' ]; then mkdir -p '//trim(DIRNAME)//'; fi'
+  call system(COMMAND)
+  !!!!
+  DIRNAME="OUTPUT"//trim(adjustl(tmpc))
+  COMMAND='if [ ! -d '//trim(DIRNAME)//' ]; then mkdir -p '//trim(DIRNAME)//'; fi'
+  call system(COMMAND)
+  !!!!
+  DIRNAME="MEDCONF"//trim(adjustl(tmpc))
+  COMMAND='if [ ! -d '//trim(DIRNAME)//' ]; then mkdir -p '//trim(DIRNAME)//'; fi'
+  call system(COMMAND)
+endif
+if( branch_mode==1 ) then
+  write(tmpc,*) branch_num
+  DIRNAME="CONFIG"//trim(adjustl(tmpc))
+  COMMAND='if [ ! -d '//trim(DIRNAME)//' ]; then mkdir -p '//trim(DIRNAME)//'; fi'
+  call system(COMMAND)
+  !!!!
+  DIRNAME="OUTPUT"//trim(adjustl(tmpc))
+  COMMAND='if [ ! -d '//trim(DIRNAME)//' ]; then mkdir -p '//trim(DIRNAME)//'; fi'
+  call system(COMMAND)
+  !!!!
+  DIRNAME="MEDCONF"//trim(adjustl(tmpc))
+  COMMAND='if [ ! -d '//trim(DIRNAME)//' ]; then mkdir -p '//trim(DIRNAME)//'; fi'
+  call system(COMMAND)
+endif
+#ifdef PARALLEL
+endif
+#endif
 
 ! set local data
 call set_local_data(local_site_list)
@@ -146,18 +179,47 @@ endif
 
 ! set the variables depending on simulation_mode and test_mode
   !if (test_mode==1 .or. new_config==1) then
-  if (new_config == 1 .or. new_config == 2) then
+  if (new_config == 1 .or. new_config == 2) then ! new config
     total_ite=0
     job_number=1
     call set_random_config(UMAT,PHIMAT) 
-  else
-    !call read_config(total_ite,UMAT,PHIMat,state_mt95,seed)
-    if( job_number <= 0 ) then
-      Fconfigin="CONFIG/latestconf"
-    else
-      write(Fconfigin, '("CONFIG/inputconf_", i4.4, ".dat")') job_number-1
+  else ! read config from CONF directory
+    if( branch_mode == 0 ) then ! continuous simulation 
+      if( branch_use == 0 ) then
+        if( job_number <= 0 ) then
+          Fconfigin="CONFIG/latestconf"
+        else
+          write(Fconfigin, '("CONFIG/inputconf_", i4.4, ".dat")') job_number-1
+        endif
+      else
+        if( job_number <= 0 ) then
+          write(Fconfigin, '("CONFIG",i1.1,"/latestconf")') branch_use
+        else
+          write(Fconfigin, '("CONFIG",i1.1,"/inputconf_", i4.4, ".dat")') branch_use,job_number-1
+        endif
+      endif
+    else ! make branch from branch_root
+      !! set the configuration directries
+      write(tmpc,*) branch_num
+      if( job_number <= 0 ) then
+        if( branch_root==0 ) then
+          Fconfigin="CONFIG/latestconf"
+        else
+          write(tmpc,*) branch_root
+          Fconfigin="CONFIG"//trim(adjustl(tmpc))//'/latestconf'
+        endif
+      else
+        if( branch_root==0 ) then
+          write(Fconfigin, '("CONFIG/inputconf_", i4.4, ".dat")') job_number-1
+        else
+          !write(tmpc,*) branch_root
+          !write(tmpc2,*) job_number-1
+          !Fconfigin="CONFIG"//trim(adjustl(tmpc))//'/lastconf_'trim(adjustl(tmpc2)//'.dat'
+          write(Fconfigin, '("CONFIG",i1.1,"/inputconf_", i4.4, ".dat")') branch_root,job_number-1
+        endif
+      endif
     endif
-    call read_config(UMAT,PHIMat,state_mt95,seed)
+    call read_config(UMAT,PhiMat,state_mt95,seed)
   endif
   if( fix_seed == 0 ) then
     call genrand_init( put=state_mt95 )
@@ -189,9 +251,24 @@ endif
     !call check_Dirac(UMAT,Phi)
     call test_hamiltonian(UMAT,PhiMat,seed)
   else
-    write(Fconfigout, '("CONFIG/inputconf_", i4.4, ".dat")') job_number
-    write(Foutput, '("OUTPUT/output_",i4.4,":",i6.6,"+",i6.6,".dat")') job_number,total_ite,num_ite
-    write(Fmedconf, '("MEDCONF/medconfig_", i6.6,"+",i6.6,".dat")') total_ite,num_ite
+    if( branch_mode == 0 ) then !! normal mode
+      if( branch_use == 0 ) then
+        write(Fconfigout, '("CONFIG/inputconf_", i4.4, ".dat")') job_number
+        write(Foutput, '("OUTPUT/output_",i4.4,":",i6.6,"+",i6.6,".dat")') job_number,total_ite,num_ite
+        write(Fmedconf, '("MEDCONF/medconfig_", i6.6,"+",i6.6,".dat")') total_ite,num_ite
+      else
+        write(Fconfigout, '("CONFIG",i1.1,"/inputconf_", i4.4, ".dat")') branch_use, job_number
+        write(Foutput, '("OUTPUT",i1.1,"/output_",i4.4,":",i6.6,"+",i6.6,".dat")') branch_use, job_number,total_ite,num_ite
+        write(Fmedconf, '("MEDCONF",i1.1,"/medconfig_", i6.6,"+",i6.6,".dat")') branch_use, total_ite,num_ite
+      endif
+    else !! branch mode
+      write(Fconfigout, '("CONFIG",i1.1,"/inputconf_", i4.4, ".dat")') branch_num, job_number
+      write(Foutput, '("OUTPUT",i1.1,"/output_",i4.4,":",i6.6,"+",i6.6,".dat")') branch_num, job_number,total_ite,num_ite
+      write(Fmedconf, '("MEDCONF",i1.1,"/medconfig_", i6.6,"+",i6.6,".dat")') branch_num, total_ite,num_ite
+    endif
+    if( MYRANK == 0) then
+      write(*,*) Fconfigin, Fconfigout, Foutput, Fmedconf
+    endif
     call HybridMonteCarlo(UMAT,PhiMat,seed,total_ite)
   endif
 

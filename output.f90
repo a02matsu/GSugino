@@ -91,6 +91,11 @@ write(output,'(A,E12.5)') "# phys_mass_square_phi= ",phys_mass_square_phi
 write(output,'(A,E12.5)') "# mass_f= ",mass_f
 write(output,'(A)') "######################"
 write(output,'(A,I5)') "# job_number= ",job_number
+if( branch_mode==0 ) then 
+  write(output,'(A,I5)') "# branch= ",branch_use
+else
+  write(output,'(A,I5,A,I5)') "# make branch from ",branch_root," to ",branch_num
+endif
 write(output,'(a)') "#"
 write(output,'(A,F10.8)') "# Tau= ",Tau
 write(output,'(A,I5)') "# Nfermion= ",Nfermion
@@ -484,9 +489,10 @@ else
 endif 
 if(MYRANK==0) then
   close( OUT_CONF_FILE)
-  call system('cd CONFIG; FILE=$(ls inputconf* | tail -1); &
-    LINK="latestconf"; if [ -e "$LINK" ]; then /bin/rm $LINK; &
-    fi; ln -s $FILE $LINK; cd ..' )
+  call make_latestconf_link
+  !call system('cd CONFIG; FILE=$(ls inputconf* | tail -1); &
+    !LINK="latestconf"; if [ -e "$LINK" ]; then /bin/rm $LINK; &
+    !fi; ln -s $FILE $LINK; cd ..' )
 endif
 
 #else
@@ -498,15 +504,44 @@ call genrand_init( get=state )
 srepr=state ! mt95では"="がassignmentされている
 write(OUT_CONF_FILE) srepr%repr
 close( OUT_CONF_FILE)
-call system('cd CONFIG; FILE=$(ls inputconf* | tail -1); &
-  LINK="latestconf"; if [ -e "$LINK" ]; then /bin/rm $LINK; &
-  fi; ln -s $FILE $LINK; cd ..' )
+
+call make_latestconf_link
+!call system('cd CONFIG; FILE=$(ls inputconf* | tail -1); &
+  !LINK="latestconf"; if [ -e "$LINK" ]; then /bin/rm $LINK; &
+  !fi; ln -s $FILE $LINK; cd ..' )
 #endif 
 
 end subroutine write_config_file
 
 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+subroutine make_latestconf_link
+implicit none
+character(500) COMMAND
+character(128) tmpc
 
+if( branch_mode==0) then 
+  if( branch_use==0) then 
+    call system('cd CONFIG; FILE=$(ls inputconf* | tail -1); &
+      LINK="latestconf"; if [ -e "$LINK" ]; then /bin/rm $LINK; &
+      fi; ln -s $FILE $LINK; cd ..' )
+  else
+    write(tmpc,*) branch_use
+    COMMAND='cd CONFIG'//trim(adjustl(tmpc)) &
+      //'; FILE=$(ls inputconf* | tail -1); LINK="latestconf"; &
+      if [ -e "$LINK" ]; then /bin/rm $LINK; fi; ln -s $FILE $LINK; cd ..' 
+    call system(COMMAND)
+  endif
+endif
+if( branch_mode==1 ) then
+  write(tmpc,*) branch_num
+  COMMAND='cd CONFIG'//trim(adjustl(tmpc))//'; FILE=$(ls inputconf* | tail -1); &
+    LINK="latestconf"; if [ -e "$LINK" ]; then /bin/rm $LINK; &
+    fi; ln -s $FILE $LINK; cd ..' 
+  call system(COMMAND)
+endif
+
+end subroutine make_latestconf_link
 
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
