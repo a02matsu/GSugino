@@ -242,6 +242,7 @@ do ite=total_ite+1,total_ite+num_ite
     fermionic_force_A=0d0
   endif
   !call molecular_evolution_Omelyan(UMAT,PhiMat,PF_eta,PF_lambda,PF_chi,P_AMat,P_PhiMat,info)
+  info=0 ! check if CG successes during molecular evolution
   call molecular_evolution_multistep(UMAT,PhiMat,PF_eta,PF_lambda,PF_chi,P_AMat,P_PhiMat,info)
   if( force_measurement == 1 ) then
     bosonic_force_Phi= bosonic_force_Phi / dble(b_phi_count)
@@ -253,14 +254,13 @@ do ite=total_ite+1,total_ite+num_ite
   do s=1,num_necessary_sites
     call make_matrix_traceless(PhiMat(:,:,s))
   enddo
-  if( info == 1 ) then
+  if( info == 1 .and. new_config <= 1 ) then
     PhiMat=PhiMat_BAK
-    !Phi=Phi_BAK
     UMAT=UMAT_BAK
 #ifdef PARALLEL
     if(MYRANK==0) then
 #endif 
-    write(*,*) "### CAUTION: CG iterations reaches to the maximal."
+    write(*,*) "### CAUTION: CG iterations reaches to the maximal during molecular evolution."
 #ifdef PARALLEL
     endif
 #endif 
@@ -284,8 +284,9 @@ do ite=total_ite+1,total_ite+num_ite
       write(*,*) "!!! CAUTION: plaquette variables are out of proper region !!!!"
     endif
   endif
+
   !! write out the configuration
-   if ( save_med_step/=0 .and. mod(ite,save_med_step) == 0 ) then
+  if ( save_med_step/=0 .and. mod(ite,save_med_step) == 0 ) then
 #ifdef PARALLEL
      call write_config_to_medfile(ite,UMAT,PhiMat)
      !if( MYRANK == 0 ) then
@@ -606,16 +607,18 @@ complex(kind(0d0)), intent(in) :: PF_chi(1:NMAT,1:NMAT,1:num_necessary_faces)
 complex(kind(0d0)), intent(inout) :: P_PhiMat(1:NMAT,1:NMAT,1:num_sites)
 complex(kind(0d0)), intent(inout) :: P_AMat(1:NMAT,1:NMAT,1:num_links)
 integer, intent(inout) :: info
-integer :: i,j,step
+integer :: i,j,step,local_info
 double precision :: rtmp
 
 
+info=0
 !!!!!!!!!!!!!!!!!!
 !!!! Update Phi
 !! first step
 !write(*,*) "test"
 call update_momentum_boson(P_PhiMat,P_AMat,PhiMat,UMAT,Dtau_boson*0.5d0)
-if(pf==0) call update_momentum_fermion(P_PhiMat,P_AMat,PhiMat,UMAT,PF_eta,PF_lambda,PF_chi,info,Dtau_fermion*0.5d0)
+if(pf==0) call update_momentum_fermion(P_PhiMat,P_AMat,PhiMat,UMAT,PF_eta,PF_lambda,PF_chi,local_info,Dtau_fermion*0.5d0)
+if(local_info==1) info=1
 
 !! main step
 step=0
@@ -629,14 +632,15 @@ do i=1,Nfermion
     endif
   enddo
   if( step .ne. Nfermion*Nboson ) then
-    if(pf==0) call update_momentum_fermion(P_PhiMat,P_AMat,PhiMat,UMAT,PF_eta,PF_lambda,PF_chi,info,Dtau_fermion)
+    if(pf==0) call update_momentum_fermion(P_PhiMat,P_AMat,PhiMat,UMAT,PF_eta,PF_lambda,PF_chi,local_info,Dtau_fermion)
+    if(local_info==1) info=1
   endif
 enddo
 
 !! final step
 call update_momentum_boson(P_PhiMat,P_AMat,PhiMat,UMAT,Dtau_boson*0.5d0)
-if(pf==0) call update_momentum_fermion(P_PhiMat,P_AMat,PhiMat,UMAT,PF_eta,PF_lambda,PF_chi,info,Dtau_fermion*0.5d0)
-
+if(pf==0) call update_momentum_fermion(P_PhiMat,P_AMat,PhiMat,UMAT,PF_eta,PF_lambda,PF_chi,local_info,Dtau_fermion*0.5d0)
+if(local_info==1) info=1
 
 end subroutine molecular_evolution_multistep
 
@@ -839,9 +843,9 @@ complex(kind(0d0)) :: tmp
 complex(kind(0d0)) :: dSdA(1:NMAT,1:NMAT,1:num_links)
 complex(kind(0d0)) :: dSdPhi(1:NMAT,1:NMAT,1:num_sites)
 
+info=0
 call Make_fermionic_force(dSdPhi,dSdA,UMAT,PhiMat,PF_eta,PF_lambda,PF_chi,info)
-if( info == 1) return
-
+!if( info == 1) return
 
 P_PhiMat(:,:,:)=P_PhiMat(:,:,:) - dSdPhi(:,:,:) * delta_f
 P_AMat(:,:,:) = P_AMat(:,:,:) - dSdA(:,:,:) * dcmplx(delta_f)
@@ -1012,7 +1016,7 @@ if (MYRANK == 0) then
 #endif 
 
 local_info=1
-if( delta_Ham <= 0d0 ) then 
+if( delta_Ham <= 0d0 .or. new_config >= 2 ) then 
   local_info=0
   accept=accept+1
 else

@@ -3,17 +3,30 @@ implicit none
 
 character(128), parameter :: PARAFILE="parameters_calcobs.dat"
 character(128), allocatable :: MEDFILE(:)
-integer, parameter :: num_calcobs=4 ! 考えているobservableの数
-integer :: trig_obs(1:num_calcobs)
+integer, parameter :: num_calcobs=9 ! 考えているobservableの数
+character(128) :: name_obs(1:num_calcobs) = (/ &
+  "|Atr|", &
+  "Sb", &
+  "Sb_S", &
+  "Sb_L", &
+  "Sb_F", &
+  "Re(trivWT)", &
+  "Im(trivWT)", &
+  "Re(SfL2)", &
+  "Im(SfL2)" &
+  /)
+!integer :: trig_obs(1:num_calcobs)
 integer :: sizeM,sizeN
 
-double precision :: Sb, TrX2
+double precision :: Sb, SbS, SbL, SbF
+complex(kind(0d0)) :: SfL2
 complex(kind(0d0)) :: Acomp_tr ! trace compensator
 complex(kind(0d0)) :: Acomp_VM ! van der monde compensator
 complex(kind(0d0)) :: APQ_phase ! A*/|A|
 complex(kind(0d0)) :: min_eigen
-complex(kind(0d0)), allocatable :: WT1(:)
-complex(kind(0d0)), allocatable :: WT2(:)
+!complex(kind(0d0)), allocatable :: WT1(:)
+!complex(kind(0d0)), allocatable :: WT2(:)
+complex(kind(0d0)) :: WT1, WT2
 integer :: num_fermion ! total fermion number
 integer :: num_sitelink ! total fermion number
 
@@ -21,6 +34,29 @@ integer, parameter :: N_MEDFILE=100
 integer, parameter :: N_PARAFILE=101
 
 integer :: Sb_computed ! if Sb_computed=1, Sb has been already computed
+
+
+contains
+!!!
+subroutine make_format(FMT1,num)
+implicit none
+
+character(128), intent(out) :: FMT1
+integer, intent(in) :: num
+character(128), parameter :: FMT0="E15.8,2X"
+
+character(128) :: tmp
+integer :: i
+
+tmp = trim("(")
+do i=1,num-1
+  FMT1 = tmp // trim(FMT0) // ","
+  tmp = FMT1
+  write(*,*)  tmp // trim(FMT0) // ","
+enddo
+FMT1 = tmp // trim(FMT0) // ")"
+write(*,*) FMT1
+end subroutine make_format
 
 end module global_calcobs
 
@@ -60,6 +96,10 @@ integer :: iarg
 character(128) :: config_file
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 integer :: control
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+character(128) :: FMT1
+integer :: pos_current
+integer :: pos_operator
 
 iarg=iargc()
 allocate( MEDFILE(1:iarg) )
@@ -124,19 +164,29 @@ if( MYRANK == 0 ) then
   !read(N_PARAFILE,*) MEDFILE
   read(N_PARAFILE,*) sizeM
   read(N_PARAFILE,*) sizeN
-  do i=1,num_calcobs
-    read(N_PARAFILE,*) trig_obs(i)
-  enddo
+  !do i=1,num_calcobs
+    !read(N_PARAFILE,*) trig_obs(i)
+  !enddo
 endif
-call MPI_BCAST(trig_obs, num_calcobs, MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
+!call MPI_BCAST(trig_obs, num_calcobs, MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
 call MPI_BCAST(sizeM, 1, MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
 call MPI_BCAST(sizeN, 1, MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
   
 num_fermion=(global_num_sites+global_num_links+global_num_faces)*(NMAT*NMAT-1)
 num_sitelink=(global_num_sites+global_num_links)*(NMAT*NMAT-1)
 
-allocate( WT1(1:sizeN/2-1) )
-allocate( WT2(1:sizeN/2-1) )
+!allocate( WT1(1:sizeN/2-1) )
+!allocate( WT2(1:sizeN/2-1) )
+
+
+! write contents
+if( MYRANK == 0 ) then
+  write(*,'(a)',advance='no') "#"
+    write(*,'(a)',advance='no') "1) ite, "
+  do i=1, num_calcobs
+    write(*,'(I3,a,a,",")',advance='no') i+1, ") ", trim(name_obs(i))
+  enddo
+endif
 
 do i=1, iarg
 
@@ -157,53 +207,109 @@ do i=1, iarg
       if( MYRANK == 0 ) then
         write(*,'(I7,2X)',advance='no') ite
       endif
-      !! trace X^2
-      if( trig_obs(1) == 0 ) then 
-        call calc_TrX2(TrX2,PhiMat)
-        if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') TrX2
-      endif
 
-      !! bosonic action
-      if( trig_obs(2) == 0 ) then 
-        Sb_computed=1
+      !"|Atr|", &
+        if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') cdabs(Acomp_tr)
+      !"Sb", &
         call calc_bosonic_action(Sb,Umat,PhiMat)
         if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') Sb
-      endif
-    
+      !"Sb_S", &
+        call calc_bosonic_action_site(SbS,PhiMat)
+        if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') SbS
+      !"Sb_L", &
+        call calc_bosonic_action_link(SbL,Umat,PhiMat)
+        if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') SbL
+      !"SB_F" &
+        call calc_bosonic_action_face(SbF,Umat)
+        if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') SbF
       !! trivial WT
-      if( trig_obs(3) == 0 ) then 
-        !do i=0,1
-        if ( Sb_computed==0 ) call calc_bosonic_action(Sb,Umat,PhiMat)
         call calc_XiPhiEta(XiPhiEta,Umat,PhiMat,1)
         if( MYRANK == 0 ) then
-          tmpobs1= cdabs(Acomp_tr) * &
-            ( dcmplx(Sb) &
+          tmpobs1= &
+            cdabs(Acomp_tr) * &
+            (&
+            dcmplx(Sb) &
             + dcmplx(0.5d0*mass_square_phi)*XiPhiEta &
-            - dcmplx(0.5d0*dble(num_sitelink)) )  
-          !tmpobs2= cdabs(Acomp_VM) * &
-            !( dcmplx(Sb) &
-            !+ dcmplx(0.5d0*mass_square_phi)*XiPhiEta &
-            !- dcmplx(0.5d0*dble(num_sitelink)) )  
+            - dcmplx(0.5d0*dble(num_sitelink)) &
+            )  
           write(*,'(E15.8,2X,E15.8,2X)',advance='no') dble(tmpobs1), dble((0d0,-1d0)*tmpobs1)
         endif
-        !enddo
-      endif
-    
-      !! WT identity 1
-      if( trig_obs(4) == 0 ) then
-        !call calc_WT12(WT1,WT2,Umat,PhiMat,1,21)
-        call calc_WT12_average(WT1,WT2,Umat,PhiMat,20,sizeM,sizeN)
-        if( MYRANK==0 ) then
-          do j=1,sizeN/2-1
-            tmpobs1 = APQ_phase * WT1(j)
-            tmpobs2 = APQ_phase * WT2(j)
-            write(*,'(E15.8,2X,E15.8,2X,E15.8,2X,E15.8,2X)',advance='no') &
-              dble(tmpobs1), dble((0d0,-1d0)*tmpobs1), &
-              dble(tmpobs2), dble((0d0,-1d0)*tmpobs2) 
-          enddo
+      !! \lambda\lambda part of Sf
+        call calc_SfL2(SfL2, PhiMat, Umat)
+        if( MYRANK == 0 ) then
+          write(*,'(E15.8,2X,E15.8,2X)',advance='no') dble(SfL2), dble((0d0,-1d0)*SfL2)
         endif
-      endif
-      !! minimal eigenvalu of DD^\dagger
+
+      !endif
+
+!      pos_current=20
+!      pos_operator=2
+!      if( trig_obs(4) == 0 ) then
+!        !!!
+!        call test_WT1(WT1,Umat,PhiMat,pos_operator,pos_current,1)
+!        if( MYRANK==0 ) then
+!          tmpobs1 = APQ_phase * WT1
+!          FMT1='(E15.8,2X,E15.8,2X)'
+!          write(*,FMT1,advance='no') &
+!            dble(tmpobs1), dble((0d0,-1d0)*tmpobs1)
+!        endif
+!        !!!
+!        call test_WT1(WT1,Umat,PhiMat,pos_operator,pos_current,2)
+!        if( MYRANK==0 ) then
+!          tmpobs1 = APQ_phase * WT1
+!          FMT1='(E15.8,2X,E15.8,2X)'
+!          write(*,FMT1,advance='no') &
+!            dble(tmpobs1), dble((0d0,-1d0)*tmpobs1)
+!        endif
+!        !!!
+!        call test_WT1(WT1,Umat,PhiMat,pos_operator,pos_current,3)
+!        if( MYRANK==0 ) then
+!          tmpobs1 = APQ_phase * WT1
+!          FMT1='(E15.8,2X,E15.8,2X)'
+!          write(*,FMT1,advance='no') &
+!            dble(tmpobs1), dble((0d0,-1d0)*tmpobs1)
+!        endif
+!        !!!
+!        call test_WT1(WT1,Umat,PhiMat,pos_operator,pos_current,4)
+!        if( MYRANK==0 ) then
+!          tmpobs1 = APQ_phase * WT1
+!          FMT1='(E15.8,2X,E15.8,2X)'
+!          write(*,FMT1,advance='no') &
+!            dble(tmpobs1), dble((0d0,-1d0)*tmpobs1)
+!        endif
+!        !!!
+!        call test_WT1(WT1,Umat,PhiMat,pos_operator,pos_current,5)
+!        if( MYRANK==0 ) then
+!          tmpobs1 = APQ_phase * WT1
+!          FMT1='(E15.8,2X,E15.8,2X)'
+!          write(*,FMT1,advance='no') &
+!            dble(tmpobs1), dble((0d0,-1d0)*tmpobs1)
+!        endif
+!        !!!
+!        call simplest_op(WT1,PhiMat,1)
+!        if( MYRANK==0 ) then
+!          tmpobs1 = APQ_phase * WT1
+!          FMT1='(E15.8,2X,E15.8,2X)'
+!          write(*,FMT1,advance='no') &
+!            dble(tmpobs1), dble((0d0,-1d0)*tmpobs1)
+!        endif
+!      endif
+
+      !! WT identity 1
+!      if( trig_obs(4) == 0 ) then
+!        !call calc_WT12(WT1,WT2,Umat,PhiMat,1,21)
+!        call calc_WT12_average(WT1,WT2,Umat,PhiMat,20,sizeM,sizeN)
+!        if( MYRANK==0 ) then
+!          do j=1,sizeN/2-1
+!            tmpobs1 = APQ_phase * WT1(j)
+!            tmpobs2 = APQ_phase * WT2(j)
+!            write(*,'(E15.8,2X,E15.8,2X,E15.8,2X,E15.8,2X)',advance='no') &
+!              dble(tmpobs1), dble((0d0,-1d0)*tmpobs1), &
+!              dble(tmpobs2), dble((0d0,-1d0)*tmpobs2) 
+!          enddo
+!        endif
+!      endif
+!      !! minimal eigenvalu of DD^\dagger
 !      if( trig_obs(4) == 0 ) then
 !        call min_eigen_DdagD(min_eigen,Umat,PhiMat)
 !        if( MYRANK == 0 ) then
@@ -222,9 +328,8 @@ do i=1, iarg
   endif
 
 enddo
-
-
 end program main
+
 
 
 

@@ -128,7 +128,13 @@ simulation.o: \
   observables.f90 \
   output.f90 \
   forces.f90 \
-  WT_identities.f90 
+  bosonic_action.f90 \
+  WT_identities.f90 \
+  divK3.f90 \
+  divK4.f90 \
+  rotK1.f90 \
+  rotK2.f90 \
+  U1V_current.f90
 Dirac_operator.o: \
   global_parameters.o \
   global_subroutines.o \

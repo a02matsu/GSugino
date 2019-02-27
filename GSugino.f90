@@ -146,7 +146,7 @@ endif
 
 ! set the variables depending on simulation_mode and test_mode
   !if (test_mode==1 .or. new_config==1) then
-  if (new_config==1) then
+  if (new_config == 1 .or. new_config == 2) then
     total_ite=0
     job_number=1
     call set_random_config(UMAT,PHIMAT) 

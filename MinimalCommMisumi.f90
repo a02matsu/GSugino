@@ -845,10 +845,10 @@ use YoungTableau
 implicit none
 
 integer, intent(out) :: num_comm_sites
-
 integer :: tmp_num_comm_sites(0:NPROCS-1)
 integer s,l,i,info,k,rank
-type(LOCAL_LABEL) :: tmp_send_sites(1:NPROCS*global_num_sites,0:NPROCS-1)
+!type(LOCAL_LABEL) :: tmp_send_sites(1:NPROCS*global_num_sites,0:NPROCS-1)
+type(LOCAL_LABEL) :: tmp_send_sites(1:global_num_sites,0:NPROCS-1)
 
 !! この段階で、num_necesarry_sites=num_sites
 !! linkの始点と終点が別のnodeに属していたら、
@@ -970,7 +970,8 @@ integer, intent(out) :: num_comm_links
 integer :: tmp_num_comm_links(0:NPROCS-1)
 
 integer s,l,f,i,j,k,ll,ll_label,rank
-type(LOCAL_LABEL) :: tmp_send_links(1:NPROCS*global_num_links,0:NPROCS-1)
+!type(LOCAL_LABEL) :: tmp_send_links(1:NPROCS*global_num_links,0:NPROCS-1)
+type(LOCAL_LABEL) :: tmp_send_links(1:global_num_links,0:NPROCS-1)
 integer :: info
 
 
@@ -1092,7 +1093,8 @@ integer, intent(out) :: num_comm_faces
 integer :: tmp_num_comm_faces(0:NPROCS-1)
 
 integer s,l,f,i,j,k,ll,ll_label,rank
-type(LOCAL_LABEL) :: tmp_send_faces(1:NPROCS*global_num_faces,0:NPROCS-1)
+!type(LOCAL_LABEL) :: tmp_send_faces(1:NPROCS*global_num_faces,0:NPROCS-1)
+type(LOCAL_LABEL) :: tmp_send_faces(1:global_num_faces,0:NPROCS-1)
 integer :: info
 
 

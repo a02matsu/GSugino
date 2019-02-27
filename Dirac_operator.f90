@@ -152,46 +152,6 @@ do i=1,sizeD
 enddo
 end subroutine make_DdagD
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!subroutine Prod_DdagD_vec(DdagD_vec, vec, Vsize,UMAT,Phimat)
-!implicit none
-!integer, intent(in) :: Vsize !! vecsize must be sizeD
-!complex(kind(0d0)),intent(in) :: vec(1:Vsize)
-!complex(kind(0d0)),intent(inout) :: DdagD_vec(1:Vsize)
-!complex(kind(0d0)),intent(in) :: UMAT(:,:,:),PhiMat(:,:,:)
-!
-!complex(kind(0d0)) :: tmpvec(1:Vsize),tmpvec2(1:Vsize)
-!integer :: i
-!
-!complex(kind(0d0)) :: DF_eta(1:NMAT,1:NMAT,1:num_sites)
-!complex(kind(0d0)) :: DF_lambda(1:NMAT,1:NMAT,1:num_links)
-!complex(kind(0d0)) :: DF_chi(1:NMAT,1:NMAT,1:num_faces)
-!complex(kind(0d0)) :: eta_mat(1:NMAT,1:NMAT,1:num_sites)
-!complex(kind(0d0)) :: lambda_mat(1:NMAT,1:NMAT,1:num_links)
-!complex(kind(0d0)) :: chi_mat(1:NMAT,1:NMAT,1:num_faces)
-!
-!!call Prod_Dirac(tmpvec,vec,Vsize,UMAT,PhiMat)
-!!do i=1,Vsize
-!  !tmpvec2(i)=-dconjg(tmpvec(i))
-!!enddo
-!!
-!!call Prod_Dirac(tmpvec,tmpvec2,Vsize,UMAT,PhiMat)
-!!
-!!do i=1,Vsize
-!  !DdagD_vec(i)=dconjg(tmpvec(i))!*0.25d0 !! HERE!!
-!!enddo
-!
-!call vec_to_mat(eta_mat,lambda_mat,chi_mat,vec)
-!
-!call Prod_DdagD(&
-!    DF_eta, DF_lambda, DF_chi, &
-!    eta_mat,lambda_mat,chi_mat, &
-!    UMAT,Phimat)
-!
-!call mat_to_vec(DdagD_vec,DF_eta,DF_lambda,DF_chi)
-!
-!end subroutine Prod_DdagD_vec
-
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! compute D^dagger.D.vec
@@ -380,39 +340,10 @@ end subroutine Prod_DiracDag
 
 
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!subroutine Prod_Dirac_vec(D_vec, vec, Vsize,UMAT,PhiMat)
-!implicit none
-!
-!integer, intent(in) :: Vsize !! vecsize must be sizeD
-!complex(kind(0d0)), intent(out) :: D_vec(1:Vsize)
-!complex(kind(0d0)), intent(in) :: vec(1:Vsize)
-!complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_links)
-!complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_sites)
-!
-!
-!complex(kind(0d0)) :: eta_mat(1:NMAT,1:NMAT,1:num_sites)
-!complex(kind(0d0)) :: lambda_mat(1:NMAT,1:NMAT,1:num_links)
-!complex(kind(0d0)) :: chi_mat(1:NMAT,1:NMAT,1:num_faces)
-!
-!complex(kind(0d0)) :: DF_eta(1:NMAT,1:NMAT,1:num_sites)
-!complex(kind(0d0)) :: DF_lambda(1:NMAT,1:NMAT,1:num_links)
-!complex(kind(0d0)) :: DF_chi(1:NMAT,1:NMAT,1:num_faces)
-!
-!call vec_to_mat(eta_mat,lambda_mat,chi_mat,vec)
-!call Prod_Dirac(&
-!    DF_eta, DF_lambda, DF_chi, &
-!    eta_mat,lambda_mat,chi_mat, &
-!    UMAT,PhiMat)
-!call mat_to_vec(D_vec,DF_eta,DF_lambda,DF_chi)
-!
-!end subroutine Prod_Dirac_vec
-
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! compute D.vec
 !!  S_f = 1/2 \Psi^T D \Psi
-!subroutine Prod_Dirac(D_vec, vec, Vsize,UMAT,PhiMat)
 subroutine Prod_Dirac(&
     DF_eta, DF_lambda, DF_chi, &
     eta_mat,lambda_mat,chi_mat, &

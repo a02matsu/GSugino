@@ -1,10 +1,10 @@
 program main
 implicit none
 
-integer :: sizeM=20
-integer :: sizeN=20 
+integer :: sizeM=32
+integer :: sizeN=32 
 double precision :: radius=1d0
-character(20) :: filename="S2MisumiM20N20R1.dat"
+character(20) :: filename="S2MisumiM32N32R1.dat"
 
 double precision, parameter :: PI=dacos(-1d0)
 integer :: num_sites, num_links, num_faces
