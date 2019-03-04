@@ -230,7 +230,7 @@ subroutine set_local_sites
 use parallel
 implicit none
 
-integer s,l,i,nsend,nrecv,info,k
+integer s,l,f,i,nsend,nrecv,info,k,kk
 integer :: tmp_global_site_of_local(1:global_num_sites)
 !integer :: tmp_send_sites(1:num_sites)
 !integer :: tmp_recv_sites(1:num_sites)
@@ -252,6 +252,7 @@ enddo
 !! (1) 担当するlinkの始点と終点
 !! (2) 担当するサイトを始点とするlinkの終点
 !! (3) 担当するサイトを終点とするlinkの始点
+!! (4) 担当するfaceに属する全site
 !! 重複があり得るので、逐一チェックしながら進める
 nsend=0
 nrecv=0
@@ -394,6 +395,104 @@ do s=1,global_num_sites
         endif
       endif
     endif
+  enddo
+enddo
+
+!! 担当するlinkを共有するfaceが全て必要
+do f=1,global_num_faces
+  do k=1, global_sites_in_f(f)%num_
+    s=global_sites_in_f(f)%label_(k)
+    if( local_face_of_global(f)%rank_ /= local_site_of_global(s)%rank_ ) then
+      if( MYRANK == local_site_of_global(s)%rank_ ) then
+        !! 重複チェック
+        info=0
+        do i=1,nsend
+          if( tmp_send_sites(i)%rank_ &
+              == local_face_of_global(f)%rank_ &
+            .and. &
+              tmp_send_sites(i)%label_ == s ) then
+            info=1
+            exit
+          endif
+        enddo
+        if (info==0) then 
+          nsend=nsend+1
+          tmp_send_sites(nsend)%rank_ = local_face_of_global(f)%rank_ 
+          tmp_send_sites(nsend)%label_ = s
+        endif
+  !!!!!!!!!!!
+      elseif( MYRANK == local_face_of_global(f)%rank_ ) then
+        !! 重複チェック
+        info=0
+        do i=1,nrecv
+          if( tmp_recv_sites(i)%rank_ &
+            == local_site_of_global(s)%rank_ &
+            .and. &
+              tmp_recv_sites(i)%label_ == s ) then
+            info=1
+            exit
+          endif
+        enddo
+        if (info==0) then 
+          nrecv=nrecv+1
+          tmp_recv_sites(nrecv)%rank_  &
+            = local_site_of_global(s)%rank_
+          tmp_recv_sites(nrecv)%label_ = s
+          tmp_global_site_of_local(num_sites+nrecv)=s
+        endif
+      endif
+    endif
+  enddo
+enddo
+
+!! (5) 担当するlinkを共有するface に属する全site
+do l=1,global_num_links
+  do kk=1,global_face_in_l(l)%num_
+    f=global_face_in_l(l)%label_(kk)
+
+    do k=1, global_sites_in_f(f)%num_
+      s=global_sites_in_f(f)%label_(k)
+      if( local_link_of_global(l)%rank_ /= local_site_of_global(s)%rank_ ) then
+        if( MYRANK == local_site_of_global(s)%rank_ ) then
+          !! 重複チェック
+          info=0
+          do i=1,nsend
+            if( tmp_send_sites(i)%rank_ &
+                == local_link_of_global(l)%rank_ &
+              .and. &
+                tmp_send_sites(i)%label_ == s ) then
+              info=1
+              exit
+            endif
+          enddo
+          if (info==0) then 
+            nsend=nsend+1
+            tmp_send_sites(nsend)%rank_ = local_link_of_global(l)%rank_ 
+            tmp_send_sites(nsend)%label_ = s
+          endif
+  !!!!!!!!!!!
+        elseif( MYRANK == local_link_of_global(l)%rank_ ) then
+          !! 重複チェック
+          info=0
+          do i=1,nrecv
+            if( tmp_recv_sites(i)%rank_ &
+              == local_site_of_global(s)%rank_ &
+              .and. &
+                tmp_recv_sites(i)%label_ == s ) then
+              info=1
+              exit
+            endif
+          enddo
+          if (info==0) then 
+            nrecv=nrecv+1
+            tmp_recv_sites(nrecv)%rank_  &
+              = local_site_of_global(s)%rank_
+            tmp_recv_sites(nrecv)%label_ = s
+            tmp_global_site_of_local(num_sites+nrecv)=s
+          endif
+        endif
+      endif
+    enddo
   enddo
 enddo
 
@@ -891,8 +990,9 @@ integer Nsites
 allocate( sites_in_f(1:num_necessary_faces) )
 do f=1,num_necessary_faces
   gf=global_face_of_local(f)
-  Nsites = global_sites_in_f(gf)%num_
 
+  Nsites = global_sites_in_f(gf)%num_
+  
   sites_in_f(f)%num_ = Nsites
   allocate( sites_in_f(f)%label_(1:Nsites) )
 
@@ -906,11 +1006,11 @@ do f=1,num_necessary_faces
         exit
       endif
     enddo
-    if( info == 0 ) then
-      write(*,*) "something happened in set_local_sites_in_f"
-      call stop_for_test
-    endif
   enddo
+  if( info == 0 ) then
+    write(*,*) MYRANK, gf, "something happened in set_local_sites_in_f"
+    call stop_for_test
+  endif
 enddo
 
 end subroutine set_local_sites_in_f

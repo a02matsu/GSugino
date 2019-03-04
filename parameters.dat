@@ -1,23 +1,23 @@
 ## NMAT
-3
+5
 ## mass_phi2 : physical mass square of \Phi
 0.1d0
 ## mass_f; fermion mass
-1d-1
+0d0
 ##  data of the simplicial complex
-S2MisumiM8N8R10.dat
+S2MisumiM20N20R10.dat
 ## test_mode ; 0:Simulation mode 1:Test mode, 
 0
 ## branch_mode !! 0:normal, 1:make branch
 0
 ## branch_root ! make branch from this config. default:0
-1
-## branch_num !! label of branch
-2
+0
+## branch_num !! number of branches to make 
+0
 ## force_measurement ; 1:measure forces  
 1
 ## new_config ; 0:Old Config 1:New Config 2:New config all accept 3:Old config all accept
-0
+3
 ## fix_seed ; 0:previous value 1:fix 2:system time 
 0
 ## reset_ite ; 0:continue total ite, 1:reset total ite
@@ -27,14 +27,14 @@ S2MisumiM8N8R10.dat
 ## m_omega ;integer to avoid vacuum degeneracy (mm>=NMAT/4)
 -1
 #  Remez data for x^{-1/4}
-remez_Q24_1ov-4.dat
-##  Remez data for x^{1/8}
-remez_Q24_1ov8.dat
+remez_Q24_1ov-4_1e-24.dat
+#  Remez data for x^{1/8}
+remez_Q24_1ov8_1e-24.dat
 ## Remez_factor4 ; range of remez approx( min*factor .. max*factor) 
-1d7
+1d13
 ## Remez_factor8 ; range of remez approx( min*factor .. max*factor) 
-1d7
+1d13
 ## epsilon ; range to stop CG solver
 1d-8
 ## CG_max ; maximum number of CG iteration
-10000
+20000
