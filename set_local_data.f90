@@ -398,7 +398,7 @@ do s=1,global_num_sites
   enddo
 enddo
 
-!! 担当するlinkを共有するfaceが全て必要
+!! (4) 担当するfaceを作る全てのsite
 do f=1,global_num_faces
   do k=1, global_sites_in_f(f)%num_
     s=global_sites_in_f(f)%label_(k)
@@ -445,12 +445,12 @@ do f=1,global_num_faces
   enddo
 enddo
 
-!! (5) 担当するlinkを共有するface に属する全site
+!! (5) 担当するlinkを共有するface の代表点
 do l=1,global_num_links
   do kk=1,global_face_in_l(l)%num_
     f=global_face_in_l(l)%label_(kk)
 
-    do k=1, global_sites_in_f(f)%num_
+    do k=1, 1 !global_sites_in_f(f)%num_
       s=global_sites_in_f(f)%label_(k)
       if( local_link_of_global(l)%rank_ /= local_site_of_global(s)%rank_ ) then
         if( MYRANK == local_site_of_global(s)%rank_ ) then
@@ -986,6 +986,7 @@ implicit none
 integer f,s,global_s,info
 integer gf,i
 integer Nsites
+integer num
 
 allocate( sites_in_f(1:num_necessary_faces) )
 do f=1,num_necessary_faces
@@ -996,7 +997,14 @@ do f=1,num_necessary_faces
   sites_in_f(f)%num_ = Nsites
   allocate( sites_in_f(f)%label_(1:Nsites) )
 
-  do i=1, Nsites
+  !! 担当するfaceは全てのサイトを、それ以外は代表点のみ
+  if ( f <= num_faces ) then 
+    num = Nsites
+  else 
+    num =1
+  endif 
+
+  do i=1, num
     global_s=global_sites_in_f(global_face_of_local(f))%label_(i)
     info=0
     do s=1,num_necessary_sites

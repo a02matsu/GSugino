@@ -266,9 +266,9 @@ endif
       write(Foutput, '("OUTPUT",i1.1,"/output_",i4.4,":",i6.6,"+",i6.6,".dat")') branch_num, job_number,total_ite,num_ite
       write(Fmedconf, '("MEDCONF",i1.1,"/medconfig_", i6.6,"+",i6.6,".dat")') branch_num, total_ite,num_ite
     endif
-    if( MYRANK == 0) then
-      write(*,*) Fconfigin, Fconfigout, Foutput, Fmedconf
-    endif
+    !if( MYRANK == 0) then
+      !write(*,*) Fconfigin, Fconfigout, Foutput, Fmedconf
+    !endif
     call HybridMonteCarlo(UMAT,PhiMat,seed,total_ite)
   endif
 

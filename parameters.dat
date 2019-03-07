@@ -1,11 +1,11 @@
 ## NMAT
-5
+3
 ## mass_phi2 : physical mass square of \Phi
 0.1d0
 ## mass_f; fermion mass
 0d0
 ##  data of the simplicial complex
-S2MisumiM20N20R10.dat
+S2MisumiM32N32R1.dat
 ## test_mode ; 0:Simulation mode 1:Test mode, 
 0
 ## branch_mode !! 0:normal, 1:make branch
@@ -17,7 +17,7 @@ S2MisumiM20N20R10.dat
 ## force_measurement ; 1:measure forces  
 1
 ## new_config ; 0:Old Config 1:New Config 2:New config all accept 3:Old config all accept
-3
+0
 ## fix_seed ; 0:previous value 1:fix 2:system time 
 0
 ## reset_ite ; 0:continue total ite, 1:reset total ite
