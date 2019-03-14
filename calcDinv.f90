@@ -18,8 +18,8 @@ implicit none
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!
 ! 読み込み／書き込みファイル
-character(128) :: INFILE="MEDCONF/Dirac_029810+000300.dat"
-character(128) :: OUTFILE="MEDCONF/Dinv_029810+000300.dat"
+character(128) :: INFILE !="MEDCONF/Dirac_029810+000300.dat"
+character(128) :: OUTFILE !="MEDCONF/Dinv_029810+000300.dat"
 integer :: N_INFILE=100
 integer :: N_OUTFILE=101
 
@@ -31,10 +31,15 @@ integer :: ite
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!
 ! simulation data
-integer :: NMAT=3
-integer :: num_sites=32
-integer :: num_links=56
-integer :: num_faces=26
+integer :: NMAT !=3
+integer :: num_sites !=32
+integer :: num_links !=56
+integer :: num_faces !=26
+character(50) :: C_NMAT !=3
+character(50) :: C_num_sites !=32
+character(50) :: C_num_links !=56
+character(50) :: C_num_faces !=26
+
 integer :: sizeD
 
 integer :: s,l,f
@@ -47,10 +52,14 @@ integer :: control
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!
 ! process gridの初期化
-integer :: NPROW = 2 ! 行のプロセス数
-integer :: NPCOL = 2 ! 列のプロセス数
-integer :: MB = 8 ! 行のブロック数 
-integer :: NB = 8 ! 列のブロック数
+integer :: NPROW != 2 ! 行のプロセス数
+integer :: NPCOL != 2 ! 列のプロセス数
+integer :: MB != 8 ! 行のブロック数 
+integer :: NB != 8 ! 列のブロック数
+character(50) :: C_NPROW != 2 ! 行のプロセス数
+character(50) :: C_NPCOL != 2 ! 列のプロセス数
+character(50) :: C_MB != 8 ! 行のブロック数 
+character(50) :: C_NB != 8 ! 列のブロック数
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!
 integer ICTXT ! context (BLACS で通信する process grid のラベル)
@@ -94,9 +103,34 @@ integer :: LOCr, LOCc
 ! Others
 integer Pr, Pc, X, Y ! Row process and local position corresponding to global index i,j
 integer i,j
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+integer :: iarg
 
 ! 0) initialization
+iarg=iargc()
+if( iarg .ne. 10 ) stop
+call getarg(1,INFILE)
+call getarg(2,OUTFILE)
+call getarg(3,C_NMAT)
+call getarg(4,C_num_sites)
+call getarg(5,C_num_links)
+call getarg(6,C_num_faces)
+call getarg(7,C_NPROW)    
+call getarg(8,C_NPCOL)
+call getarg(9,C_MB)    
+call getarg(10,C_NB)
+
+read(C_NMAT,*) NMAT
+read(C_num_sites,*) num_sites
+read(C_num_links,*) num_links
+read(C_num_faces,*) num_faces
+read(C_NPROW,*) NPROW
+read(C_NPCOL,*) NPCOL
+read(C_MB,*) MB
+read(C_NB,*) NB
+
 sizeD = (NMAT*NMAT-1)*(num_sites+num_links+num_faces)
+
 
 ! 1) Create Process Grid
 call BLACS_PINFO( IAM, NPROCS )

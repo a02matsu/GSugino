@@ -120,6 +120,7 @@ allocate( T(1:NMAT,1:NMAT,1:dimG) )
 ! SU(N) generators
 call make_SUN_generators(T,NMAT)
 
+if( MYRANK==0 ) then
 do narg=1,iarg
   call getarg(narg,MEDFILE(narg))
   COMMAND = 'echo "' // trim(adjustl(MEDFILE(narg))) // '" | sed "s/medconfig/Dirac/" > ' // trim(adjustl(tmpfile) )
@@ -131,6 +132,7 @@ do narg=1,iarg
     close(N_tmpfile)
   endif
 enddo
+endif
 
 do narg=1,iarg
   if( MYRANK==0 ) then
