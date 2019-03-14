@@ -8,9 +8,9 @@ FC=mpiifort
 PARA=-DPARALLEL
 PARA2=-DPARALLEL -DCOUNT_TIME
 #PARA=-DNOPARALLEL
-#FLAGS_IFORT=-mkl -fpp $(PARA) -CB -traceback -g 
+FLAGS_IFORT=-mkl -fpp $(PARA) -CB -traceback -g 
 #FLAGS_IFORT=-mkl -parallel -ipo
-FLAGS_IFORT=-mkl -fpp $(PARA) -O3 -ipo
+#FLAGS_IFORT=-mkl -fpp $(PARA) -O3 -ipo
 FLAGS_GCC=-llapack -lblas
 # コンパイルのために順番が大事。下層ほど先に書く。 
 SRCS=\
@@ -36,6 +36,15 @@ LIB=libpfapack.a
 SRC_OBS=calcobs.f90  
 OBJ_OBS=calcobs.o
 PROG_OBS=calcobs.exe
+#########################
+SRC_Dirac=writeDirac.f90  
+OBJ_Dirac=writeDirac.o
+PROG_Dirac=writeDirac.exe
+#########################
+SRC_Dinv=calcDinv.f90  
+OBJ_Dinv=calcDinv.o
+PROG_Dinv=calcDinv.exe
+#########################
 LIB=libpfapack.a
 
 
@@ -60,6 +69,19 @@ else
 	$(FC) $(FLAGS_IFORT) -o $@ $(OBJS) $(OBJ_OBS) $(LIB)
 endif
 
+dirac:$(PROG_Dirac)
+
+$(PROG_Dirac): $(OBJ_Dirac) $(OBJ_MAIN)
+ifeq ($(FC),gfortran)
+	$(FC) -O2 $(FLAGS_GCC) -o $@ $(OBJS) $(OBJ_Dirac) $(LIB)
+else
+	$(FC) $(FLAGS_IFORT) -o $@ $(OBJS) $(OBJ_Dirac) $(LIB)
+endif
+
+dinv:$(PROG_Dinv)
+
+$(PROG_Dinv): $(SRC_Dinv)
+	mpiifort -mkl=cluster -O3 $(SRC_Dinv) -o $(PROG_Dinv)
 
 # moduleをコンパイルするときの依存性を解消
 #structure_constant.o: structure_constant.f90
@@ -107,13 +129,6 @@ check_routines.o: \
   matrix_functions.o \
   mt95.o \
   simplicial_complex.o
-#initialization.o: \
-#  global_parameters.o \
-#  mt95.o \
-#  parallel.o \
-#  SUN_generators.o \
-#  matrix_functions.o \
-#  global_subroutines.o
 simulation.o: \
   global_parameters.o \
   global_subroutines.o \

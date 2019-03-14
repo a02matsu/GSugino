@@ -67,7 +67,6 @@ enddo
 end subroutine make_SUN_generators
 
 
-
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! subroutine to create the structure constant of SU(N)
 subroutine construct_fabc(f, NMAT)

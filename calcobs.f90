@@ -190,6 +190,7 @@ endif
 
 do i=1, iarg
 
+
   if( MYRANK == 0 ) then
     write(*,*) "##", trim(MEDFILE(i))
     open(N_MEDFILE, file=MEDFILE(i), status='OLD',action='READ',form='unformatted')
