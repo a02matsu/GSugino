@@ -295,7 +295,7 @@ integer, save :: CG_max ! maximum number of CG iteration
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ! Files
 character(128), save :: PAR_FILE_NAME="parameters.dat" ! parameter file
-character(128), save :: INPUT_FILE_NAME="inputfile" ! input file
+character(128), save :: INPUT_FILE_NAME !="inputfile" ! input file
 character(128), save :: SC_FILE_NAME ! structure of simplicial complex
 !character(128), save :: ALPHA_BETA ! parameterfile of alpha_s, alpha_l, alpha_f, beta_f
 character(128), save :: Fconfigin ! configuration input 

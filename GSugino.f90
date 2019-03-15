@@ -24,8 +24,8 @@ double precision :: tmp
 integer :: s,l,i,j,b
 
 integer num_para, iargc
+integer :: iarg
 
-#ifdef PARALLEL
 type(SITE_DIST), allocatable,save :: local_site_list(:) !(0:NPROCS-1)
 
 ! for type genrand_srepr
@@ -35,6 +35,14 @@ integer IBLOCK2(1),IDISP2(1),ITYPE2(1)
 
 character(128) DIRNAME,COMMAND,CONFDIR0,CONFDIR1
 character(128) tmpc,tmpc2
+
+iarg=iargc()
+if( iarg==0 ) then 
+  INPUT_FILE_NAME ="inputfile" ! input file
+else
+  call getarg(1,INPUT_FILE_NAME) 
+endif
+
 
 call MPI_INIT(IERR)
 call MPI_COMM_SIZE(MPI_COMM_WORLD,NPROCS,IERR)
@@ -55,9 +63,9 @@ call MPI_TYPE_STRUCT(1,IBLOCK2,IDISP2,ITYPE2,MPI_LOCAL_LABEL,IERR)
 call MPI_TYPE_COMMIT(MPI_LOCAL_LABEL,IERR)
 
 allocate(local_site_list(0:NPROCS-1) )
-#endif
 
 
+!character(128), save :: INPUT_FILE_NAME !="inputfile" ! input file
 
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
