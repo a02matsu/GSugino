@@ -54,12 +54,15 @@ integer :: control
 ! process gridの初期化
 integer :: NPROW != 2 ! 行のプロセス数
 integer :: NPCOL != 2 ! 列のプロセス数
-integer :: MB != 8 ! 行のブロック数 
-integer :: NB != 8 ! 列のブロック数
+integer :: MB  != 8 ! 行のブロック数 
+integer :: NB  != 8 ! 列のブロック数
+integer :: TEST
 character(50) :: C_NPROW != 2 ! 行のプロセス数
 character(50) :: C_NPCOL != 2 ! 列のプロセス数
 character(50) :: C_MB != 8 ! 行のブロック数 
 character(50) :: C_NB != 8 ! 列のブロック数
+character(50) :: C_TEST
+
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!
 integer ICTXT ! context (BLACS で通信する process grid のラベル)
@@ -75,9 +78,9 @@ integer LLD
 !!!!!!!!!!!!!!!!!!!!!!!!!!!
 ! Matrix
 integer, parameter :: control_out=1 
-!complex(kind(0d0)), allocatable :: Dirac(:,:) ! Diracを配置する配列
+complex(kind(0d0)), allocatable :: Dirac(:,:) ! Diracを配置する配列
 complex(kind(0d0)), allocatable :: Dinv(:,:) ! D^{-1}を配置する配列
-!complex(kind(0d0)), allocatable :: prod(:,:) ! D.D^{-1}を配置する配列
+complex(kind(0d0)), allocatable :: prod(:,:) ! D.D^{-1}を配置する配列
 integer DESC_A(9) ! 行列Aの descriptor
 ! descriptorとは、global arrayと対応するプロセスやメモリとの
 ! mapping情報を格納する変数 
@@ -86,7 +89,7 @@ integer DESC_A(9) ! 行列Aの descriptor
 ! for output
 integer IPW ! なぞ。PDLAPRNT 用
 integer :: NOUT = 6 ! 標準出力
-complex(kind(0d0)), allocatable :: work(:)
+complex(kind(0d0)), allocatable :: work(:), work1(:)
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! for PZGETRI
@@ -98,6 +101,13 @@ integer, allocatable :: IWORK(:)
 integer :: LIWORK
 
 integer :: LOCr, LOCc
+integer :: LCM
+integer :: NQ ! =NUMROC(sizeD+mod(JA-1,NB), NB, MYCOL, CSRC, NPCOL)
+integer :: MQ ! =NUMROC(sizeD+mod(JA-1,NB), MB, MYCOL, CSRC, NPCOL)
+integer :: MP ! =NUMROC(sizeD+mod(JA-1,NB), MB, MYROW, RSRC, NPROW)
+integer :: LIWORK1, LIWORK2
+integer :: ILCM
+integer :: ICEIL
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ! Others
@@ -108,7 +118,7 @@ integer :: iarg
 
 ! 0) initialization
 iarg=iargc()
-if( iarg .ne. 10 ) stop
+if( iarg <= 9 ) stop
 call getarg(1,INFILE)
 call getarg(2,OUTFILE)
 call getarg(3,C_NMAT)
@@ -119,6 +129,12 @@ call getarg(7,C_NPROW)
 call getarg(8,C_NPCOL)
 call getarg(9,C_MB)    
 call getarg(10,C_NB)
+if( iarg >= 11 ) then
+  call getarg(11,C_TEST)    
+  read(C_TEST,*) TEST
+else
+  TEST=0
+endif
 
 read(C_NMAT,*) NMAT
 read(C_num_sites,*) num_sites
@@ -130,11 +146,11 @@ read(C_MB,*) MB
 read(C_NB,*) NB
 
 sizeD = (NMAT*NMAT-1)*(num_sites+num_links+num_faces)
-
+NPROCS=NPROW*NPCOL
 
 ! 1) Create Process Grid
-call BLACS_PINFO( IAM, NPROCS )
 call SL_INIT( ICTXT, NPROW, NPCOL )
+call BLACS_PINFO( IAM, NPROCS )
 call BLACS_GRIDINFO( ICTXT, NPROW, NPCOL, MYROW, MYCOL )
 
 L_ROW = NUMROC( sizeD, MB, MYROW, RSRC, NPROW ) ! number of row
@@ -147,11 +163,13 @@ call DESCINIT( DESC_A, sizeD, sizeD, MB, NB, RSRC, CSRC, ICTXT, MXLLD, INFO )
 
 ! 3) allocate memory
 allocate( Dinv(1:L_ROW, 1:L_COL) )
-!allocate( Dirac(1:L_ROW, 1:L_COL) )
-!allocate( prod(1:L_ROW, 1:L_COL) )
+if( TEST==1 ) then
+  allocate( Dirac(1:L_ROW, 1:L_COL) )
+  allocate( prod(1:L_ROW, 1:L_COL) )
+  allocate( work1(1:sizeD) )
+endif
 
 ! 4) open the Dirac file and output file
-Dinv=(0d0,0d0)
 if( MYROW==0 .and. MYCOL==0 ) then
   open(N_INFILE, file=INFILE, status='OLD',action='READ')
   open(N_OUTFILE, file=OUTFILE, status='REPLACE')
@@ -163,12 +181,29 @@ endif
 !! for PZGETRF
 IA=1
 JA=1
-allocate( IPIV( L_ROW+MB ) )
+!allocate( IPIV( L_ROW+MB ) )
+allocate( IPIV( MB ) )
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! for PZGETRI
- LWORK=NUMROC(sizeD+mod(IA-1,MB), MB, MYROW, RSRC, NPROW)*NB
+ LWORK=NUMROC(sizeD+mod(IA-1,MB), MB, MYROW, RSRC, NPCOL)*NB
  allocate( WORK(LWORK) )
- LIWORK=NUMROC(sizeD+mod(JA-1,NB), NB, MYCOL, CSRC, NPROW)+NB
+ MP=NUMROC(sizeD, MB, MYROW, RSRC, NPROW)
+ MQ=NUMROC(sizeD, MB, MYCOL, CSRC, NPCOL)
+ NQ=NUMROC(sizeD, NB, MYCOL, CSRC, NPCOL)
+ LCM=ILCM(NPROW,NPCOL)
+ !NQ=NUMROC(sizeD+mod(JA-1,NB), NB, MYCOL, CSRC, NPCOL)
+ !MQ=NUMROC(sizeD+mod(JA-1,NB), MB, MYCOL, CSRC, NPCOL)
+ !MP=NUMROC(sizeD+mod(JA-1,NB), MB, MYROW, RSRC, NPROW)
+ if( NPROW==NPCOL ) then
+   LIWORK=NQ+NB
+ else
+   LIWORK1=MB*ICEIL(ICEIL(MP,MB), LCM/NPROW)
+   LIWORK2=NB*ICEIL(ICEIL(MQ,NB), LCM/NPCOL)
+   LIWORK=NQ+max(LIWORK1,LIWORK2,NB)
+ endif
  allocate( IWORK(LIWORK) )
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 do 
   if( MYROW==0 .and. MYCOL==0 ) then
     read(N_INFILE,*, END=1111) trig, ite
@@ -179,6 +214,8 @@ do
     if( control == 1 ) stop
   endif
 
+  Dinv=(0d0,0d0)
+  if( TEST==1 ) Dirac=(0d0,0d0)
   do
     if( MYROW==0 .and. MYCOL==0 ) then
       read(N_INFILE,'(a1)',advance='no') trig
@@ -198,30 +235,16 @@ do
       N_trig=0
       if( MYROW==0 .and. MYCOL==0 ) then
         read(N_INFILE,*) I,J,real,imag
-        call global_to_local(Pr,Pc,X,Y,I,J,MB,NB,NPROW,NPCOL)
         ele = dcmplx(real) + (0d0,1d0)*dcmplx(imag)
-
-        call IGEBS2D(ICTXT,'ALL','i-ring',1,1,Pr,1)
-        call IGEBS2D(ICTXT,'ALL','i-ring',1,1,Pc,1)
-        !!!!
-        if( Pr/=0 .or. Pc/=0 ) then 
-          call IGESD2D(ICTXT,1,1,X,1,Pr,Pc)
-          call IGESD2D(ICTXT,1,1,Y,1,Pr,Pc)
-          call ZGESD2D(ICTXT,1,1,ele,1,Pr,Pc)
-        else
-          Dinv(X,Y) = ele
-        endif
+        call IGEBS2D(ICTXT,'ALL','i-ring',1,1,I,1)
+        call IGEBS2D(ICTXT,'ALL','i-ring',1,1,J,1)
+        call ZGEBS2D(ICTXT,'ALL','i-ring',1,1,ele,1)
       else
-        call IGEBR2D(ICTXT,'ALL','i-ring',1,1,Pr,1,0,0)
-        call IGEBR2D(ICTXT,'ALL','i-ring',1,1,Pc,1,0,0)
-        !!
-        if( MYROW==Pr .and. MYCOL==Pc ) then
-          call IGERV2D(ICTXT,1,1,X,1,0,0)
-          call IGERV2D(ICTXT,1,1,Y,1,0,0)
-          call ZGERV2D(ICTXT,1,1,ele,1,0,0)
-          Dinv(X,Y) = ele
-        endif
+        call IGEBR2D(ICTXT,'ALL','i-ring',1,1,I,1,0,0)
+        call IGEBR2D(ICTXT,'ALL','i-ring',1,1,J,1,0,0)
+        call ZGEBR2D(ICTXT,'ALL','i-ring',1,1,ele,1,0,0)
       endif
+      call PZELSET( Dinv, I, J, DESC_A, ele )
     elseif( C_trig==1 ) then
       exit
     elseif( C_trig==2 ) then
@@ -229,27 +252,33 @@ do
       stop
     endif
   enddo
-  !allocate(work(1:sizeD))
-  !call PZLAPRNT(sizeD, sizeD, Dinv, 1, 1, DESC_A, 0, 0, 'Dirac', NOUT, work )
-  !deallocate(work)
+  !allocate(work1(1:sizeD))
+  !call PZLAPRNT(sizeD, sizeD, Dirac, 1, 1, DESC_A, 0, 0, 'Dirac', NOUT, work1 )
+  !deallocate(work1)
   !stop
 
 
 ! 5) compute matrix inverse
-  !Dirac=Dinv
+  if( TEST==1 ) then 
+    Dirac=Dinv
+  endif
   call PZGETRF(sizeD,sizeD,Dinv,IA,JA,DESC_A,IPIV,INFO)
   !!
   call PZGETRI(sizeD,Dinv,IA,JA,DESC_A, IPIV, WORK, LWORK, IWORK, LIWORK, INFO)
+  !call PZGETRI(sizeD,Dinv,IA,JA,DESC_A, IPIV, WORK, -1, IWORK, -1, INFO)
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! TEST 
-!call PZGEMM( 'N', 'N', sizeD, sizeD, sizeD, (1d0,0d0), &
-!     Dirac, 1, 1, DESC_A, &
-!     Dinv, 1, 1, DESC_A, &
-!     (0d0,0d0), prod, 1, 1, DESC_A )
-!deallocate(work)
-!allocate(work(1:sizeD))
-!call PZLAPRNT(sizeD, sizeD, prod, 1, 1, DESC_A, 0, 0, 'D.Dinv', NOUT, work )
+if( TEST==1 ) then
+  call PZGEMM( 'N', 'N', sizeD, sizeD, sizeD, (1d0,0d0), &
+       Dirac, 1, 1, DESC_A, &
+       Dinv, 1, 1, DESC_A, &
+       (0d0,0d0), prod, 1, 1, DESC_A )
+  call PZLAPRNT(sizeD, sizeD, prod, 1, 1, DESC_A, 0, 0, 'D.Dinv', NOUT, work1 )
+  if( MYROW==0 .and. MYCOL==0 ) then
+    write(*,*) "==========================================="
+  endif
+endif
 !stop
 !! END TEST
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -262,19 +291,9 @@ do
 
   do i=1,sizeD
     do j=1,sizeD
-      call GLOBAL_TO_LOCAL(Pr,Pc,X,Y,I,J,MB,NB,NPROW,NPCOL)
-      if( MYROW==0 .and. MYCOL==0 ) then
-        if( Pr/=0 .or. Pc/=0 ) then 
-          call ZGERV2D(ICTXT,1,1,ele,1,Pr,Pc)
-        else
-          ele=Dinv(X,Y)
-        endif
+      call PZELGET('R','i-ring',ele,Dinv,i,j,DESC_A)
+      if( MYROW==0 .and. MYCOL==0 ) then 
         write(N_OUTFILE,'(E15.8,2X,E15.8,2X)',advance='no') ele
-      else
-        if( MYROW==Pr .and. MYCOL==Pc ) then
-          ele=Dinv(X,Y)
-          call ZGESD2D(ICTXT,1,1,ele,1,0,0)  
-        endif
       endif
     enddo
   enddo
@@ -288,90 +307,4 @@ call IGEBS2D(ICTXT,'ALL','i-ring',1,1,control,1)
 stop
 
 end program calcDinv
-
-
-
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!! Compute local position from a global position
-SUBROUTINE GLOBAL_TO_LOCAL(Pr,Pc,X,Y,I,J,MB,NB,NPROW,NPCOL)
-implicit none
-
-integer, INTENT(OUT) :: Pr,Pc,X,Y
-integer, INTENT(IN) :: I,J,MB,NB,NPROW,NPCOL
-
-integer R1, R2, tmp
-
-Pr = mod( (I-1)/MB, NPROW )
-Pc = mod( (J-1)/NB, NPCOL )
-
-tmp = NPROW*MB
-R1 = (I-1)/tmp
-
-tmp = NPCOL*NB
-R2 = (J-1)/tmp
-
-
-X = R1 * MB + mod(I-1,MB) + 1
-Y = R2 * NB + mod(J-1,NB) + 1
-
-END SUBROUTINE GLOBAL_TO_LOCAL
-
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!! Compute global position (I,J) from a local position (Pr,Pc,X,Y)
-SUBROUTINE LOCAL_TO_GLOBAL(I,J,Pr,Pc,X,Y,MB,NB,NPROW,NPCOL)
-implicit none
-
-integer, INTENT(IN) :: Pr,Pc,X,Y,MB,NB,NPROW,NPCOL
-integer, INTENT(OUT) :: I,J
-
-integer r1,r2
-
-r1 = (X-1)/MB
-r2 = (Y-1)/NB
-
-I = MB * NPROW * r1 + MB * Pr + mod(X-1,MB) + 1
-J = NB * NPCOL * r2 + NB * Pc + mod(Y-1,NB) + 1
-
-END SUBROUTINE LOCAL_TO_GLOBAL
-
-
-!***********************************************************
-!***********************************************************
-! Box-Muller method for generating Gaussian random number
-SUBROUTINE BoxMuller(p,q,seed)  
-
-  implicit none 
-  
-  integer seed
-  double precision p,q,r,s,Pi
-
-  Pi=2d0*DASIN(1d0)
-  call RandomNum(seed, r)
-  call RandomNum(seed, s)
-
-  p=dsqrt(-2d0*dlog(r))*DSIN(2d0*Pi*s)
-  q=dsqrt(-2d0*dlog(r))*DCOS(2d0*Pi*s)
-
-  return
-
-END SUBROUTINE BoxMuller
-
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-! Random number generater
-SUBROUTINE RandomNum(seed, r)
-implicit none
-
-integer seed
-doubleprecision r
-INTEGER, PARAMETER :: mask = 2147483647, a = 48828125
-
-seed = IAND( a*seed, mask )
-r = DBLE(seed)/DBLE(mask)
-END SUBROUTINE RandomNum
-
-
-
-
 

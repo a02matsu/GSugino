@@ -1,26 +1,26 @@
-module global_writeDirac
+module global_writeDinv
 implicit none
 
 character(128), allocatable :: MEDFILE(:)
-character(128), allocatable :: DiracFILE(:)
+character(128), allocatable :: DinvFILE(:)
 
 integer, parameter :: N_MEDFILE=100
-integer, parameter :: N_DiracFILE=101
+integer, parameter :: N_DinvFILE=101
 integer, parameter :: N_tmpfile=102
 character(128), parameter :: tmpfile='abcdefg'
 character(128) :: COMMAND
 
 contains
-end module global_writeDirac
+end module global_writeDinv
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 program main
 use global_parameters
-use global_writeDirac
+use global_writeDinv 
 use simulation
 use SUN_generators, only : make_SUN_generators
 use global_subroutines, only : syncronize_sites, syncronize_links, syncronize_faces
-use Dirac_operator, only : Prod_Dirac
+!use Dirac_operator, only : Prod_Dirac
 use parallel
 implicit none
 
@@ -60,7 +60,7 @@ character(128) :: FMT1
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 iarg=iargc()
 allocate( MEDFILE(1:iarg) )
-allocate( DiracFILE(1:iarg) )
+allocate( DinvFILE(1:iarg) )
 if( iarg ==0 ) then
   if (MYRANK==0) write(*,*) "use as a.out [MEDFILE-1] [MEDFILE-2]..."
   stop
@@ -124,12 +124,12 @@ call make_SUN_generators(T,NMAT)
 if( MYRANK==0 ) then
 do narg=1,iarg
   call getarg(narg,MEDFILE(narg))
-  COMMAND = 'echo "' // trim(adjustl(MEDFILE(narg))) // '" | sed "s/medconfig/Dirac/" > ' // trim(adjustl(tmpfile) )
+  COMMAND = 'echo "' // trim(adjustl(MEDFILE(narg))) // '" | sed "s/medconfig/Dinv/" > ' // trim(adjustl(tmpfile) )
   call system(COMMAND)
   !!!
   if( MYRANK == 0 ) then
     open(N_tmpfile, file=tmpfile, status='OLD',action='READ')
-    READ(N_tmpfile,'(a)') DiracFILE(narg)
+    READ(N_tmpfile,'(a)') DinvFILE(narg)
     close(N_tmpfile)
   endif
 enddo
@@ -138,14 +138,14 @@ endif
 do narg=1,iarg
   if( MYRANK==0 ) then
     open(N_MEDFILE, file=MEDFILE(narg), status='OLD',action='READ',form='unformatted')
-    open(N_DiracFILE, file=DiracFILE(narg), status='REPLACE')
+    open(N_DinvFILE, file=DinvFILE(narg), status='REPLACE')
   endif
   !!!!
   do
     call read_config_from_medfile(Umat,PhiMat,ite,N_MEDFILE,control)
     if( control == 0 ) then 
       if( MYRANK==0 )  then
-        write(N_DiracFILE,'(a,2X,10I)') 'I', ite !END 
+        write(N_DinvFILE,'(a,2X,10I)') 'I', ite !END 
       endif
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !! make Dirac matrix
@@ -164,15 +164,10 @@ do narg=1,iarg
           endif
           call syncronize_sites(PFeta)
 
-          !call calc_DinvF(DPFeta, DPFlambda, DPFchi, &
-            !PFeta, PFlambda, PFchi, Umat, PhiMat, info)
-
-          call Prod_Dirac(&
-            DPFeta, DPFlambda, DPFchi, &
-            PFeta,PFlambda,PFchi, UMAT,PhiMat)
-
+          call calc_DinvF(DPFeta, DPFlambda, DPFchi, &
+            PFeta, PFlambda, PFchi, Umat, PhiMat, info)
           !!!
-          call write_PF(N_DiracFILE,DPFeta,DPFlambda,DPFchi,J)
+          call write_PF(N_DinvFILE,DPFeta,DPFlambda,DPFchi,J)
         enddo
       enddo
       !!!!!!!!!!!!!!
@@ -190,13 +185,10 @@ do narg=1,iarg
           endif
           call syncronize_links(PFlambda)
 
-          !call calc_DinvF(DPFeta, DPFlambda, DPFchi, &
-            !PFeta, PFlambda, PFchi, Umat, PhiMat, info)
-          call Prod_Dirac(&
-            DPFeta, DPFlambda, DPFchi, &
-            PFeta,PFlambda,PFchi, UMAT,PhiMat)
+          call calc_DinvF(DPFeta, DPFlambda, DPFchi, &
+            PFeta, PFlambda, PFchi, Umat, PhiMat, info)
           !!!
-          call write_PF(N_DiracFILE,DPFeta,DPFlambda,DPFchi,J)
+          call write_PF(N_DinvFILE,DPFeta,DPFlambda,DPFchi,J)
         enddo
       enddo
       !!!!!!!!!!!!!!
@@ -214,18 +206,15 @@ do narg=1,iarg
           endif
           call syncronize_faces(PFchi)
 
-          !call calc_DinvF(DPFeta, DPFlambda, DPFchi, &
-            !PFeta, PFlambda, PFchi, Umat, PhiMat, info)
-          call Prod_Dirac(&
-            DPFeta, DPFlambda, DPFchi, &
-            PFeta,PFlambda,PFchi, UMAT,PhiMat)
+          call calc_DinvF(DPFeta, DPFlambda, DPFchi, &
+            PFeta, PFlambda, PFchi, Umat, PhiMat, info)
           !!!
-          call write_PF(N_DiracFILE,DPFeta,DPFlambda,DPFchi,J)
+          call write_PF(N_DinvFILE,DPFeta,DPFlambda,DPFchi,J)
         enddo
       enddo
       !!!!!!!!!!!!!!
       if( MYRANK==0 )  then
-        write(N_DiracFILE,'(a)') 'E' !END 
+        write(N_DinvFILE,'(a)') 'E' !END 
       endif
     else
       exit

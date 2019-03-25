@@ -3,7 +3,7 @@
 ## mass_phi2 : physical mass square of \Phi
 0.1d0
 ## mass_f; fermion mass
-1d-1
+0d0 
 ##  data of the simplicial complex
 S2Misumi44.dat
 ## test_mode ; 0:Simulation mode 1:Test mode, 
