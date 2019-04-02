@@ -4,14 +4,14 @@ INFILE=$1
 OUTFILE=$(echo $1 | sed "s/Dirac/Dinv/")
 
 NMAT=3
-num_sites=32
-num_links=56
-num_faces=26
+num_sites=8
+num_links=12
+num_faces=6
 
 NPROW=2
 NPCOL=2
-MB=9
-NB=9
+MB=1
+NB=1
 
 np=4
 

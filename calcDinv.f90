@@ -182,7 +182,7 @@ endif
 IA=1
 JA=1
 !allocate( IPIV( L_ROW+MB ) )
-allocate( IPIV( MB ) )
+allocate( IPIV( MB+L_ROW ) )
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! for PZGETRI
  LWORK=NUMROC(sizeD+mod(IA-1,MB), MB, MYROW, RSRC, NPCOL)*NB

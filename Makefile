@@ -85,7 +85,7 @@ endif
 dinv:$(PROG_Dinv)
 
 $(PROG_Dinv): $(SRC_Dinv)
-	mpiifort -mkl=cluster -O3 $(SRC_Dinv) -o $(PROG_Dinv)
+	mpiifort -mkl=cluster -CB -traceback -g $(SRC_Dinv) -o $(PROG_Dinv)
 
 dinv2:$(PROG_Dinv2)
 
