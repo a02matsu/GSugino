@@ -158,6 +158,7 @@ L_COL = NUMROC( sizeD, NB, MYCOL, CSRC, NPCOL ) ! number of col
 MXLLD = max(L_ROW, L_COL)
 LLD=max(1,L_ROW)
 
+!write(*,*) L_ROW, L_COL
 ! 2) Distribute the matrix on the process grid
 call DESCINIT( DESC_A, sizeD, sizeD, MB, NB, RSRC, CSRC, ICTXT, MXLLD, INFO )
 
@@ -252,10 +253,11 @@ do
       stop
     endif
   enddo
-  !allocate(work1(1:sizeD))
-  !call PZLAPRNT(sizeD, sizeD, Dirac, 1, 1, DESC_A, 0, 0, 'Dirac', NOUT, work1 )
+  !if( .not. allocated(work1) ) allocate(work1(1:sizeD))
+  !call PZLAPRNT(sizeD, sizeD, Dinv, 1, 1, DESC_A, 0, 0, 'Dirac', NOUT, work1 )
   !deallocate(work1)
   !stop
+  !if( MYROW==0 .and. MYCOL==0 ) write(*,*) "================="
 
 
 ! 5) compute matrix inverse
@@ -289,17 +291,23 @@ endif
 !  allocate(work(1:sizeD))
 !  call PZLAPRNT(sizeD, sizeD, Dinv, 1, 1, DESC_A, 0, 0, 'D.Dinv', NOUT, work )
 
+  !if( .not. allocated(work1) ) allocate(work1(1:sizeD))
+  !call PZLAPRNT(sizeD, sizeD, Dinv, 1, 1, DESC_A, 0, 0, 'Dinv', NOUT, work1 )
+  !deallocate(work1)
   do i=1,sizeD
     do j=1,sizeD
-      call PZELGET('R','i-ring',ele,Dinv,i,j,DESC_A)
+      call PZELGET('A','i-ring',ele,Dinv,i,j,DESC_A)
       if( MYROW==0 .and. MYCOL==0 ) then 
         write(N_OUTFILE,'(E15.8,2X,E15.8,2X)',advance='no') ele
+        !write(N_OUTFILE,*) i,j,ele
       endif
     enddo
   enddo
   if( MYROW==0 .and. MYCOL==0 ) then
     write(N_OUTFILE,*)
+    !write(N_OUTFILE,*) "====="
   endif
+  !stop
 enddo
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 1111 control = 1
