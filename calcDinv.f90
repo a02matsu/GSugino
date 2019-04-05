@@ -113,6 +113,7 @@ integer :: ICEIL
 ! Others
 integer Pr, Pc, X, Y ! Row process and local position corresponding to global index i,j
 integer i,j
+integer IROW, ICOL
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 integer :: iarg
 
@@ -267,7 +268,6 @@ do
   call PZGETRF(sizeD,sizeD,Dinv,IA,JA,DESC_A,IPIV,INFO)
   !!
   call PZGETRI(sizeD,Dinv,IA,JA,DESC_A, IPIV, WORK, LWORK, IWORK, LIWORK, INFO)
-  !call PZGETRI(sizeD,Dinv,IA,JA,DESC_A, IPIV, WORK, -1, IWORK, -1, INFO)
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! TEST 
@@ -296,7 +296,20 @@ endif
   !deallocate(work1)
   do i=1,sizeD
     do j=1,sizeD
-      call PZELGET('A','i-ring',ele,Dinv,i,j,DESC_A)
+      call PZELGET('','i-ring',ele,Dinv,i,j,DESC_A)
+      !CALL INFOG2L( I, J, DESC_A, NPROW, NPCOL, MYROW, MYCOL, IA, JA, IROW, ICOL )
+      IROW=mod((I-1)/MB,NPROW)
+      ICOL=mod((J-1)/NB,NPCOL)
+      if( IROW/=0 .or. ICOL/=0 ) then
+        if( MYROW==IROW .and. MYCOL==ICOL ) then
+          !call ZGEBS2D(ICTXT,'ALL','i-ring',1,1,ele,1)
+          call ZGESD2D( ICTXT,1,1,ele,1,0,0)
+        elseif( MYROW==0 .and. MYCOL==0 ) then
+          call ZGERV2D( ICTXT,1,1,ele,1,IROW,ICOL )
+          !call ZGEBR2D(ICTXT,'ALL','i-ring',1,1,ele,1,IROW,ICOL)
+        endif
+      endif
+      call BLACS_BARRIER( ICTXT, 'A' )
       if( MYROW==0 .and. MYCOL==0 ) then 
         write(N_OUTFILE,'(E15.8,2X,E15.8,2X)',advance='no') ele
         !write(N_OUTFILE,*) i,j,ele
@@ -305,7 +318,7 @@ endif
   enddo
   if( MYROW==0 .and. MYCOL==0 ) then
     write(N_OUTFILE,*)
-    !write(N_OUTFILE,*) "====="
+    !write(*,*) "====="
   endif
   !stop
 enddo
