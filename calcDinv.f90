@@ -14,6 +14,7 @@
 !! compile
 ! % mpiifort -mkl=cluster inverse_matrix_pblas.f90
 program calcDinv
+use mpi
 implicit none
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -68,11 +69,14 @@ character(50) :: C_TEST
 integer ICTXT ! context (BLACS で通信する process grid のラベル)
 integer INFO, IAM, NPROCS ! BLACS_PINFO用 
 integer, parameter :: RSRC = 0, CSRC = 0 ! 最初のブロックをどのプロセスに配置するか。
+!! for MPI
+integer :: MYRANK, IERR, ISTATUS, tag, RANK
 
 integer :: MXLLD ! 各gridに配置される部分行列Aの中での最大の大きさ
 integer MYROW, MYCOL ! 各プロセスのラベル
 integer L_ROW, L_COL !それぞれの process grid にあるlocal matrixの行と列のサイズ
 integer NUMROC ! L_ROW と L_COL を計算する関数
+integer BLACS_PNUM ! process numberを返す函数   
 integer LLD
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -151,7 +155,11 @@ NPROCS=NPROW*NPCOL
 
 ! 1) Create Process Grid
 call SL_INIT( ICTXT, NPROW, NPCOL )
-call BLACS_PINFO( IAM, NPROCS )
+
+call MPI_COMM_SIZE(MPI_COMM_WORLD, NPROCS, info)
+call MPI_COMM_RANK(MPI_COMM_WORLD, MYRANK, IERR)
+
+!call BLACS_PINFO( IAM, NPROCS )
 call BLACS_GRIDINFO( ICTXT, NPROW, NPCOL, MYROW, MYCOL )
 
 L_ROW = NUMROC( sizeD, MB, MYROW, RSRC, NPROW ) ! number of row
@@ -210,11 +218,14 @@ do
   if( MYROW==0 .and. MYCOL==0 ) then
     read(N_INFILE,*, END=1111) trig, ite
     write(N_OUTFILE,'(I,2X)',advance='no') ite
-    call IGEBS2D(ICTXT,'ALL','i-ring',1,1,control,1)
-  else
-    call IGEBR2D(ICTXT,'ALL','i-ring',1,1,control,1,0,0)
-    if( control == 1 ) stop
   endif
+  call MPI_BCAST(control,1,MPI_INTEGER,BLACS_PNUM(0,0),MPI_COMM_WORLD,IERR)
+  call MPI_BCAST(ite,1,MPI_INTEGER,BLACS_PNUM(0,0),MPI_COMM_WORLD,IERR)
+    !call IGEBS2D(ICTXT,'ALL','i-ring',1,1,control,1)
+  !else
+    !call IGEBR2D(ICTXT,'ALL','i-ring',1,1,control,1,0,0)
+  !endif
+  if( control == 1 ) stop
 
   Dinv=(0d0,0d0)
   if( TEST==1 ) Dirac=(0d0,0d0)
@@ -229,23 +240,27 @@ do
       else
         C_trig = 2
       endif
-      call IGEBS2D(ICTXT,'ALL','i-ring',1,1,C_trig,1)
-    else
-      call IGEBR2D(ICTXT,'ALL','i-ring',1,1,C_trig,1,0,0)
+!      call IGEBS2D(ICTXT,'ALL','i-ring',1,1,C_trig,1)
+!    else
+!      call IGEBR2D(ICTXT,'ALL','i-ring',1,1,C_trig,1,0,0)
     endif
+    call MPI_BCAST(C_trig,1,MPI_INTEGER,BLACS_PNUM(0,0),MPI_COMM_WORLD,IERR)
     if( C_trig == 0 ) then
       N_trig=0
       if( MYROW==0 .and. MYCOL==0 ) then
         read(N_INFILE,*) I,J,real,imag
         ele = dcmplx(real) + (0d0,1d0)*dcmplx(imag)
-        call IGEBS2D(ICTXT,'ALL','i-ring',1,1,I,1)
-        call IGEBS2D(ICTXT,'ALL','i-ring',1,1,J,1)
-        call ZGEBS2D(ICTXT,'ALL','i-ring',1,1,ele,1)
-      else
-        call IGEBR2D(ICTXT,'ALL','i-ring',1,1,I,1,0,0)
-        call IGEBR2D(ICTXT,'ALL','i-ring',1,1,J,1,0,0)
-        call ZGEBR2D(ICTXT,'ALL','i-ring',1,1,ele,1,0,0)
+!        call IGEBS2D(ICTXT,'ALL','i-ring',1,1,I,1)
+!        call IGEBS2D(ICTXT,'ALL','i-ring',1,1,J,1)
+!        call ZGEBS2D(ICTXT,'ALL','i-ring',1,1,ele,1)
+!      else
+!        call IGEBR2D(ICTXT,'ALL','i-ring',1,1,I,1,0,0)
+!        call IGEBR2D(ICTXT,'ALL','i-ring',1,1,J,1,0,0)
+!        call ZGEBR2D(ICTXT,'ALL','i-ring',1,1,ele,1,0,0)
       endif
+      call MPI_BCAST(I,1,MPI_INTEGER,BLACS_PNUM(0,0),MPI_COMM_WORLD,IERR)
+      call MPI_BCAST(J,1,MPI_INTEGER,BLACS_PNUM(0,0),MPI_COMM_WORLD,IERR)
+      call MPI_BCAST(ele,1,MPI_DOUBLE_COMPLEX,BLACS_PNUM(0,0),MPI_COMM_WORLD,IERR)
       call PZELSET( Dinv, I, J, DESC_A, ele )
     elseif( C_trig==1 ) then
       exit
@@ -302,14 +317,18 @@ endif
       ICOL=mod((J-1)/NB,NPCOL)
       if( IROW/=0 .or. ICOL/=0 ) then
         if( MYROW==IROW .and. MYCOL==ICOL ) then
+          call MPI_SEND(ele,1,MPI_DOUBLE_COMPLEX,0,tag,MPI_COMM_WORLD,IERR)
           !call ZGEBS2D(ICTXT,'ALL','i-ring',1,1,ele,1)
-          call ZGESD2D( ICTXT,1,1,ele,1,0,0)
+          !call ZGESD2D( ICTXT,1,1,ele,1,0,0)
         elseif( MYROW==0 .and. MYCOL==0 ) then
-          call ZGERV2D( ICTXT,1,1,ele,1,IROW,ICOL )
+          call MPI_RECV(ele,1,MPI_DOUBLE_COMPLEX,&
+            BLACS_PNUM(ICTXT,IROW,ICOL),tag,MPI_COMM_WORLD,ISTATUS,IERR)
+          !call ZGERV2D( ICTXT,1,1,ele,1,IROW,ICOL )
           !call ZGEBR2D(ICTXT,'ALL','i-ring',1,1,ele,1,IROW,ICOL)
         endif
       endif
-      call BLACS_BARRIER( ICTXT, 'A' )
+      call MPI_BARRIER(MPI_COMM_WORLD,IERR)
+      !call BLACS_BARRIER( ICTXT, 'A' )
       if( MYROW==0 .and. MYCOL==0 ) then 
         write(N_OUTFILE,'(E15.8,2X,E15.8,2X)',advance='no') ele
         !write(N_OUTFILE,*) i,j,ele
