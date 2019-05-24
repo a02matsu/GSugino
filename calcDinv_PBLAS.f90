@@ -1,11 +1,9 @@
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-! Test code to use library PZGETRI in PBLAS
+! Routine to compute the inverse of Dirac matrix
+! by using library PZGETRE in PBLAS
 ! which compute the inverse matrix using the LU factorization
-! computed by PZGETRF.
-! We now use it to compute the inverse of Dirac matrix
 ! So Matsuura 2019/3/12
 !
-! ここでは16x16行列Aを4コアで並列化して計算することにする
 ! 1. Initialize the process grid
 ! 2. Distribute the matrix on the process grid
 ! 3. Call ScaLAPACK routine

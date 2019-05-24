@@ -2,18 +2,18 @@ module global_calcobs
 implicit none
 
 character(128), parameter :: PARAFILE="parameters_calcobs.dat"
-character(128), allocatable :: MEDFILE(:)
-integer, parameter :: num_calcobs=9 ! 考えているobservableの数
+character(128) :: MEDFILE
+character(128) :: DinvFILE
+integer, parameter :: num_calcobs=8 ! 考えているobservableの数
 character(128) :: name_obs(1:num_calcobs) = (/ &
   "|Atr|", &
   "Sb", &
-  "Sb_S", &
-  "Sb_L", &
-  "Sb_F", &
-  "Re(trivWT)", &
-  "Im(trivWT)", &
-  "Re(SfL2)", &
-  "Im(SfL2)" &
+  "Re(triv.WT)", &
+  "Im(triv.WT)", &
+  "Re(SbS+SbL-rhs)", &
+  "Im(SbS+SbL-rhs)", &
+  "Re(SbL-2SbF-rhs)", &
+  "Im(SbL-2SbF-rhs)" &
   /)
 !integer :: trig_obs(1:num_calcobs)
 integer :: sizeM,sizeN
@@ -32,9 +32,9 @@ integer :: num_sitelink ! total fermion number
 
 integer, parameter :: N_MEDFILE=100
 integer, parameter :: N_PARAFILE=101
+integer, parameter :: N_DinvFILE=102
 
 integer :: Sb_computed ! if Sb_computed=1, Sb has been already computed
-
 
 contains
 !!!
@@ -61,11 +61,10 @@ end subroutine make_format
 end module global_calcobs
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-program main
+!!
+module initialization_calcobs
 use global_parameters
 use global_calcobs
-use simulation
-use parallel
 implicit none
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -73,6 +72,27 @@ implicit none
 complex(kind(0d0)), allocatable :: UMAT(:,:,:) ! unitary link variables
 complex(kind(0d0)), allocatable :: PHIMAT(:,:,:) ! complex scalar at sites
 complex(kind(0d0)), allocatable :: tmpMAT(:,:) 
+!!!
+complex(kind(0d0)), allocatable :: Geta_eta(:,:,:,:,:,:)
+!(1:dimG,1:num_global_sites,1:dimG,1:num_sites)
+complex(kind(0d0)), allocatable :: Glambda_eta(:,:,:,:,:,:)
+!(1:dimG,1:num_global_links,1:dimG,1:num_sites)
+complex(kind(0d0)), allocatable :: Gchi_eta(:,:,:,:,:,:)
+!(1:dimG,1:num_global_faces,1:dimG,1:num_sites)
+!!!
+complex(kind(0d0)), allocatable :: Geta_lambda(:,:,:,:,:,:)
+!(1:dimG,1:num_global_sites,1:dimG,1:num_links)
+complex(kind(0d0)), allocatable :: Glambda_lambda(:,:,:,:,:,:)
+!(1:dimG,1:num_global_links,1:dimG,1:num_links)
+complex(kind(0d0)), allocatable :: Gchi_lambda(:,:,:,:,:,:)
+!(1:dimG,1:num_global_faces,1:dimG,1:num_links)
+!!!
+complex(kind(0d0)), allocatable :: Geta_chi(:,:,:,:,:,:)
+!(1:dimG,1:num_global_sites,1:dimG,1:num_faces)
+complex(kind(0d0)), allocatable :: Glambda_chi(:,:,:,:,:,:)
+!(1:dimG,1:num_global_links,1:dimG,1:num_faces)
+complex(kind(0d0)), allocatable :: Gchi_chi(:,:,:,:,:,:)
+!(1:dimG,1:num_global_faces,1:dimG,1:num_faces)
 
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -84,34 +104,15 @@ type(SITE_DIST), allocatable,save :: local_site_list(:) !(0:NPROCS-1)
 integer IBLOCK1(1),IDISP1(1),ITYPE1(1)
 integer IBLOCK2(1),IDISP2(1),ITYPE2(1)
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-complex(kind(0d0)) tmpobs1, tmpobs2
-complex(kind(0d0)) XiPhiEta
+contains
+!!!
+subroutine initialization
+use global_parameters
+use global_calcobs
+implicit none
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-integer :: seed
-integer :: l,ll,s,ls,tag,rank,i,j, ite
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-integer :: iarg
-character(128) :: config_file
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-integer :: control
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-character(128) :: FMT1
-integer :: pos_current
-integer :: pos_operator
+integer seed
 
-iarg=iargc()
-allocate( MEDFILE(1:iarg) )
-if( iarg ==0 ) then
-  if (MYRANK==0) write(*,*) "use as a.out [MEDFILE-1] [MEDFILE-2]..."
-  stop
-endif
-do i=1,iarg
-  call getarg(i,MEDFILE(i))
-enddo
-
-  
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 call MPI_INIT(IERR)
 call MPI_COMM_SIZE(MPI_COMM_WORLD,NPROCS,IERR)
@@ -157,26 +158,62 @@ allocate( UMAT(1:NMAT,1:NMAT,1:num_necessary_links) )
 allocate( PHIMAT(1:NMAT,1:NMAT, 1:num_necessary_sites) )
 allocate( tmpMAT(1:NMAT,1:NMAT) )
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!! read parameters_calcobs.dat
-if( MYRANK == 0 ) then
-  open(N_PARAFILE, file=PARAFILE, status='OLD',action='READ')
-  !read(N_PARAFILE,*) MEDFILE
-  read(N_PARAFILE,*) sizeM
-  read(N_PARAFILE,*) sizeN
-  !do i=1,num_calcobs
-    !read(N_PARAFILE,*) trig_obs(i)
-  !enddo
-endif
-!call MPI_BCAST(trig_obs, num_calcobs, MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
-call MPI_BCAST(sizeM, 1, MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
-call MPI_BCAST(sizeN, 1, MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
-  
+!!!
+allocate( Geta_eta(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_sites,1:num_sites) )
+allocate( Glambda_eta(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_links,1:num_sites) )
+allocate( Gchi_eta(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_faces,1:num_sites) )
+!!!
+allocate( Geta_lambda(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_sites,1:num_links) )
+allocate( Glambda_lambda(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_links,1:num_links) )
+allocate( Gchi_lambda(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_faces,1:num_links) )
+!!!
+allocate( Geta_chi(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_sites,1:num_faces) ) 
+allocate( Glambda_chi(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_links,1:num_faces) )
+allocate( Gchi_chi(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_faces,1:num_faces) )
+
 num_fermion=(global_num_sites+global_num_links+global_num_faces)*(NMAT*NMAT-1)
 num_sitelink=(global_num_sites+global_num_links)*(NMAT*NMAT-1)
 
-!allocate( WT1(1:sizeN/2-1) )
-!allocate( WT2(1:sizeN/2-1) )
+end subroutine initialization
+
+
+end module initialization_calcobs
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+program main
+use global_parameters
+use global_calcobs
+use initialization_calcobs
+use simulation
+use parallel
+implicit none
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+integer :: l,ll,s,ls,tag,rank,i,j, ite
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+integer :: iarg
+character(128) :: config_file
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+integer :: control
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+character(128) :: FMT1
+integer :: pos_current
+integer :: pos_operator
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+complex(kind(0d0)) tmpobs1, tmpobs2
+complex(kind(0d0)) XiPhiEta
+
+iarg=iargc()
+if( iarg <=1 ) then
+  if (MYRANK==0) write(*,*) "use as a.out [MEDFILE] [DinvFILE]"
+  stop
+endif
+call getarg(1,MEDFILE)
+call getarg(2,DinvFILE)
+INPUT_FILE_NAME="inputfile"
+  
+call initialization 
 
 
 ! write contents
@@ -186,152 +223,106 @@ if( MYRANK == 0 ) then
   do i=1, num_calcobs
     write(*,'(I3,a,a,",")',advance='no') i+1, ") ", trim(name_obs(i))
   enddo
-endif
-
-do i=1, iarg
-
-
-  if( MYRANK == 0 ) then
-    write(*,*) "##", trim(MEDFILE(i))
-    open(N_MEDFILE, file=MEDFILE(i), status='OLD',action='READ',form='unformatted')
-  endif
-  
-  do
-    call read_config_from_medfile(Umat,PhiMat,ite,N_MEDFILE,control)
-    if( control == 0 ) then 
-      call calc_trace_compensator(Acomp_tr,PhiMat)
-      !call calc_VM_compensator(Acomp_VM,PhiMat)
-      APQ_phase = dconjg(Acomp_tr) / cdabs(Acomp_tr) 
-      Sb_computed=0
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !! calculate observables
-      if( MYRANK == 0 ) then
-        write(*,'(I7,2X)',advance='no') ite
-      endif
-
-      !"|Atr|", &
-        if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') cdabs(Acomp_tr)
-      !"Sb", &
-        call calc_bosonic_action(Sb,Umat,PhiMat)
-        if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') Sb
-      !"Sb_S", &
-        call calc_bosonic_action_site(SbS,PhiMat)
-        if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') SbS
-      !"Sb_L", &
-        call calc_bosonic_action_link(SbL,Umat,PhiMat)
-        if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') SbL
-      !"SB_F" &
-        call calc_bosonic_action_face(SbF,Umat)
-        if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') SbF
-      !! trivial WT
-        call calc_XiPhiEta(XiPhiEta,Umat,PhiMat,1)
-        if( MYRANK == 0 ) then
-          tmpobs1= &
-            cdabs(Acomp_tr) * &
-            (&
-            dcmplx(Sb) &
-            + dcmplx(0.5d0*mass_square_phi)*XiPhiEta &
-            - dcmplx(0.5d0*dble(num_sitelink)) &
-            )  
-          write(*,'(E15.8,2X,E15.8,2X)',advance='no') dble(tmpobs1), dble((0d0,-1d0)*tmpobs1)
-        endif
-      !! \lambda\lambda part of Sf
-        call calc_SfL2(SfL2, PhiMat, Umat)
-        if( MYRANK == 0 ) then
-          write(*,'(E15.8,2X,E15.8,2X)',advance='no') dble(SfL2), dble((0d0,-1d0)*SfL2)
-        endif
-
-      !endif
-
-!      pos_current=20
-!      pos_operator=2
-!      if( trig_obs(4) == 0 ) then
-!        !!!
-!        call test_WT1(WT1,Umat,PhiMat,pos_operator,pos_current,1)
-!        if( MYRANK==0 ) then
-!          tmpobs1 = APQ_phase * WT1
-!          FMT1='(E15.8,2X,E15.8,2X)'
-!          write(*,FMT1,advance='no') &
-!            dble(tmpobs1), dble((0d0,-1d0)*tmpobs1)
-!        endif
-!        !!!
-!        call test_WT1(WT1,Umat,PhiMat,pos_operator,pos_current,2)
-!        if( MYRANK==0 ) then
-!          tmpobs1 = APQ_phase * WT1
-!          FMT1='(E15.8,2X,E15.8,2X)'
-!          write(*,FMT1,advance='no') &
-!            dble(tmpobs1), dble((0d0,-1d0)*tmpobs1)
-!        endif
-!        !!!
-!        call test_WT1(WT1,Umat,PhiMat,pos_operator,pos_current,3)
-!        if( MYRANK==0 ) then
-!          tmpobs1 = APQ_phase * WT1
-!          FMT1='(E15.8,2X,E15.8,2X)'
-!          write(*,FMT1,advance='no') &
-!            dble(tmpobs1), dble((0d0,-1d0)*tmpobs1)
-!        endif
-!        !!!
-!        call test_WT1(WT1,Umat,PhiMat,pos_operator,pos_current,4)
-!        if( MYRANK==0 ) then
-!          tmpobs1 = APQ_phase * WT1
-!          FMT1='(E15.8,2X,E15.8,2X)'
-!          write(*,FMT1,advance='no') &
-!            dble(tmpobs1), dble((0d0,-1d0)*tmpobs1)
-!        endif
-!        !!!
-!        call test_WT1(WT1,Umat,PhiMat,pos_operator,pos_current,5)
-!        if( MYRANK==0 ) then
-!          tmpobs1 = APQ_phase * WT1
-!          FMT1='(E15.8,2X,E15.8,2X)'
-!          write(*,FMT1,advance='no') &
-!            dble(tmpobs1), dble((0d0,-1d0)*tmpobs1)
-!        endif
-!        !!!
-!        call simplest_op(WT1,PhiMat,1)
-!        if( MYRANK==0 ) then
-!          tmpobs1 = APQ_phase * WT1
-!          FMT1='(E15.8,2X,E15.8,2X)'
-!          write(*,FMT1,advance='no') &
-!            dble(tmpobs1), dble((0d0,-1d0)*tmpobs1)
-!        endif
-!      endif
-
-      !! WT identity 1
-!      if( trig_obs(4) == 0 ) then
-!        !call calc_WT12(WT1,WT2,Umat,PhiMat,1,21)
-!        call calc_WT12_average(WT1,WT2,Umat,PhiMat,20,sizeM,sizeN)
-!        if( MYRANK==0 ) then
-!          do j=1,sizeN/2-1
-!            tmpobs1 = APQ_phase * WT1(j)
-!            tmpobs2 = APQ_phase * WT2(j)
-!            write(*,'(E15.8,2X,E15.8,2X,E15.8,2X,E15.8,2X)',advance='no') &
-!              dble(tmpobs1), dble((0d0,-1d0)*tmpobs1), &
-!              dble(tmpobs2), dble((0d0,-1d0)*tmpobs2) 
-!          enddo
-!        endif
-!      endif
-!      !! minimal eigenvalu of DD^\dagger
-!      if( trig_obs(4) == 0 ) then
-!        call min_eigen_DdagD(min_eigen,Umat,PhiMat)
-!        if( MYRANK == 0 ) then
-!          write(*,'(E15.8,2X)',advance='no') dble(min_eigen)
-!        endif
-!      endif
-
-      if(MYRANK==0) write(*,*)
-    else
-      exit
+  !!!!!!!!
+  write(*,*) "##", trim(MEDFILE)
+  open(N_MEDFILE, file=MEDFILE, status='OLD',action='READ',form='unformatted')
+  open(N_DinvFILE, file=DinvFILE, status='OLD',action='READ')
+endif 
+      
+do    
+  call read_config_from_medfile(Umat,PhiMat,ite,N_MEDFILE,control)
+  call read_Dinv(ite, Geta_eta, Glambda_eta, Gchi_eta, &
+         Geta_lambda, Glambda_lambda, Gchi_lambda, &
+         Geta_chi, Glambda_chi, Gchi_chi, &
+         N_DinvFILE)
+  if( control == 0 ) then 
+    call calc_trace_compensator(Acomp_tr,PhiMat)
+    !call calc_VM_compensator(Acomp_VM,PhiMat)
+    APQ_phase = dconjg(Acomp_tr) / cdabs(Acomp_tr) 
+    Sb_computed=0
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !! calculate observables
+    if( MYRANK == 0 ) then
+      write(*,'(I7,2X)',advance='no') ite
     endif
-  enddo
 
-  if( MYRANK == 0 ) then
-    close(N_MEDFILE)
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !! test for fermionic operators 
+
+    call check_DinvPF(&
+        Geta_eta, Glambda_eta, Gchi_eta, &
+        Geta_lambda, Glambda_lambda, Gchi_lambda, &
+        Geta_chi, Glambda_chi, Gchi_chi, &
+        Umat,PhiMat)
+
+
+
+    !"|Atr|", &
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') cdabs(Acomp_tr)
+    !"Sb", &
+      call calc_bosonic_action(Sb,Umat,PhiMat)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') Sb
+!    !! trivial WT
+!      call calc_XiPhiEta(XiPhiEta,Umat,PhiMat,0)
+!      tmpobs1=XiPhiEta
+!      !tmpobs1= &
+!      !  cdabs(Acomp_tr) * &
+!      !  (&
+!      !  dcmplx(Sb) &
+!      !  + dcmplx(0.5d0*mass_square_phi)*XiPhiEta &
+!      !  - dcmplx(0.5d0*dble(num_sitelink)) &
+!      !  )  
+!      tmpobs1=XiPhiEta
+!      if( MYRANK == 0 ) write(*,'(E15.8,2X,E15.8,2X)',advance='no') &
+!        dble(tmpobs1), dble((0d0,-1d0)*tmpobs1)
+!    !! trivial WT by Dinv data
+!      call calc_XiPhiEta2(XiPhiEta,Umat,PhiMat,Geta_eta,Glambda_eta,Gchi_eta)
+!      !tmpobs1= &
+!      !  cdabs(Acomp_tr) * &
+!      !  (&
+!      !  dcmplx(Sb) &
+!      !  + dcmplx(0.5d0*mass_square_phi)*XiPhiEta &
+!      !  - dcmplx(0.5d0*dble(num_sitelink)) &
+!      !  )  
+!      !tmpobs1=XiPhiEta
+!      tmpobs1=XiPhiEta
+!      if( MYRANK == 0 ) write(*,'(E15.8,2X,E15.8,2X)',advance='no') &
+!        dble(tmpobs1), dble((0d0,-1d0)*tmpobs1)
+!
+!      call calc_bosonic_action_site(SbS,PhiMat)
+!      call calc_bosonic_action_link(SbL,Umat,PhiMat)
+!      call calc_bosonic_action_face(SbF,Umat)
+!
+!    !! relations in bosonic action 1
+!    !!  Sb_site + Sb_face = #(face)/2*dimG
+!    !! we need also compensator
+!      tmpobs1 = &!dcmplx(cdabs(Acomp_tr))* &
+!         (SbS + SbF - dcmplx(dble(global_num_faces*dimG)*0.5d0 ) )
+!      if( MYRANK == 0 ) write(*,'(E15.8,2X,E15.8,2X)',advance='no') &
+!        dble(tmpobs1), dble((0d0,-1d0)*tmpobs1)
+!
+!    !! relations in bosonic action 2
+!    !!  Sb_link - 2 Sb_face = lambda.lambda(U.\bar{phi}.U^-1 + \bar{phi})
+!    !! we need also compensator
+!      call calc_SfL2(SfL2,PhiMat,Umat,Glambda_lambda)
+!      tmpobs1 = &!dcmplx(cdabs(Acomp_tr)) * &
+!        dcmplx(SbL - 2d0*SbF) - SfL2
+!      if( MYRANK == 0 ) write(*,'(E15.8,2X,E15.8,2X)',advance='no') &
+!        dble(tmpobs1), dble((0d0,-1d0)*tmpobs1)
+!
+!      if( MYRANK == 0 ) write(*,'(E15.8,2X,E15.8,2X,E15.8,2X)',advance='no') &
+!        SbL, SbF, dble(SfL2)
+
+    if(MYRANK==0) write(*,*)
+  else
+    exit
   endif
-
 enddo
+
+if( MYRANK == 0 ) then
+  close(N_MEDFILE)
+  close(N_DinvFILE)
+endif
 end program main
-
-
-
 
 

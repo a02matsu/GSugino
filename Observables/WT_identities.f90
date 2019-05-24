@@ -1,8 +1,3 @@
-#include "divK3.f90"
-#include "divK4.f90"
-#include "rotK1.f90"
-#include "rotK2.f90"
-#include "phichi.f90"
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! compute \Xi Tr(Phi eta)
 subroutine calc_XiPhiEta(XiPhiEta,Umat,PhiMat,triger)
@@ -66,6 +61,223 @@ XiPhiEta=tmp
 #endif
 
 end subroutine calc_XiPhiEta
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! compute \Xi Tr(Phi eta)
+subroutine calc_XiPhiEta2(XiPhiEta,Umat,PhiMat,Geta_eta,Glambda_eta,Gchi_eta)
+#ifdef PARALLEL
+use parallel
+#endif
+implicit none
+
+complex(kind(0d0)), intent(out) :: XiPhiEta
+complex(kind(0d0)), intent(in) :: Umat(1:NMAT,1:NMAT,1:num_necessary_links)
+complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_necessary_sites)
+complex(kind(0d0)), intent(in) :: Geta_eta(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_sites,1:num_sites)
+complex(kind(0d0)), intent(in) :: Glambda_eta(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_links,1:num_sites)
+complex(kind(0d0)), intent(in) :: Gchi_eta(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_faces,1:num_sites)
+
+complex(kind(0d0)) Xi_eta(1:NMAT,1:NMAT,1:num_necessary_sites)
+complex(kind(0d0)) Xi_lambda(1:NMAT,1:NMAT,1:num_necessary_links)
+complex(kind(0d0)) Xi_chi(1:NMAT,1:NMAT,1:num_necessary_faces)
+complex(kind(0d0)) GXi_eta(1:NMAT,1:NMAT,1:global_num_sites)
+complex(kind(0d0)) GXi_lambda(1:NMAT,1:NMAT,1:global_num_links)
+complex(kind(0d0)) GXi_chi(1:NMAT,1:NMAT,1:global_num_faces)
+complex(kind(0d0)) DinvXi_eta(1:NMAT,1:NMAT,1:num_sites)
+!complex(kind(0d0)) DinvXi_eta(1:NMAT,1:NMAT,1:num_sites)
+!complex(kind(0d0)) DinvXi_lambda(1:NMAT,1:NMAT,1:num_links)
+!complex(kind(0d0)) DinvXi_chi(1:NMAT,1:NMAT,1:num_faces)
+!complex(kind(0d0)) DinvPhi_eta(1:NMAT,1:NMAT,1:global_num_sites)
+!complex(kind(0d0)) DinvPhi_lambda(1:NMAT,1:NMAT,1:global_num_links)
+!complex(kind(0d0)) DinvPhi_chi(1:NMAT,1:NMAT,1:global_num_faces)
+
+complex(kind(0d0)) tmp,tmp2
+complex(kind(0d0)) tmpmat(1:NMAT,1:NMAT)
+integer :: ls,ll,lf,gs,gl,gf
+integer :: gt, lt, rank, rank2,tag
+integer :: i,j,k,l
+
+call make_XiVec(Xi_eta,Xi_lambda,Xi_chi,Umat,PhiMat)
+!write(*,*) Xi_eta, Xi_lambda, Xi_chi
+
+GXi_eta=(0d0,0d0)
+do gs=1,global_num_sites
+  rank = local_site_of_global(gs)%rank_ 
+  ls = local_site_of_global(gs)%label_
+  if( MYRANK == rank ) then
+    GXi_eta(:,:,gs)=Xi_eta(:,:,ls)
+  endif
+  call  MPI_BCAST(GXi_eta(:,:,gs),NMAT*NMAT,MPI_DOUBLE_COMPLEX,rank,MPI_COMM_WORLD,IERR)
+enddo
+!!!!
+GXi_lambda=(0d0,0d0)
+do gl=1,global_num_links
+  rank = local_link_of_global(gl)%rank_ 
+  ll = local_link_of_global(gl)%label_
+  if( MYRANK == rank ) then
+    GXi_lambda(:,:,gl)=Xi_lambda(:,:,ll)
+  endif
+  call  MPI_BCAST(GXi_lambda(:,:,gl),NMAT*NMAT,MPI_DOUBLE_COMPLEX,rank,MPI_COMM_WORLD,IERR)
+enddo
+!!!!
+GXi_chi=(0d0,0d0)
+do gf=1,global_num_faces
+  rank = local_face_of_global(gf)%rank_ 
+  lf = local_face_of_global(gf)%label_
+  if( MYRANK == rank ) then
+    GXi_chi(:,:,gf)=Xi_chi(:,:,lf)
+  endif
+  call  MPI_BCAST(GXi_chi(:,:,gf),NMAT*NMAT,MPI_DOUBLE_COMPLEX,rank,MPI_COMM_WORLD,IERR)
+enddo
+!!!!
+!write(*,*) GXi_eta, GXi_lambda, GXi_chi
+
+XiPhiEta=(0d0,0d0)
+DinvXi_eta=(0d0,0d0)
+do ls=1,num_sites
+  do j=1,NMAT
+    do i=1,NMAT
+      do l=1,NMAT
+        do k=1,NMAT
+          do gs=1,global_num_sites
+            DinvXi_eta(i,j,ls)=DinvXi_eta(i,j,ls) &
+              + GXi_eta(k,l,gs)*Geta_eta(l,k,i,j,gs,ls)
+          enddo
+          do gl=1,global_num_links
+            DinvXi_eta(i,j,ls)=DinvXi_eta(i,j,ls) &
+              + GXi_lambda(k,l,gl)*Glambda_eta(l,k,i,j,gl,ls)
+          enddo
+          do gf=1,global_num_faces
+            DinvXi_eta(i,j,ls)=DinvXi_eta(i,j,ls) &
+              + GXi_chi(k,l,gf)*Gchi_eta(l,k,i,j,gf,ls)
+          enddo
+        enddo
+      enddo
+    enddo
+  enddo
+enddo
+
+tmp=(0d0,0d0)
+do ls=1,num_sites
+  do j=1,NMAT
+    do i=1,NMAT
+      tmp=tmp+DinvXi_eta(i,j,ls)*PhiMat(j,i,ls)
+    enddo
+  enddo
+enddo
+
+call MPI_REDUCE(tmp,XiPhiEta,1,MPI_DOUBLE_COMPLEX, &
+   MPI_SUM,0,MPI_COMM_WORLD,IERR)
+
+
+!tmp=(0d0,0d0)
+!
+!DinvPhi_eta=(0d0,0d0)
+!DinvPhi_lambda=(0d0,0d0)
+!DinvPhi_chi=(0d0,0d0)
+!do gt=1,global_num_sites
+!  lt=local_site_of_global(gt)%label_
+!  rank=local_site_of_global(gt)%rank_
+!  if( rank==MYRANK ) then
+!    do j=1,NMAT
+!      do i=1,NMAT
+!        do k=1,NMAT
+!          do l=1,NMAT
+!            do gs=1,global_num_sites
+!              DinvPhi_eta(i,j,gs)=DinvPhi_eta(i,j,gs)+Geta_eta(i,j,k,l,gs,lt)*PhiMat(l,k,lt)
+!            enddo
+!            do gl=1,global_num_links
+!              DinvPhi_lambda(i,j,gl)=DinvPhi_lambda(i,j,gl)+Glambda_eta(i,j,k,l,gl,lt)*PhiMat(l,k,lt)
+!            enddo
+!            do gf=1,global_num_faces
+!              DinvPhi_chi(i,j,gf)=DinvPhi_chi(i,j,gf)+Gchi_eta(i,j,k,l,gf,lt)*PhiMat(l,k,lt)
+!            enddo
+!          enddo
+!        enddo
+!      enddo
+!    enddo
+!  endif
+!  call MPI_BCAST(DinvPhi_eta,global_num_sites*NMAT*NMAT,MPI_INTEGER,rank,MPI_COMM_WORLD,IERR)
+!  call MPI_BCAST(DinvPhi_lambda,global_num_links*NMAT*NMAT,MPI_INTEGER,rank,MPI_COMM_WORLD,IERR)
+!  call MPI_BCAST(DinvPhi_chi,global_num_faces*NMAT*NMAT,MPI_INTEGER,rank,MPI_COMM_WORLD,IERR)
+!!  tag=0
+!!  do gs=1,global_num_sites
+!!    rank2=local_site_of_global(gs)%rank_
+!!    tag=tag+1
+!!    if( rank2 /= rank ) then
+!!      if( MYRANK == rank ) then
+!!         call MPI_SEND(DinvPhi_eta(:,:,gs),NMAT*NMAT,MPI_DOUBLE_COMPLEX,rank2,tag,MPI_COMM_WORLD,IERR)
+!!       elseif( MYRANK == rank2) then
+!!         call MPI_RECV(DinvPhi_eta(:,:,gs),NMAT*NMAT,MPI_DOUBLE_COMPLEX,rank,tag,MPI_COMM_WORLD,ISTATUS,IERR)
+!!       endif
+!!     endif
+!!   enddo
+!!   !!!!!
+!!  do gl=1,global_num_links
+!!    rank2=local_link_of_global(gl)%rank_
+!!    tag=tag+1
+!!    if( rank2 /= rank ) then
+!!      if( MYRANK == rank ) then
+!!         call MPI_SEND(DinvPhi_lambda(:,:,gl),NMAT*NMAT,MPI_DOUBLE_COMPLEX,rank2,tag,MPI_COMM_WORLD,IERR)
+!!       elseif( MYRANK == rank2) then
+!!         call MPI_RECV(DinvPhi_lambda(:,:,gl),NMAT*NMAT,MPI_DOUBLE_COMPLEX,rank,tag,MPI_COMM_WORLD,ISTATUS,IERR)
+!!       endif
+!!     endif
+!!   enddo
+!!   !!!!!
+!!  do gf=1,global_num_faces
+!!    rank2=local_face_of_global(gf)%rank_
+!!    tag=tag+1
+!!    if( rank2 /= rank ) then
+!!      if( MYRANK == rank ) then
+!!         call MPI_SEND(DinvPhi_chi(:,:,gf),NMAT*NMAT,MPI_DOUBLE_COMPLEX,rank2,tag,MPI_COMM_WORLD,IERR)
+!!       elseif( MYRANK == rank2) then
+!!         call MPI_RECV(DinvPhi_chi(:,:,gf),NMAT*NMAT,MPI_DOUBLE_COMPLEX,rank,tag,MPI_COMM_WORLD,ISTATUS,IERR)
+!!       endif
+!!     endif
+!!   enddo
+!!   !!!!!
+!
+!  tmp=(0d0,0d0)
+!  tmp2=(0d0,0d0)
+!  !!!!!!!!!
+!  do ls=1,num_sites
+!    gs=global_site_of_local(ls)
+!    do i=1,NMAT
+!      do j=1,NMAT
+!        tmp=tmp+DinvPhi_eta(i,j,gs)*Xi_eta(j,i,ls)
+!      enddo
+!    enddo
+!  enddo
+!  !!!!!!!!!
+!  do ll=1,num_links
+!    gl=global_link_of_local(ll)
+!    do i=1,NMAT
+!      do j=1,NMAT
+!        tmp=tmp+DinvPhi_lambda(i,j,gl)*Xi_lambda(j,i,ll)
+!      enddo
+!    enddo
+!  enddo
+!  !!!!!!!!!
+!  do lf=1,num_faces
+!    gf=global_face_of_local(lf)
+!    do i=1,NMAT
+!      do j=1,NMAT
+!        tmp=tmp+DinvPhi_chi(i,j,gf)*Xi_chi(j,i,lf)
+!      enddo
+!    enddo
+!  enddo
+!  !call MPI_REDUCE(tmp,tmp2,1,MPI_DOUBLE_COMPLEX, &
+!  call MPI_REDUCE(tmp,XiPhiEta,1,MPI_DOUBLE_COMPLEX, &
+!    MPI_SUM,0,MPI_COMM_WORLD,IERR)
+!  !XiPhiEta=XiPhiEta+tmp2
+!enddo
+    
+
+
+
+end subroutine calc_XiPhiEta2
+
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! (D D†~)^{-1} F

@@ -290,82 +290,144 @@ end subroutine calc_divJ_U1V
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! calculate link part 2 of the fermion action
-subroutine calc_SfL2(SfL2, PhiMat, Umat)
+!subroutine calc_SfL2(SfL2, PhiMat, Umat)
+!use global_parameters
+!use parallel
+!use matrix_functions, only : matrix_3_product, matrix_product, trace_MM
+!implicit none
+!
+!complex(kind(0d0)), intent(out) :: SfL2
+!complex(kind(0d0)), intent(in) :: Umat(1:NMAT,1:NMAT,1:num_necessary_links)
+!complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_necessary_sites)
+!
+!complex(kind(0d0)) :: Dinv_eta(1:NMAT,1:NMAT,1:num_sites)
+!complex(kind(0d0)) :: Dinv_lambda(1:NMAT,1:NMAT,1:num_links)
+!complex(kind(0d0)) :: Dinv_chi(1:NMAT,1:NMAT,1:num_faces)
+!complex(kind(0d0)) :: DinvLL(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:num_links) ! D^{-1}_{l,i,j;l,k,l}
+!
+!complex(kind(0d0)) :: tmpout, trace
+!complex(kind(0d0)) :: MMAT(1:NMAT,1:NMAT)
+!complex(kind(0d0)) :: tmpMAT(1:NMAT,1:NMAT)
+!integer :: i,j,k,l,gl,rank
+!
+!do gl=1,global_num_links
+!  do i=1,NMAT
+!    do j=1,NMAT
+!      call calc_DinvVec(Dinv_eta,Dinv_lambda,Dinv_chi,'L',gl,i,j,Phimat,Umat)
+!
+!      l=local_link_of_global(gl)%label_
+!      rank=local_link_of_global(gl)%rank_ 
+!      if( MYRANK==rank ) then
+!        DinvLL(:,:,i,j,l) = Dinv_lambda(:,:,l)
+!      endif
+!    enddo
+!  enddo
+!enddo
+!          
+!tmpout=(0d0,0d0)
+!SfL2=(0d0,0d0)
+!do l=1,num_links
+!  do j=1, NMAT
+!    do i=1, NMAT
+!      MMat(i,j)=dconjg( PhiMat(j,i,link_org(l)) )
+!    enddo
+!  enddo
+!  call matrix_3_product(MMat,Umat(:,:,l),PhiMat(:,:,link_tip(l)),Umat(:,:,l),&
+!    'N','C','C',(1d0,0d0),'ADD')
+!
+!  tmpmat=(0d0,0d0)
+!  do j=1,NMAT
+!    do i=1,NMAT
+!      do k=1,NMAT
+!        tmpmat(i,j) = tmpmat(i,j) + DinvLL(k,j,i,k,l)
+!      enddo
+!    enddo
+!  enddo
+!  call trace_MM(trace,MMat,tmpmat)
+!  tmpout = tmpout + trace * dcmplx( 0.5d0 * alpha_l(l) )
+!  !!!!!!!!!!!!
+!  tmpmat=(0d0,0d0)
+!  do j=1,NMAT
+!    do i=1,NMAT
+!      do k=1,NMAT
+!        tmpmat(i,j) = tmpmat(i,j) + DinvLL(i,k,k,j,l)
+!      enddo
+!    enddo
+!  enddo
+!  call trace_MM(trace,MMat,tmpmat)
+!  tmpout = tmpout - trace * dcmplx( 0.5d0 * alpha_l(l) )
+!enddo
+!
+!call MPI_REDUCE(tmpout,SfL2,1,MPI_DOUBLE_COMPLEX, &
+!  MPI_SUM,0,MPI_COMM_WORLD,IERR)
+!
+!if( MYRANK == 0 ) then
+!  SfL2 = SfL2 * overall_factor
+!endif
+!
+!end subroutine calc_SfL2
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! calculate lambda.lambda(U.\bar{phi}.U^-1 + \bar{phi})
+subroutine calc_SfL2(SfL2, PhiMat, Umat, Glambda_lambda)
 use global_parameters
 use parallel
-use matrix_functions, only : matrix_3_product, matrix_product, trace_MM
+use matrix_functions, only : matrix_3_product, trace_MM
+use SUN_generators, only : trace_MTa, make_Mijkl_from_modes
 implicit none
 
 complex(kind(0d0)), intent(out) :: SfL2
 complex(kind(0d0)), intent(in) :: Umat(1:NMAT,1:NMAT,1:num_necessary_links)
 complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_necessary_sites)
+complex(kind(0d0)), intent(in) :: Glambda_lambda(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_links,1:num_links)
 
-complex(kind(0d0)) :: Dinv_eta(1:NMAT,1:NMAT,1:num_sites)
-complex(kind(0d0)) :: Dinv_lambda(1:NMAT,1:NMAT,1:num_links)
-complex(kind(0d0)) :: Dinv_chi(1:NMAT,1:NMAT,1:num_faces)
-complex(kind(0d0)) :: DinvLL(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:num_links) ! D^{-1}_{l,i,j;l,k,l}
 
-complex(kind(0d0)) :: tmpout, trace
-complex(kind(0d0)) :: MMAT(1:NMAT,1:NMAT)
-complex(kind(0d0)) :: tmpMAT(1:NMAT,1:NMAT)
-integer :: i,j,k,l,gl,rank
+complex(kind(0d0)) :: MMAT(1:NMAT,1:NMAT),tmpmat(1:NMAT,1:NMAT)
+!complex(kind(0d0)) :: DP(1:NMAT,1:NMAT,1:NMAT,1:NMAT)
+!complex(kind(0d0)) :: modes(1:dimG,1:dimG)
+complex(kind(0d0)) :: trace, tmpSfL2
+integer :: gl,ll
+integer :: a,b,i,j,k
 
-do gl=1,global_num_links
-  do i=1,NMAT
-    do j=1,NMAT
-      call calc_DinvVec(Dinv_eta,Dinv_lambda,Dinv_chi,'L',gl,i,j,Phimat,Umat)
-
-      l=local_link_of_global(gl)%label_
-      rank=local_link_of_global(gl)%rank_ 
-      if( MYRANK==rank ) then
-        DinvLL(:,:,i,j,l) = Dinv_lambda(:,:,l)
-      endif
-    enddo
-  enddo
-enddo
-          
-tmpout=(0d0,0d0)
 SfL2=(0d0,0d0)
-do l=1,num_links
+tmpSfL2=(0d0,0d0)
+do ll=1,num_links
+  gl=global_link_of_local(ll)
+  !!! Dinv_{ab} --> Dinv_{ij;kl}
+  !do b=1,dimG
+  !  do a=1,dimG
+  !    modes(a,b)=Glambda_lambda(a,gl,b,ll)
+  !  enddo
+  !enddo
+  !call make_Mijkl_from_modes(DP,MODES,NMAT)
+  !!!!
   do j=1, NMAT
     do i=1, NMAT
-      MMat(i,j)=dconjg( PhiMat(j,i,link_org(l)) )
+      MMat(i,j)=dconjg( PhiMat(j,i,link_org(ll)) )
     enddo
   enddo
-  call matrix_3_product(MMat,Umat(:,:,l),PhiMat(:,:,link_tip(l)),Umat(:,:,l),&
+  call matrix_3_product(MMat,Umat(:,:,ll),PhiMat(:,:,link_tip(ll)),Umat(:,:,ll),&
     'N','C','C',(1d0,0d0),'ADD')
-
   tmpmat=(0d0,0d0)
   do j=1,NMAT
     do i=1,NMAT
       do k=1,NMAT
-        tmpmat(i,j) = tmpmat(i,j) + DinvLL(k,j,i,k,l)
+        tmpmat(i,j) = tmpmat(i,j) + Glambda_lambda(i,k,k,j,gl,ll) !DP(i,k,k,j)
       enddo
     enddo
   enddo
-  call trace_MM(trace,MMat,tmpmat)
-  tmpout = tmpout + trace * dcmplx( 0.5d0 * alpha_l(l) )
-  !!!!!!!!!!!!
-  tmpmat=(0d0,0d0)
-  do j=1,NMAT
-    do i=1,NMAT
-      do k=1,NMAT
-        tmpmat(i,j) = tmpmat(i,j) + DinvLL(i,k,k,j,l)
-      enddo
-    enddo
-  enddo
-  call trace_MM(trace,MMat,tmpmat)
-  tmpout = tmpout - trace * dcmplx( 0.5d0 * alpha_l(l) )
+  call trace_MM(trace,tmpmat,MMat)
+  tmpSfL2=tmpSfL2+trace
 enddo
 
-call MPI_REDUCE(tmpout,SfL2,1,MPI_DOUBLE_COMPLEX, &
+call MPI_REDUCE(tmpSfL2,SfL2,1,MPI_DOUBLE_COMPLEX, &
   MPI_SUM,0,MPI_COMM_WORLD,IERR)
 
 if( MYRANK == 0 ) then
   SfL2 = SfL2 * overall_factor
 endif
 
+
 end subroutine calc_SfL2
-
-
 

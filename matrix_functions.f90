@@ -1094,6 +1094,27 @@ enddo
 
 end function tr_MdagM
 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+subroutine make_random_matrix(MAT)
+implicit none
+
+complex(kind(0d0)), intent(out) :: MAT(:,:)
+integer :: NMAT
+double precision, allocatable :: tmpmat(:,:)
+
+NMAT=size(MAT,1)
+allocate(tmpmat(1:NMAT,1:NMAT))
+
+call random_number(tmpmat)
+
+MAT=dcmplx(tmpmat)
+
+call random_number(tmpmat)
+
+MAT=MAT + (0d0,1d0)*dcmplx(tmpmat)
+
+end subroutine make_random_matrix
+
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !subroutine CalcPfaffian2(abs_pf,arg_pf,MAT)

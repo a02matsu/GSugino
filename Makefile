@@ -8,9 +8,9 @@ FC=mpiifort
 PARA=-DPARALLEL
 PARA2=-DPARALLEL -DCOUNT_TIME
 #PARA=-DNOPARALLEL
-#FLAGS_IFORT=-mkl -fpp $(PARA) -CB -traceback -g 
+FLAGS_IFORT=-mkl -fpp $(PARA) -CB -traceback -g 
 #FLAGS_IFORT=-mkl -parallel -ipo
-FLAGS_IFORT=-mkl -fpp $(PARA) -O3 -ipo
+#FLAGS_IFORT=-mkl -fpp $(PARA) -O3 -ipo
 FLAGS_GCC=-llapack -lblas
 # コンパイルのために順番が大事。下層ほど先に書く。 
 SRCS=\
@@ -27,11 +27,12 @@ SRCS=\
 	simulation.f90 \
 	parallel.f90 
 OBJS=$(SRCS:.f90=.o)
+DIR_OBS=Observables
 #########################
 SRC_MAIN=GSugino.f90  
 OBJ_MAIN=GSugino.o
 PROG=gsugino$(VER).exe
-LIB=libpfapack.a
+LIB=Pfapack_m02/libpfapack.a
 #########################
 SRC_OBS=calcobs.f90  
 OBJ_OBS=calcobs.o
@@ -41,15 +42,14 @@ SRC_Dirac=writeDirac.f90
 OBJ_Dirac=writeDirac.o
 PROG_Dirac=writeDirac.exe
 #########################
-SRC_Dinv2=writeDinv.f90  
-OBJ_Dinv2=writeDinv.o
-PROG_Dinv2=writeDinv.exe
+SRC_Dinv2=calcDinv_CG.f90  
+OBJ_Dinv2=calcDinv_CG.o
+PROG_Dinv2=calcDinv_CG.exe
 #########################
-SRC_Dinv=calcDinv.f90  
-OBJ_Dinv=calcDinv.o
-PROG_Dinv=calcDinv.exe
+SRC_Dinv=calcDinv_PBLAS.f90  
+OBJ_Dinv=calcDinv_PBLAS.o
+PROG_Dinv=calcDinv_PBLAS.exe
 #########################
-LIB=libpfapack.a
 
 
 #.SUFFIXES : .o .f90 # .oを作るときは必ず.f90から作るよ
@@ -70,7 +70,7 @@ $(PROG_OBS): $(OBJ_OBS) $(OBJ_MAIN)
 ifeq ($(FC),gfortran)
 	$(FC) -O2 $(FLAGS_GCC) -o $@ $(OBJS) $(OBJ_OBS) $(LIB)
 else
-	$(FC) $(FLAGS_IFORT) -o $@ $(OBJS) $(OBJ_OBS) $(LIB)
+	 $(FC) $(FLAGS_IFORT) -o $@ $(OBJS) $(OBJ_OBS) $(LIB)
 endif
 
 dirac:$(PROG_Dirac)
@@ -156,13 +156,17 @@ simulation.o: \
   observables.f90 \
   output.f90 \
   forces.f90 \
-  bosonic_action.f90 \
-  WT_identities.f90 \
-  divK3.f90 \
-  divK4.f90 \
-  rotK1.f90 \
-  rotK2.f90 \
-  U1V_current.f90
+  $(DIR_OBS)/bosonic_action.f90 \
+  $(DIR_OBS)/fermionic_operators.f90 \
+  $(DIR_OBS)/WT_identities.f90 \
+  $(DIR_OBS)/divK3.f90 \
+  $(DIR_OBS)/divK4.f90 \
+  $(DIR_OBS)/rotK1.f90 \
+  $(DIR_OBS)/rotK2.f90 \
+  $(DIR_OBS)/U1V_current.f90 \
+  $(DIR_OBS)/compensators.f90 \
+  $(DIR_OBS)/phichi.f90 \
+  $(DIR_OBS)/checkFF.f90 
 Dirac_operator.o: \
   global_parameters.o \
   global_subroutines.o \

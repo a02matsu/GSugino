@@ -1,3 +1,8 @@
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! Routine to writedown Dinv by using Conjugate Gradient algorithm
+!! usage: 
+!!  % mpirun -np [NP] a.out [MEDFILE-1] [MEDFILE-2]..."
+!! 
 module global_writeDinv
 implicit none
 

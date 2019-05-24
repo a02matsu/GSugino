@@ -690,6 +690,209 @@ enddo
 
 end subroutine Make_traceless_matrix_from_modes
 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! compute
+!!  MODES(a,b)*Ta_{ij}*Tb_{kl}
+subroutine make_Mijkl_from_modes(DP,MODES,NMAT)
+integer, intent(in) :: NMAT
+complex(kind(0d0)), intent(in) :: MODES(1:NMAT*NMAT-1,1:NMAT*NMAT-1)
+complex(kind(0d0)), intent(out) :: DP(1:NMAT,1:NMAT,1:NMAT,1:NMAT)
+
+complex(kind(0d0)) :: MED(1:NMAT*NMAT-1,1:NMAT,1:NMAT)
+complex(kind(0d0)) :: tmpmat(1:NMAT,1:NMAT)
+integer :: b,i,j,k,l
+
+do b=1,NMAT*NMAT-1
+  call Make_traceless_matrix_from_modes(tmpmat,NMAT,MODES(:,b))
+  do j=1,NMAT
+    do i=1,NMAT
+      MED(b,i,j)=tmpmat(i,j)
+    enddo
+  enddo
+enddo
+
+do j=1,NMAT
+  do i=1,NMAT
+    call Make_traceless_matrix_from_modes(tmpmat,NMAT,MED(:,i,j))
+    do l=1,NMAT
+      do k=1,NMAT
+        DP(i,j,k,l)=tmpmat(k,l)
+      enddo
+    enddo
+  enddo
+enddo
+
+end subroutine make_Mijkl_from_modes
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! compute
+!!  MODES(a,b)*Ta_{ij}*Tb_{kl}
+subroutine make_Mijkl_from_modes_org(DP,MODES,NMAT)
+implicit none
+
+integer, intent(in) :: NMAT
+complex(kind(0d0)), intent(in) :: MODES(1:NMAT*NMAT-1,1:NMAT*NMAT-1)
+complex(kind(0d0)), intent(out) :: DP(1:NMAT,1:NMAT,1:NMAT,1:NMAT)
+integer :: a,b,ai,aj,bi,bj
+
+DP=(0d0,0d0)
+b=0
+do bi=1,NMAT-1
+  do bj=bi+1,NMAT
+    b=b+1
+    !!!!!!!!!!
+    a=0
+    do ai=1,NMAT-1
+      do aj=ai+1,NMAT
+        a=a+1
+        DP(ai,aj,bi,bj)= DP(ai,aj,bi,bj) &
+          + MODES(a,b)/dcmplx(2d0)
+        DP(aj,ai,bi,bj)= DP(aj,ai,bi,bj) &
+          + MODES(a,b)/dcmplx(2d0)
+        DP(ai,aj,bj,bi)= DP(ai,aj,bj,bi) &
+          + MODES(a,b)/dcmplx(2d0)
+        DP(aj,ai,bj,bi)= DP(aj,ai,bj,bi) &
+          + MODES(a,b)/dcmplx(2d0)
+        a=a+1
+        DP(ai,aj,bi,bj)= DP(ai,aj,bi,bj) &
+          + MODES(a,b)*(0d0,-1d0)/dcmplx(2d0)
+        DP(aj,ai,bi,bj)= DP(aj,ai,bi,bj) &
+          + MODES(a,b)*(0d0,1d0)/dcmplx(2d0)
+        DP(ai,aj,bj,bi)= DP(ai,aj,bj,bi) &
+          + MODES(a,b)*(0d0,-1d0)/dcmplx(2d0)
+        DP(aj,ai,bj,bi)= DP(aj,ai,bj,bi) &
+          + MODES(a,b)*(0d0,1d0)/dcmplx(2d0)
+      enddo
+    enddo
+    do ai=1,NMAT-1
+      a=a+1
+      do aj=1,ai
+        DP(aj,aj,bi,bj)= DP(aj,aj,bi,bj) &
+          + MODES(a,b)*dcmplx(1d0/dsqrt(2d0*dble(ai**2+ai)))
+        DP(aj,aj,bj,bi)= DP(aj,aj,bj,bi) &
+          + MODES(a,b)*dcmplx(1d0/dsqrt(2d0*dble(ai**2+ai)))
+      enddo
+      DP(ai+1,ai+1,bi,bj)= DP(aj,aj,bi,bj) &
+        + MODES(a,b)*dcmplx(-dble(ai)/dsqrt(2d0*dble(ai**2+ai)))
+      DP(ai+1,ai+1,bj,bi)= DP(ai+1,ai+1,bj,bi) &
+        + MODES(a,b)*dcmplx(-dble(ai)/dsqrt(2d0*dble(ai**2+ai)))
+    enddo
+    !!!!!!!!!
+    b=b+1
+    a=0
+    do ai=1,NMAT-1
+      do aj=ai+1,NMAT
+        a=a+1
+        DP(ai,aj,bi,bj)= DP(ai,aj,bi,bj) &
+          + MODES(a,b)*(0d0,-1d0)/dcmplx(2d0)
+        DP(aj,ai,bi,bj)= DP(aj,ai,bi,bj) &
+          + MODES(a,b)*(0d0,-1d0)/dcmplx(2d0)
+        DP(ai,aj,bj,bi)= DP(ai,aj,bj,bi) &
+          + MODES(a,b)*(0d0,1d0)/dcmplx(2d0)
+        DP(aj,ai,bj,bi)= DP(aj,ai,bj,bi) &
+          + MODES(a,b)*(0d0,1d0)/dcmplx(2d0)
+        a=a+1
+        DP(ai,aj,bi,bj)= DP(ai,aj,bi,bj) &
+          + MODES(a,b)*(-1d0,0d0)/dcmplx(2d0)
+        DP(aj,ai,bi,bj)= DP(aj,ai,bi,bj) &
+          + MODES(a,b)*(1d0,0d0)/dcmplx(2d0)
+        DP(ai,aj,bj,bi)= DP(ai,aj,bj,bi) &
+          + MODES(a,b)*(1d0,0d0)/dcmplx(2d0)
+        DP(aj,ai,bj,bi)= DP(aj,ai,bj,bi) &
+          + MODES(a,b)*(-1d0,0d0)/dcmplx(2d0)
+      enddo
+    enddo
+    do ai=1,NMAT-1
+      a=a+1
+      do aj=1,ai
+        DP(aj,aj,bi,bj)= DP(aj,aj,bi,bj) &
+          + MODES(a,b)*(0d0,-1d0)*dcmplx(1d0/dsqrt(2d0*dble(ai**2+ai)))
+        DP(aj,aj,bj,bi)= DP(aj,aj,bj,bi) &
+          + MODES(a,b)*(0d0,1d0)*dcmplx(1d0/dsqrt(2d0*dble(ai**2+ai)))
+      enddo
+      DP(ai+1,ai+1,bi,bj)= DP(ai+1,ai+1,bi,bj) &
+        + MODES(a,b)*(0d0,-1d0)*dcmplx(-dble(ai)/dsqrt(2d0*dble(ai**2+ai)))
+      DP(ai+1,ai+1,bj,bi)= DP(ai+1,ai+1,bj,bi) &
+        + MODES(a,b)*(0d0,1d0)*dcmplx(-dble(ai)/dsqrt(2d0*dble(ai**2+ai)))
+    enddo
+  enddo
+enddo
+do bi=1,NMAT-1
+  b=b+1
+  do bj=1,bi
+    a=0
+    do ai=1,NMAT-1
+      do aj=ai+1,NMAT
+        a=a+1
+        DP(ai,aj,bj,bj)= DP(ai,aj,bj,bj) &
+          + MODES(a,b)*dcmplx(1d0/dsqrt(2d0*dble(bi**2+bi)))
+        DP(aj,ai,bj,bj)= DP(aj,ai,bj,bj) &
+          + MODES(a,b)*dcmplx(1d0/dsqrt(2d0*dble(bi**2+bi)))
+        a=a+1
+        DP(ai,aj,bj,bj)= DP(ai,aj,bj,bj) &
+          + MODES(a,b)*(0d0,-1d0)*dcmplx(1d0/dsqrt(2d0*dble(bi**2+bi)))
+        DP(aj,ai,bj,bj)= DP(aj,ai,bj,bj) &
+          + MODES(a,b)*(0d0,1d0)*dcmplx(1d0/dsqrt(2d0*dble(bi**2+bi)))
+      enddo
+    enddo
+    do ai=1,NMAT-1
+      a=a+1
+      do aj=1,ai
+        DP(aj,aj,bj,bj)= DP(aj,aj,bj,bj) &
+          + MODES(a,b)&
+             *dcmplx(1d0/dsqrt(dble(ai**2+ai))) &
+             *dcmplx(1d0/dsqrt(dble(bi**2+bi)))
+      enddo
+      DP(ai+1,ai+1,bj,bj)= DP(ai+1,ai+1,bj,bj) &
+        + MODES(a,b)&
+             *dcmplx(-dble(ai)/dsqrt(dble(ai**2+ai))) &
+             *dcmplx(1d0/dsqrt(dble(bi**2+bi)))
+    enddo
+  enddo
+  !!!!!!!!!!!!!!!!!!!!
+  a=0
+  do ai=1,NMAT-1
+    do aj=ai+1,NMAT
+      a=a+1
+      DP(ai,aj,bi+1,bi+1)= DP(ai,aj,bi+1,bi+1) &
+        + MODES(a,b) &
+           *dcmplx(1d0/dsqrt(2d0)) &
+           *dcmplx(-dble(bi)/dsqrt(dble(bi**2+bi)))
+      DP(aj,ai,bi+1,bi+1)= DP(aj,ai,bi+1,bi+1) &
+        + MODES(a,b) &
+           *dcmplx(1d0/dsqrt(2d0)) &
+           *dcmplx(-dble(bi)/dsqrt(dble(bi**2+bi)))
+      a=a+1
+      DP(ai,aj,bi+1,bi+1)= DP(ai,aj,bi+1,bi+1) &
+        + MODES(a,b) &
+           *(0d0,-1d0)*dcmplx(1d0/dsqrt(2d0)) &
+           *dcmplx(-dble(bi)/dsqrt(dble(bi**2+bi)))
+      DP(aj,ai,bi+1,bi+1)= DP(aj,ai,bi+1,bi+1) &
+        + MODES(a,b) &
+           *(0d0,1d0)*dcmplx(1d0/dsqrt(2d0)) &
+           *dcmplx(-dble(bi)/dsqrt(dble(bi**2+bi)))
+    enddo
+  enddo
+  do ai=1,NMAT-1
+    a=a+1
+    do aj=1,ai
+      DP(aj,aj,bi+1,bi+1)= DP(aj,aj,bi+1,bi+1) &
+        + MODES(a,b)&
+           *dcmplx(1d0/dsqrt(dble(ai**2+ai))) &
+           *dcmplx(-dble(bi)/dsqrt(dble(bi**2+bi)))
+    enddo
+    DP(ai+1,ai+1,bi+1,bi+1)= DP(ai+1,ai+1,bi+1,bi+1) &
+      + MODES(a,b)&
+           *dcmplx(1d0/dsqrt(dble(ai**2+ai))) &
+           *dcmplx(1d0/dsqrt(dble(bi**2+bi)))
+  enddo
+enddo
+
+
+end subroutine make_Mijkl_from_modes_org
+
+
+
 
 
     
