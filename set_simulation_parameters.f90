@@ -16,6 +16,9 @@ if (MYRANK==0) then
 !! job_number
   read(INPUT_FILE,'()') 
   read(INPUT_FILE,*) job_number
+!! eigen_measurement ; 1:measure min and max of DDdag
+  read(INPUT_FILE,'()') 
+  read(INPUT_FILE,*) eigen_measurement
 !! branch_use ; in which branch the simulation is performed 
   read(INPUT_FILE,'()') 
   read(INPUT_FILE,*) branch_use
@@ -63,6 +66,7 @@ if (MYRANK==0) then
 endif
 
 call MPI_BCAST(job_number,1,MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
+call MPI_BCAST(eigen_measurement,1,MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
 call MPI_BCAST(branch_use,1,MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
 call MPI_BCAST(Tau,1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERR)
 call MPI_BCAST(eval_eigen,1,MPI_INTEGER,0,MPI_COMM_WORLD,IERR)

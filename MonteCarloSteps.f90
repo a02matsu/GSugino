@@ -182,6 +182,8 @@ integer :: t_start, t_end, t_rate, t_max
 integer :: CGite1, CGite2, info1, info2, info
 double precision :: diff
 
+complex(kind(0d0)) :: min_eigen,max_eigen
+
 integer s,a,l
 complex(kind(0d0)) :: tmp
 
@@ -304,6 +306,10 @@ do ite=total_ite+1,total_ite+num_ite
    endif
    !! write out the observables 
    if ( obs_step/=0 .and. mod(ite,obs_step) == 0 ) then
+     !if( eigen_measurement == 1 ) then
+      !call max_eigen_DdagD(max_eigen,Umat,PhiMat)
+      !call min_eigen_DdagD(min_eigen,Umat,PhiMat)
+    !endif
      call write_observables(&
        PhiMat,UMAT,ite,accept,Hnew-Hold,total_ite,CGite1,ratio)
    endif

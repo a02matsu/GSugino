@@ -317,6 +317,9 @@ do gf=1,global_num_faces
   enddo
 enddo
 
+if( MYRANK==0 ) then
+  read(N_DinvFILE, *) 
+endif
 
 end subroutine read_Dinv
 

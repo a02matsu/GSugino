@@ -219,7 +219,8 @@ type(LOCAL_LABEL), allocatable, save :: recv_faces(:)
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! controle paramaeters of simulation 
 integer, save :: test_mode !! 0: Simulation mode, 1: Test mode, 
-integer, save :: force_measurement !!  0:measure forces
+integer, save :: force_measurement !!  1:measure forces
+integer, save :: eigen_measurement !!  1:measure min and max of DDdag
 integer, save :: fix_seed !! 0: use the value at the end of the previous simulation
                     !! 1: fix seed to the value in the parameter file
                     !! 2: determine by the system time

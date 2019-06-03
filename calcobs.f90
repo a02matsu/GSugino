@@ -248,70 +248,57 @@ do
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !! test for fermionic operators 
-
-    call check_DinvPF(&
-        Geta_eta, Glambda_eta, Gchi_eta, &
-        Geta_lambda, Glambda_lambda, Gchi_lambda, &
-        Geta_chi, Glambda_chi, Gchi_chi, &
-        Umat,PhiMat)
-
-
+    !call check_DinvPF(&
+    !    Geta_eta, Glambda_eta, Gchi_eta, &
+    !    Geta_lambda, Glambda_lambda, Gchi_lambda, &
+    !    Geta_chi, Glambda_chi, Gchi_chi, &
+    !    Umat,PhiMat)
 
     !"|Atr|", &
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') cdabs(Acomp_tr)
     !"Sb", &
-      call calc_bosonic_action(Sb,Umat,PhiMat)
+      !call calc_bosonic_action(Sb,Umat,PhiMat)
+      call calc_bosonic_action_site(SbS,PhiMat)
+      call calc_bosonic_action_link(SbL,Umat,PhiMat)
+      call calc_bosonic_action_face(SbF,Umat)
+      if( MYRANK == 0 ) Sb=SbS+SbL+SbF
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') Sb
-!    !! trivial WT
-!      call calc_XiPhiEta(XiPhiEta,Umat,PhiMat,0)
-!      tmpobs1=XiPhiEta
-!      !tmpobs1= &
-!      !  cdabs(Acomp_tr) * &
-!      !  (&
-!      !  dcmplx(Sb) &
-!      !  + dcmplx(0.5d0*mass_square_phi)*XiPhiEta &
-!      !  - dcmplx(0.5d0*dble(num_sitelink)) &
-!      !  )  
-!      tmpobs1=XiPhiEta
-!      if( MYRANK == 0 ) write(*,'(E15.8,2X,E15.8,2X)',advance='no') &
-!        dble(tmpobs1), dble((0d0,-1d0)*tmpobs1)
-!    !! trivial WT by Dinv data
-!      call calc_XiPhiEta2(XiPhiEta,Umat,PhiMat,Geta_eta,Glambda_eta,Gchi_eta)
-!      !tmpobs1= &
-!      !  cdabs(Acomp_tr) * &
-!      !  (&
-!      !  dcmplx(Sb) &
-!      !  + dcmplx(0.5d0*mass_square_phi)*XiPhiEta &
-!      !  - dcmplx(0.5d0*dble(num_sitelink)) &
-!      !  )  
-!      !tmpobs1=XiPhiEta
-!      tmpobs1=XiPhiEta
-!      if( MYRANK == 0 ) write(*,'(E15.8,2X,E15.8,2X)',advance='no') &
-!        dble(tmpobs1), dble((0d0,-1d0)*tmpobs1)
-!
-!      call calc_bosonic_action_site(SbS,PhiMat)
-!      call calc_bosonic_action_link(SbL,Umat,PhiMat)
-!      call calc_bosonic_action_face(SbF,Umat)
-!
-!    !! relations in bosonic action 1
-!    !!  Sb_site + Sb_face = #(face)/2*dimG
-!    !! we need also compensator
-!      tmpobs1 = &!dcmplx(cdabs(Acomp_tr))* &
-!         (SbS + SbF - dcmplx(dble(global_num_faces*dimG)*0.5d0 ) )
-!      if( MYRANK == 0 ) write(*,'(E15.8,2X,E15.8,2X)',advance='no') &
-!        dble(tmpobs1), dble((0d0,-1d0)*tmpobs1)
-!
-!    !! relations in bosonic action 2
-!    !!  Sb_link - 2 Sb_face = lambda.lambda(U.\bar{phi}.U^-1 + \bar{phi})
-!    !! we need also compensator
-!      call calc_SfL2(SfL2,PhiMat,Umat,Glambda_lambda)
-!      tmpobs1 = &!dcmplx(cdabs(Acomp_tr)) * &
-!        dcmplx(SbL - 2d0*SbF) - SfL2
-!      if( MYRANK == 0 ) write(*,'(E15.8,2X,E15.8,2X)',advance='no') &
-!        dble(tmpobs1), dble((0d0,-1d0)*tmpobs1)
-!
-!      if( MYRANK == 0 ) write(*,'(E15.8,2X,E15.8,2X,E15.8,2X)',advance='no') &
-!        SbL, SbF, dble(SfL2)
+    !! trivial WT
+      call calc_XiPhiEta(XiPhiEta,&
+        Geta_eta, Glambda_eta, Gchi_eta, &
+        Geta_lambda, Glambda_lambda, Gchi_lambda, &
+        Geta_chi, Glambda_chi, Gchi_chi, &
+        Umat,PhiMat)
+      tmpobs1= &
+        cdabs(Acomp_tr) * &
+        (&
+        dcmplx(Sb) &
+        + dcmplx(0.5d0*mass_square_phi)*XiPhiEta &
+        - dcmplx(0.5d0*dble(num_sitelink)) &
+        )  
+      if( MYRANK == 0 ) write(*,'(E15.8,2X,E15.8,2X)',advance='no') &
+        dble(tmpobs1), dble((0d0,-1d0)*tmpobs1)
+
+    !! relations in bosonic action 1
+    !!  Sb_site + Sb_face = #(face)/2*dimG
+    !! we need also compensator
+      tmpobs1 = &
+        dcmplx(cdabs(Acomp_tr))* &
+         (SbS + SbF - dcmplx(dble(global_num_faces*dimG)*0.5d0 ) )
+      if( MYRANK == 0 ) write(*,'(E15.8,2X,E15.8,2X)',advance='no') &
+        dble(tmpobs1), dble((0d0,-1d0)*tmpobs1)
+
+    !! relations in bosonic action 2
+    !!  Sb_link - 2 Sb_face = lambda.lambda(U.\bar{phi}.U^-1 + \bar{phi})
+    !! we need also compensator
+      call calc_SfL2(SfL2,PhiMat,Umat,Glambda_lambda)
+      tmpobs1 = &
+        dcmplx(cdabs(Acomp_tr)) * (dcmplx(SbL - 2d0*SbF) - SfL2)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X,E15.8,2X)',advance='no') &
+        dble(tmpobs1), dble((0d0,-1d0)*tmpobs1)
+
+      !if( MYRANK == 0 ) write(*,'(E15.8,2X,E15.8,2X,E15.8,2X)',advance='no') &
+        !SbL, SbF, dble(SfL2)
 
     if(MYRANK==0) write(*,*)
   else

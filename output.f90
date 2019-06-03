@@ -124,7 +124,9 @@ write(output,'(A,E12.5,X,a,E12.5,a,E12.5)') "# Remez_factor4= ",Remez_factor4,&
 write(output,'(A,E12.5,X,a,E12.5,a,E12.5)') "# Remez_factor8= ",Remez_factor8, &
   "range:",Remez_min8*Remez_factor8,"...",Remez_max8*Remez_factor8
 if( eval_eigen /= 0 ) then 
-  write(output,'(A,E12.5,a,E12.5)') "#          eigenvalue of DD^\dagger:",dble(min_eigen*conjg(min_eigen)),"...",dble(max_eigen*conjg(max_eigen))
+  write(output,'(A,E12.5,a,E12.5)') "#          eigenvalue of DD^\dagger:",&
+    cdabs(min_eigen),"...",cdabs(max_eigen)
+  !dble(min_eigen*conjg(min_eigen)),"...",dble(max_eigen*conjg(max_eigen))
 else
   write(output,'(A)') "# omitted the evaluation of the eigenvalues"
 endif
@@ -148,6 +150,11 @@ if( force_measurement == 1 ) then
   fix_num=6
   write(output,'(a)',advance='no') "5) FF/FB_phi, "
   write(output,'(a)',advance='no') "6) FF/FB_A, "
+endif
+if( eigen_measurement == 1 ) then
+  fix_num=8
+  write(output,'(a)',advance='no') "7) min(DDdag), "
+  write(output,'(a)',advance='no') "8) max(DDdag), "
 endif
 do i=1,num_obs
   write(output,'(I3,a1,a,a1)',advance='no') i+fix_num,")",trim(obs_name(i) ),","
@@ -179,14 +186,18 @@ complex(kind(0d0)) :: min_eigen,max_eigen
 call calc_bosonic_action(OBS(1),UMAT,PhiMat)
 call calc_TrX2(OBS(2),PhiMat)
 !call calc_PCSC(OBS(3),OBS(4),Umat,PhiMat,1)
+if( eigen_measurement == 1 ) then
+  call max_eigen_DdagD(max_eigen,Umat,PhiMat)
+  call min_eigen_DdagD(min_eigen,Umat,PhiMat)
+endif
 
 #ifdef PARALLEL
 if( MYRANK == 0 ) then 
 #endif
 !! for standard output
-call write_observables_to(6,ite,total_ite,accept,delta_Ham,CGite,ratio)
+call write_observables_to(6,ite,total_ite,accept,delta_Ham,CGite,ratio,max_eigen,min_eigen)
 !! for output file
-call write_observables_to(OUTPUT_FILE,ite,total_ite,accept,delta_Ham,CGite,ratio)
+call write_observables_to(OUTPUT_FILE,ite,total_ite,accept,delta_Ham,CGite,ratio,max_eigen,min_eigen)
 #ifdef PARALLEL
 endif
 #endif
@@ -194,13 +205,14 @@ endif
 end subroutine write_observables
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-subroutine write_observables_to(output,ite,total_ite,accept,delta_Ham,CGite,ratio)
+subroutine write_observables_to(output,ite,total_ite,accept,delta_Ham,CGite,ratio,maxDDdag,minDDdag)
 implicit none
 
 integer, intent(in) :: output,ite,accept,total_ite
 double precision, intent(in) :: delta_Ham, ratio
 integer, intent(in) :: CGite
 integer i
+complex(kind(0d0)) :: minDDdag, maxDDdag
 
 write(output,'(I6,2X)',advance='no') ite
 write(output,'(f12.5,2X)',advance='no') delta_Ham
@@ -209,6 +221,10 @@ write(output,'(I6,2X)',advance='no') CGite
 if( force_measurement == 1 ) then
   write(output,'(f6.2,2X)',advance='no') fermionic_force_Phi/bosonic_force_Phi
   write(output,'(f6.2,2X)',advance='no') fermionic_force_A/bosonic_force_A
+endif
+if( eigen_measurement == 1 ) then
+  write(output,'(E12.5,2X)',advance='no') cdabs(minDDdag)
+  write(output,'(E12.5,2X)',advance='no') cdabs(maxDDdag)
 endif
 do i=1,num_obs
   write(output,'(E12.5,2X)',advance='no') OBS(i)
