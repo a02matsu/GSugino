@@ -10,6 +10,7 @@
 !
 !contains
 
+#include "Observables/local_operators.f90"
 #include "Observables/compensators.f90"
 #include "Observables/bosonic_action.f90"
 #include "Observables/WT_identities.f90"

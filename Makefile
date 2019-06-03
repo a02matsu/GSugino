@@ -1,7 +1,6 @@
 VER=01
 #VER=debug
 VER_CALCOBS=02
-#FC=gfortran
 #FC=ifort
 FC=mpiifort
 #PARA=-DPARALLEL -DPARATEST
@@ -11,7 +10,7 @@ PARA2=-DPARALLEL -DCOUNT_TIME
 FLAGS_IFORT=-mkl -fpp $(PARA) -CB -traceback -g 
 #FLAGS_IFORT=-mkl -parallel -ipo
 #FLAGS_IFORT=-mkl -fpp $(PARA) -O3 -ipo
-FLAGS_GCC=-llapack -lblas
+#FLAGS_GCC=-llapack -lblas
 # コンパイルのために順番が大事。下層ほど先に書く。 
 SRCS=\
 	SUN_generators.f90 \
@@ -33,10 +32,13 @@ SRC_MAIN=GSugino.f90
 OBJ_MAIN=GSugino.o
 PROG=gsugino$(VER).exe
 LIB=Pfapack_m02/libpfapack.a
-#########################
-SRC_OBS=calcobs.f90  
-OBJ_OBS=calcobs.o
+########################
+SRC_OBSMAIN=calcobs.f90 
+OBJ_OBSMAIN=calcobs.o
 PROG_OBS=calcobs.exe
+##
+SRC_OBS=initialization_calcobs.f90
+OBJ_OBS=$(SRC_OBS:.f90=.o)
 #########################
 SRC_Dirac=writeDirac.f90  
 OBJ_Dirac=writeDirac.o
@@ -50,6 +52,10 @@ SRC_Dinv=calcDinv_PBLAS.f90
 OBJ_Dinv=calcDinv_PBLAS.o
 PROG_Dinv=calcDinv_PBLAS.exe
 #########################
+SRC_CORR=calc_correlations.f90  
+OBJ_CORR=calc_correlations.o
+PROG_CORR=calc_correlations.exe
+#########################
 
 
 #.SUFFIXES : .o .f90 # .oを作るときは必ず.f90から作るよ
@@ -58,55 +64,41 @@ PROG_Dinv=calcDinv_PBLAS.exe
 all:$(PROG) 
 
 $(PROG): $(OBJS) $(OBJ_MAIN)
-ifeq ($(FC),gfortran)
-	$(FC) -O2 $(FLAGS_GCC) -o $@ $(OBJS) $(OBJ_MAIN) $(LIB)
-else
-	$(FC) $(FLAGS_IFORT) -o $@ $(OBJS) $(OBJ_MAIN) $(LIB)
-endif
+	$(FC) $(FLAGS_IFORT) -o $@  $(OBJS) $(OBJ_MAIN) $(LIB)
 
 obs:$(PROG_OBS)
-
-$(PROG_OBS): $(OBJ_OBS) $(OBJ_MAIN)
-ifeq ($(FC),gfortran)
-	$(FC) -O2 $(FLAGS_GCC) -o $@ $(OBJS) $(OBJ_OBS) $(LIB)
-else
-	 $(FC) $(FLAGS_IFORT) -o $@ $(OBJS) $(OBJ_OBS) $(LIB)
-endif
-
+#########################################
+#$(PROG_OBS): $(OBJ_OBS) $(OBJ_MAIN)
+$(PROG_OBS): $(OBJ_OBS) $(OBJ_OBSMAIN)
+	 $(FC) $(FLAGS_IFORT) -o $@ $(OBJ_OBS) $(OBJS) $(OBJ_OBSMAIN) $(LIB)
+#########################################
 dirac:$(PROG_Dirac)
 
 $(PROG_Dirac): $(OBJ_Dirac) $(OBJ_MAIN)
-ifeq ($(FC),gfortran)
-	$(FC) -O2 $(FLAGS_GCC) -o $@ $(OBJS) $(OBJ_Dirac) $(LIB)
-else
 	$(FC) $(FLAGS_IFORT) -o $@ $(OBJS) $(OBJ_Dirac) $(LIB)
-endif
-
+#########################################
 dinv:$(PROG_Dinv)
 
 $(PROG_Dinv): $(SRC_Dinv)
-	mpiifort -mkl=cluster -CB -traceback -g $(SRC_Dinv) -o $(PROG_Dinv)
-
+	$(FC) $(FLAGS_IFORT) -o $@ $(SRC_Dinv) 
+#########################################
 dinv2:$(PROG_Dinv2)
 
 $(PROG_Dinv2): $(OBJ_Dinv2) $(OBJ_MAIN)
-ifeq ($(FC),gfortran)
-	$(FC) -O2 $(FLAGS_GCC) -o $@ $(OBJS) $(OBJ_Dinv2) $(LIB)
-else
 	$(FC) $(FLAGS_IFORT) -o $@ $(OBJS) $(OBJ_Dinv2) $(LIB)
-endif
+#########################################
+corr:$(PROG_CORR)
 
+$(PROG_CORR): $(OBJ_CORR) $(OBJ_OBS) $(OBJS) $(OBJ_CORR)
+	$(FC) $(FLAGS_IFORT) -o $@ $(OBJS) $(OBJ_OBS) $(OBJ_CORR) $(LIB)
+#########################################
 # moduleをコンパイルするときの依存性を解消
 #structure_constant.o: structure_constant.f90
 #	#$(FC) -c $<
 #structure_constant.mod: structure_constant.f90 structure_constant.o
 #	#@:
 %.o: %.f90
-ifeq ($(FC),gfortran)
-	$(FC) -c $<
-else
 	$(FC) $(FLAGS_IFORT) -c $<
-endif
 %.mod: %.f90 %.o
 	@true
 
@@ -166,7 +158,8 @@ simulation.o: \
   $(DIR_OBS)/U1V_current.f90 \
   $(DIR_OBS)/compensators.f90 \
   $(DIR_OBS)/phichi.f90 \
-  $(DIR_OBS)/checkFF.f90 
+  $(DIR_OBS)/checkFF.f90 \
+  $(DIR_OBS)/local_operators.f90
 Dirac_operator.o: \
   global_parameters.o \
   global_subroutines.o \
@@ -179,6 +172,9 @@ differential_Dirac.o: \
   parallel.o \
   SUN_generators.o \
   matrix_functions.o
+initialization_calcobs.o: \
+  global_parameters.f90
+
 
 
 .PHONY: clean
