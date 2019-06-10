@@ -262,7 +262,6 @@ endif
     !call check_Dirac(UMAT,Phi)
     call test_hamiltonian(UMAT,PhiMat,seed)
   else
-
     if( branch_mode == 0 ) then !! normal mode
       if( branch_use == 0 ) then
         write(Fconfigout, '("CONFIG/inputconf_", i4.4, ".dat")') job_number

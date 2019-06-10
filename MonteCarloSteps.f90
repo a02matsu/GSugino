@@ -246,6 +246,7 @@ do ite=total_ite+1,total_ite+num_ite
   !call molecular_evolution_Omelyan(UMAT,PhiMat,PF_eta,PF_lambda,PF_chi,P_AMat,P_PhiMat,info)
   info=0 ! check if CG successes during molecular evolution
   call molecular_evolution_multistep(UMAT,PhiMat,PF_eta,PF_lambda,PF_chi,P_AMat,P_PhiMat,info)
+
   if( force_measurement == 1 ) then
     bosonic_force_Phi= bosonic_force_Phi / dble(b_phi_count)
     fermionic_force_Phi= fermionic_force_Phi / dble(f_phi_count)
@@ -266,6 +267,7 @@ do ite=total_ite+1,total_ite+num_ite
 #ifdef PARALLEL
     endif
 #endif 
+    
   else
     !call check_vacuum(UMAT)
     !! calculate Hamiltonian 
@@ -286,7 +288,6 @@ do ite=total_ite+1,total_ite+num_ite
       write(*,*) "!!! CAUTION: plaquette variables are out of proper region !!!!"
     endif
   endif
-
   !! write out the configuration
   if ( save_med_step/=0 .and. mod(ite,save_med_step) == 0 ) then
 #ifdef PARALLEL
@@ -624,7 +625,10 @@ info=0
 !write(*,*) "test"
 call update_momentum_boson(P_PhiMat,P_AMat,PhiMat,UMAT,Dtau_boson*0.5d0)
 if(pf==0) call update_momentum_fermion(P_PhiMat,P_AMat,PhiMat,UMAT,PF_eta,PF_lambda,PF_chi,local_info,Dtau_fermion*0.5d0)
-if(local_info==1) info=1
+if(local_info==1) then
+  info=1
+  return
+endif
 
 !! main step
 step=0
@@ -639,14 +643,20 @@ do i=1,Nfermion
   enddo
   if( step .ne. Nfermion*Nboson ) then
     if(pf==0) call update_momentum_fermion(P_PhiMat,P_AMat,PhiMat,UMAT,PF_eta,PF_lambda,PF_chi,local_info,Dtau_fermion)
-    if(local_info==1) info=1
+    if(local_info==1) then
+      info=1
+      return
+    endif
   endif
 enddo
 
 !! final step
 call update_momentum_boson(P_PhiMat,P_AMat,PhiMat,UMAT,Dtau_boson*0.5d0)
 if(pf==0) call update_momentum_fermion(P_PhiMat,P_AMat,PhiMat,UMAT,PF_eta,PF_lambda,PF_chi,local_info,Dtau_fermion*0.5d0)
-if(local_info==1) info=1
+if(local_info==1) then
+  info=1
+  return
+endif
 
 end subroutine molecular_evolution_multistep
 
@@ -851,7 +861,7 @@ complex(kind(0d0)) :: dSdPhi(1:NMAT,1:NMAT,1:num_sites)
 
 info=0
 call Make_fermionic_force(dSdPhi,dSdA,UMAT,PhiMat,PF_eta,PF_lambda,PF_chi,info)
-!if( info == 1) return
+if( info == 1) return
 
 P_PhiMat(:,:,:)=P_PhiMat(:,:,:) - dSdPhi(:,:,:) * delta_f
 P_AMat(:,:,:) = P_AMat(:,:,:) - dSdA(:,:,:) * dcmplx(delta_f)

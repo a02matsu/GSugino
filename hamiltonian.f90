@@ -312,6 +312,11 @@ call mmBiCG( &
   chi_eta,chi_lambda,chi_chi,&
   PF_eta,PF_lambda,PF_chi, &
   Remez_beta4, epsilon, CG_max, info, CGite, UMAT, PhiMat, Prod_DdagD)
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! if CG is failed, we should reject
+if( info==1 ) return
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 DdagD4_PF_eta=Remez_alpha4(0)*PF_eta
 DdagD4_PF_lambda=Remez_alpha4(0)*PF_lambda
 DdagD4_PF_chi=Remez_alpha4(0)*PF_chi

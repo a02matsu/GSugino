@@ -81,10 +81,16 @@ allocate( X_chi(1:NMAT,1:NMAT,1:num_faces,1:NumVec) )
 !endif
 
 
+
+
 call mmBiCG( &
   X_eta, X_lambda, X_chi, &
   B_eta, B_lambda, B_chi, &
   beta_r, epsilon, MaxIte, info, CGite, UMAT, PhiMat, ProdMat)
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! if CG is failed, we should reject
+if( info==1 ) return
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 r_eta = dcmplx(alpha_r(0)) * B_eta(:,:,1:num_sites)
 r_lambda = dcmplx(alpha_r(0)) * B_lambda(:,:,1:num_links)
@@ -155,6 +161,10 @@ call mmBiCG( &
   X_eta,X_lambda,X_chi, &
   B_eta,B_lambda,B_chi, &
   sigma, epsilon, MaxIte, info, CGite, UMAT,PhiMat, ProdMat)
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! if CG is failed, we should reject
+if( info==1 ) return
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 do s=1,NumVec
   call mat_to_vec(Xvec(:,s),X_eta(:,:,:,s),X_lambda(:,:,:,s),X_chi(:,:,:,s))
