@@ -1,0 +1,92 @@
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! Tr( div(V) )
+subroutine calc_trdiv_in_face(trdiv,trvec,lf)
+use global_parameters
+use parallel
+implicit none
+
+complex(kind(0d0)), intent(out) :: trdiv
+complex(kind(0d0)), intent(in) :: trvec(1:num_necessary_links)
+integer, intent(in) :: lf
+
+complex(kind(0d0)) :: tmp
+integer :: ls, ll, gs, gl
+integer :: i,j
+
+trdiv=(0d0,0d0)
+!do lf=1,num_faces
+  do i=1,sites_in_f(lf)%num_
+    ls=sites_in_f(lf)%label_(i)
+    gs=global_site_of_local(ls)
+
+    tmp=(0d0,0d0)
+    do j=1,linktip_from_s(ls)%num_
+      ll=linktip_from_s(ls)%labels_(j) 
+      tmp = tmp + alpha_l(ll)*trvec(ll)
+    enddo
+    do j=1,linkorg_to_s(ls)%num_
+      ll=linkorg_to_s(ls)%labels_(j)
+      tmp = tmp - alpha_l(ll)*trvec(ll)
+    enddo
+    tmp=tmp/dcmplx(dble(num_faces_in_s(ls)))
+
+    !trdiv(lf)=trdiv(lf)+tmp
+    trdiv=trdiv+tmp
+  enddo
+!enddo
+
+end subroutine calc_trdiv_in_face
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! Tr( rot(V) )
+subroutine calc_trrot(trrot,trvec)
+use parallel
+implicit none
+
+complex(kind(0d0)), intent(out) :: trrot(1:num_faces)
+complex(kind(0d0)), intent(in) :: trvec(1:num_necessary_links)
+
+integer :: ls, ll, lf
+integer :: i,j
+integer :: dir
+
+trrot=(0d0,0d0)
+do lf=1,num_faces
+  do i=1,links_in_f(lf)%num_
+    ll=links_in_f(lf)%link_labels_(i)
+    dir=links_in_f(lf)%link_dirs_(i)
+    trrot(lf) = trrot(lf) + dcmplx(dble(dir))*trvec(ll)
+  enddo
+  trrot(lf) = trrot(lf) * beta_f(lf)
+enddo
+
+end subroutine calc_trrot
+
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! Tr( rot(V) ) at face f
+!! trvec is vectors defined in the face lf
+subroutine calc_trrot_in_face(trrot,trvec,num,lf)
+use parallel
+implicit none
+
+complex(kind(0d0)), intent(out) :: trrot
+complex(kind(0d0)), intent(in) :: trvec(1:num)
+integer, intent(in) :: num ! number of links in the face lf
+integer, intent(in) :: lf ! label of local face
+
+integer :: ls, ll
+integer :: i,j
+integer :: dir
+
+trrot=(0d0,0d0)
+do i=1,links_in_f(lf)%num_
+  !ll=links_in_f(lf)%link_labels_(i)
+  dir=links_in_f(lf)%link_dirs_(i)
+  trrot = trrot + dcmplx(dble(dir))*trvec(i)
+enddo
+trrot = trrot * beta_f(lf)
+
+end subroutine calc_trrot_in_face
+
