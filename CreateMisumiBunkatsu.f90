@@ -1,10 +1,11 @@
 program main
 implicit none
 
-integer :: sizeM=32
-integer :: sizeN=32 
+integer :: sizeM
+integer :: sizeN
 double precision :: radius=1d0
-character(20) :: filename="S2MisumiM32N32R1.dat"
+!character(20) :: filename="S2MisumiM32N32R1.dat"
+integer, parameter :: OUT=6
 
 double precision, parameter :: PI=dacos(-1d0)
 integer :: num_sites, num_links, num_faces
@@ -18,6 +19,18 @@ double precision :: tmp
 integer :: s,l,f
 integer :: i,j,k,n
 integer :: f_end
+
+integer :: iarg
+character(50) :: CM,CN
+
+iarg=iargc()
+call getarg(1,CM)
+call getarg(1,CN)
+read(CM,*) sizeM
+read(CN,*) sizeN
+
+
+
 
 if( mod(sizeN,2) == 1 ) then 
   write(*,*) "Set even N"
@@ -61,8 +74,8 @@ enddo
 do n=1,sizeN/2-1 
   tmp=2d0*Pi*radius**2/(dble(sizeM)*a**2) &
     *( dcos( dble(2*n-1)*Pi/dble(sizeN) ) - dcos( dble(2*n+1)*Pi/dble(sizeN) ) )
-  alpha_f( (n-1)*sizeM+1 : n*sizeM +1) = tmp
-  beta_f( (n-1)*sizeM+1 : n*sizeM +1) = 1d0/tmp
+  alpha_f( (n-1)*sizeM+2 : n*sizeM +1) = tmp
+  beta_f( (n-1)*sizeM+2 : n*sizeM +1) = 1d0/tmp
 enddo
 tmp=2d0*Pi*radius**2/a**2*(1d0 - dcos(Pi/dble(sizeN))) 
 alpha_f( 1 ) = tmp
@@ -110,63 +123,63 @@ enddo
 
 
 
-open(unit=10, status='replace',file=filename,action='write')
-write(10,'(a,I2,a,I2,X,a,F8.4)') "# Misumi-bunkatsu, (M,N)=(",sizeM,",",sizeN,"), R=",radius
+!open(unit=10, status='replace',file=filename,action='write')
+write(OUT,'(a,I2,a,I2,X,a,F8.4)') "# Misumi-bunkatsu, (M,N)=(",sizeM,",",sizeN,"), R=",radius
 !!!!!!!!!!!
-write(10,'(I6,A)') num_sites, "  # number of sites"
-write(10,'(I6,A)') num_links, "  # number of links"
-write(10,'(I6,A)') num_faces, "  # number of faces"
-write(10,'(E15.8,A)') a, "   #lattice spacing"
+write(OUT,'(I6,A)') num_sites, "  # number of sites"
+write(OUT,'(I6,A)') num_links, "  # number of links"
+write(OUT,'(I6,A)') num_faces, "  # number of faces"
+write(OUT,'(E15.8,A)') a, "   #lattice spacing"
 !!!!!!!!!!!!
-write(10,'(A)') "# alpha_s: s, alpha_s(s)"
+write(OUT,'(A)') "# alpha_s: s, alpha_s(s)"
 do s=1,num_sites
-  write(10,'(I6,E15.8)') s, alpha_s(s)
+  write(OUT,'(I6,E15.8)') s, alpha_s(s)
 enddo
 !!!!!!!!!!!!
-write(10,'(A)') "# alpha_l: l, org(l), tip(l), alpha_l(l)"
+write(OUT,'(A)') "# alpha_l: l, org(l), tip(l), alpha_l(l)"
 do n=1,sizeN/2
   do i=1,sizeM-1
     l=(n-1)*sizeM+i
-    write(10,'(I6,X,I6,X,I6,X,E15.8)') l, (n-1)*sizeM+i, (n-1)*sizeM+i+1, alpha_l(l)
+    write(OUT,'(I6,X,I6,X,I6,X,E15.8)') l, (n-1)*sizeM+i, (n-1)*sizeM+i+1, alpha_l(l)
   enddo
   l=n*sizeM
-  write(10,'(I6,X,I6,X,I6,X,E15.8)' ) l, n*sizeM, (n-1)*sizeM+1, alpha_l(l)
+  write(OUT,'(I6,X,I6,X,I6,X,E15.8)' ) l, n*sizeM, (n-1)*sizeM+1, alpha_l(l)
 enddo
 do n=1,sizeN/2-1
   do i=1,sizeM
     l= sizeM*sizeN/2 + (n-1)*sizeM + i
-    write(10,'(I6,X,I6,X,I6,X,E15.8)') l , (n-1)*sizeM+i, n*sizeM+i, alpha_l(l)
+    write(OUT,'(I6,X,I6,X,I6,X,E15.8)') l , (n-1)*sizeM+i, n*sizeM+i, alpha_l(l)
   enddo
 enddo
 !!!!!!!!!!!!
-write(10,'(A)') "# alpha_f: f, size(f), s_1, ..., s_Sf, alpha(f), beta(f)"
+write(OUT,'(A)') "# alpha_f: f, size(f), s_1, ..., s_Sf, alpha(f), beta(f)"
 f=1
-write(10,'(I6,X,I6,X)',advance='no') f, sizeM
+write(OUT,'(I6,X,I6,X)',advance='no') f, sizeM
 do i=1,sizeM
-  write(10,'(I6,X)',advance='no') i
+  write(OUT,'(I6,X)',advance='no') i
 enddo
-write(10,'(E15.8,X,E15.8)') alpha_f(f), beta_f(f)
+write(OUT,'(E15.8,X,E15.8)') alpha_f(f), beta_f(f)
 !!
 do n=1,sizeN/2-1
   do i=1,sizeM-1
     f=(n-1)*sizeM+i+1
-    write(10,'(I6,X,I6,X,I6,X,I6,X,I6,X,I6,X,E15.8,X,E15.8)') f, 4, &
+    write(OUT,'(I6,X,I6,X,I6,X,I6,X,I6,X,I6,X,E15.8,X,E15.8)') f, 4, &
       (n-1)*sizeM+i, (n-1)*sizeM+i+1, n*sizeM+i+1, n*sizeM+i, &
       alpha_f(f),beta_f(f)
   enddo
     f=n*sizeM+1
-    write(10,'(I6,X,I6,X,I6,X,I6,X,I6,X,I6,X,E15.8,X,E15.8)') f, 4, &
+    write(OUT,'(I6,X,I6,X,I6,X,I6,X,I6,X,I6,X,E15.8,X,E15.8)') f, 4, &
       n*sizeM, (n-1)*sizeM+1, n*sizeM+1, (n+1)*sizeM, &
       alpha_f(f),beta_f(f)
 enddo
 !!
 f=(sizeN/2-1)*sizeM+2
-write(10,'(I6,X,I6,X)',advance='no') f, sizeM
+write(OUT,'(I6,X,I6,X)',advance='no') f, sizeM
 do i=1,sizeM
-  write(10,'(I6,X)',advance='no') sizeM*(sizeN/2-1)+i
+  write(OUT,'(I6,X)',advance='no') sizeM*(sizeN/2-1)+i
 enddo
-write(10,'(E15.8,X,E15.8)') alpha_f(f),beta_f(f)
+write(OUT,'(E15.8,X,E15.8)') alpha_f(f),beta_f(f)
 
-close(10)
+!close(OUT)
 
 end program main

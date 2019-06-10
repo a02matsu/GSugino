@@ -719,106 +719,106 @@ end subroutine calc_WT12
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! 
-subroutine test_WT1(WT1,Umat,PhiMat,fop,fcurr,option)
-use global_subroutines, only : &
-  make_face_variable, &
-  make_moment_map0, &
-  make_diff_PhiMat
-use matrix_functions, only : &
-  matrix_commutator, &
-  matrix_power, &
-  trace_MM
-use parallel
-implicit none
-
-complex(kind(0d0)), intent(out) :: WT1 ! f: position of current
-complex(kind(0d0)), intent(in) :: Umat(1:NMAT,1:NMAT,1:num_necessary_links)
-complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_necessary_sites)
-integer, intent(in) :: fop ! global face where \phi^{N_c^2-1} sits
-integer, intent(in) :: fcurr ! global face where the current sits
-integer, intent(in) :: option
-
-complex(kind(0d0)) :: F12(1:NMAT,1:NMAT,1:num_necessary_faces)
-complex(kind(0d0)) :: DPhi(1:NMAT,1:NMAT,1:num_necessary_links)
-complex(kind(0d0)) :: CommPhi(1:NMAT,1:NMAT,1:num_necessary_sites)
-complex(kind(0d0)) :: Uf(1:NMAT,1:NMAT)
-complex(kind(0d0)) :: op(1:NMAT,1:NMAT)
-
-complex(kind(0d0)) :: eta(1:NMAT,1:NMAT,1:num_necessary_sites)
-complex(kind(0d0)) :: lambda(1:NMAT,1:NMAT,1:num_necessary_links)
-complex(kind(0d0)) :: chi(1:NMAT,1:NMAT,1:num_necessary_faces)
-complex(kind(0d0)) :: WTeta1(1:NMAT,1:NMAT,1:num_necessary_sites)
-complex(kind(0d0)) :: WTlambda1(1:NMAT,1:NMAT,1:num_necessary_links)
-complex(kind(0d0)) :: WTchi1(1:NMAT,1:NMAT,1:num_necessary_faces)
-
-complex(kind(0d0)) :: op_in(1:NMAT,1:NMAT) ! local operator at fop
-complex(kind(0d0)) :: tmpmat(1:NMAT,1:NMAT) 
-complex(kind(0d0)) :: tmp,trace
-
-integer :: i,j,s,l,f
-integer :: fop_local,fop_rank,s0_local,f_local,f_rank,info
-complex(kind(0d0)) :: tmp1, tmp2
-
-WT1=(0d0,0d0)
-!! Preparation
-do f=1,num_faces
-  call make_face_variable(Uf,f,Umat)
-  call make_moment_map0(F12(:,:,f),Uf)
-  F12(:,:,f)=F12(:,:,f)*(0d0,-0.5d0)*beta_f(f)
-enddo
-
-do l=1,num_links
-  call Make_diff_PhiMat(DPhi(:,:,l),l,Umat,PhiMat)
-enddo
-
-do s=1,num_sites
-  call matrix_commutator(CommPhi(:,:,s),PhiMat(:,:,s),PhiMat(:,:,s),'N','C')
-enddo
-
-call syncronize_faces(F12)
-call syncronize_links(DPhi)
-call syncronize_sites(CommPhi)
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-fop_local=local_face_of_global(fop)%label_
-fop_rank=local_face_of_global(fop)%rank_
-s0_local=sites_in_f(fop_local)%label_(1)
-
-op_in=(0d0,0d0)
-if( MYRANK==fop_rank ) then
-  do i=1,NMAT
-    do j=1,NMAT
-      tmpmat(i,j)=dconjg( PhiMat(j,i,s0_local) )
-    enddo
-  enddo
-  call matrix_power(op_in,tmpmat,NMAT*NMAT-1)
-endif
-
-!!!!!!!!!!!!!!!!!!!!!!!!!!
-eta=(0d0,0d0)
-lambda=(0d0,0d0)
-chi=(0d0,0d0)
-!!
-if( option== 1) call make_divK3(eta,lambda,chi,F12,Dphi,CommPhi,Umat,PhiMat,fcurr)
-if( option== 2) call make_divK4(eta,lambda,chi,F12,Dphi,CommPhi,Umat,PhiMat,fcurr)
-if( option== 3) call make_rotK1(eta,lambda,chi,F12,Dphi,CommPhi,Umat,PhiMat,fcurr)
-if( option== 4) call make_rotK2(eta,lambda,chi,F12,Dphi,CommPhi,Umat,PhiMat,fcurr)
-if( option== 5) call make_phichi(eta,lambda,chi,F12,Dphi,CommPhi,Umat,PhiMat,fcurr)
-!!
-call syncronize_sites(eta)
-call syncronize_links(lambda)
-call syncronize_faces(chi)
-!!
-call calc_DinvF(WTeta1,WTlambda1,WTchi1,eta,lambda,chi,Umat,PhiMat,info)
+!subroutine test_WT1(WT1,Umat,PhiMat,fop,fcurr,option)
+!use global_subroutines, only : &
+!  make_face_variable, &
+!  make_moment_map0, &
+!  make_diff_PhiMat
+!use matrix_functions, only : &
+!  matrix_commutator, &
+!  matrix_power, &
+!  trace_MM
+!use parallel
+!implicit none
+!
+!complex(kind(0d0)), intent(out) :: WT1 ! f: position of current
+!complex(kind(0d0)), intent(in) :: Umat(1:NMAT,1:NMAT,1:num_necessary_links)
+!complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_necessary_sites)
+!integer, intent(in) :: fop ! global face where \phi^{N_c^2-1} sits
+!integer, intent(in) :: fcurr ! global face where the current sits
+!integer, intent(in) :: option
+!
+!complex(kind(0d0)) :: F12(1:NMAT,1:NMAT,1:num_necessary_faces)
+!complex(kind(0d0)) :: DPhi(1:NMAT,1:NMAT,1:num_necessary_links)
+!complex(kind(0d0)) :: CommPhi(1:NMAT,1:NMAT,1:num_necessary_sites)
+!complex(kind(0d0)) :: Uf(1:NMAT,1:NMAT)
+!complex(kind(0d0)) :: op(1:NMAT,1:NMAT)
+!
+!complex(kind(0d0)) :: eta(1:NMAT,1:NMAT,1:num_necessary_sites)
+!complex(kind(0d0)) :: lambda(1:NMAT,1:NMAT,1:num_necessary_links)
+!complex(kind(0d0)) :: chi(1:NMAT,1:NMAT,1:num_necessary_faces)
+!complex(kind(0d0)) :: WTeta1(1:NMAT,1:NMAT,1:num_necessary_sites)
+!complex(kind(0d0)) :: WTlambda1(1:NMAT,1:NMAT,1:num_necessary_links)
+!complex(kind(0d0)) :: WTchi1(1:NMAT,1:NMAT,1:num_necessary_faces)
+!
+!complex(kind(0d0)) :: op_in(1:NMAT,1:NMAT) ! local operator at fop
+!complex(kind(0d0)) :: tmpmat(1:NMAT,1:NMAT) 
+!complex(kind(0d0)) :: tmp,trace
+!
+!integer :: i,j,s,l,f
+!integer :: fop_local,fop_rank,s0_local,f_local,f_rank,info
+!complex(kind(0d0)) :: tmp1, tmp2
+!
+!WT1=(0d0,0d0)
+!!! Preparation
+!do f=1,num_faces
+!  call make_face_variable(Uf,f,Umat)
+!  call make_moment_map0(F12(:,:,f),Uf)
+!  F12(:,:,f)=F12(:,:,f)*(0d0,-0.5d0)*beta_f(f)
+!enddo
+!
+!do l=1,num_links
+!  call Make_diff_PhiMat(DPhi(:,:,l),l,Umat,PhiMat)
+!enddo
+!
+!do s=1,num_sites
+!  call matrix_commutator(CommPhi(:,:,s),PhiMat(:,:,s),PhiMat(:,:,s),'N','C')
+!enddo
+!
+!call syncronize_faces(F12)
+!call syncronize_links(DPhi)
+!call syncronize_sites(CommPhi)
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!fop_local=local_face_of_global(fop)%label_
+!fop_rank=local_face_of_global(fop)%rank_
+!s0_local=sites_in_f(fop_local)%label_(1)
+!
+!op_in=(0d0,0d0)
+!if( MYRANK==fop_rank ) then
+!  do i=1,NMAT
+!    do j=1,NMAT
+!      tmpmat(i,j)=dconjg( PhiMat(j,i,s0_local) )
+!    enddo
+!  enddo
+!  call matrix_power(op_in,tmpmat,NMAT*NMAT-1)
+!endif
+!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!
-tmp=(0d0,0d0)
-if( MYRANK == fop_rank ) then
-  call trace_MM(trace, op_in, WTchi1(:,:,fop_local))
-  tmp=tmp + trace
-endif
-call MPI_REDUCE(tmp,WT1,1,MPI_DOUBLE_COMPLEX, &
-  MPI_SUM,0,MPI_COMM_WORLD,IERR)
-
-end subroutine test_WT1
+!eta=(0d0,0d0)
+!lambda=(0d0,0d0)
+!chi=(0d0,0d0)
+!!!
+!if( option== 1) call make_divK3(eta,lambda,chi,F12,Dphi,CommPhi,Umat,PhiMat,fcurr)
+!if( option== 2) call make_divK4(eta,lambda,chi,F12,Dphi,CommPhi,Umat,PhiMat,fcurr)
+!if( option== 3) call make_rotK1(eta,lambda,chi,F12,Dphi,CommPhi,Umat,PhiMat,fcurr)
+!if( option== 4) call make_rotK2(eta,lambda,chi,F12,Dphi,CommPhi,Umat,PhiMat,fcurr)
+!if( option== 5) call make_phichi(eta,lambda,chi,F12,Dphi,CommPhi,Umat,PhiMat,fcurr)
+!!!
+!call syncronize_sites(eta)
+!call syncronize_links(lambda)
+!call syncronize_faces(chi)
+!!!
+!call calc_DinvF(WTeta1,WTlambda1,WTchi1,eta,lambda,chi,Umat,PhiMat,info)
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!tmp=(0d0,0d0)
+!if( MYRANK == fop_rank ) then
+!  call trace_MM(trace, op_in, WTchi1(:,:,fop_local))
+!  tmp=tmp + trace
+!endif
+!call MPI_REDUCE(tmp,WT1,1,MPI_DOUBLE_COMPLEX, &
+!  MPI_SUM,0,MPI_COMM_WORLD,IERR)
+!
+!end subroutine test_WT1
 
 
 

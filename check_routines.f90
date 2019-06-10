@@ -394,10 +394,98 @@ turn=MYRANK+1
 if( MYRANK .ne. NPROCS-1 ) then
   call MPI_SEND(turn,1,MPI_INTEGER,MYRANK+1,MYRANK+1,MPI_COMM_WORLD,IERR)
 endif
-
-
-
 end subroutine check_force
 #endif
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
+!! alpha beta の出力
+subroutine check_alpha_beta
+use parallel
+implicit none
+
+integer turn
+integer :: ls,ll,lf
+integer :: gs,gl,gf
+
+!!!!!!! alpha_s !!!!!!!!!
+call MPI_BARRIER(MPI_COMM_WORLD,IERR)
+if(MYRANK==0) write (*,*) "### alpha_s ###"
+turn=0
+if ( turn .ne. MYRANK ) then
+  call MPI_RECV(turn,1,MPI_INTEGER,MYRANK-1,MYRANK,MPI_COMM_WORLD,ISTATUS,IERR)
+endif
+do ls=1,num_necessary_sites
+  gs=global_site_of_local(ls)
+  write(*,*) MYRANK, ls, gs, alpha_s(ls)
+enddo
+turn=MYRANK+1
+if( MYRANK .ne. NPROCS-1 ) then
+  call MPI_SEND(turn,1,MPI_INTEGER,MYRANK+1,MYRANK+1,MPI_COMM_WORLD,IERR)
+endif
+
+
+!!!!!!! alpha_l !!!!!!!!!
+call MPI_BARRIER(MPI_COMM_WORLD,IERR)
+if(MYRANK==0) write (*,*) "### alpha_l ###"
+turn=0
+if ( turn .ne. MYRANK ) then
+  call MPI_RECV(turn,1,MPI_INTEGER,MYRANK-1,MYRANK,MPI_COMM_WORLD,ISTATUS,IERR)
+endif
+do ll=1,num_necessary_links
+  gl=global_link_of_local(ll)
+  write(*,*) MYRANK, ll, gl, alpha_l(ll)
+enddo
+turn=MYRANK+1
+if( MYRANK .ne. NPROCS-1 ) then
+  call MPI_SEND(turn,1,MPI_INTEGER,MYRANK+1,MYRANK+1,MPI_COMM_WORLD,IERR)
+endif
+
+!!!!!!! alpha_f, beta_f !!!!!!!!!
+call MPI_BARRIER(MPI_COMM_WORLD,IERR)
+if(MYRANK==0) write (*,*) "### alpha_f and beta_f ###"
+turn=0
+if ( turn .ne. MYRANK ) then
+  call MPI_RECV(turn,1,MPI_INTEGER,MYRANK-1,MYRANK,MPI_COMM_WORLD,ISTATUS,IERR)
+endif
+do lf=1,num_necessary_faces
+  gf=global_face_of_local(lf)
+  write(*,*) MYRANK, lf, gf, alpha_f(lf), beta_f(lf)
+enddo
+turn=MYRANK+1
+if( MYRANK .ne. NPROCS-1 ) then
+  call MPI_SEND(turn,1,MPI_INTEGER,MYRANK+1,MYRANK+1,MPI_COMM_WORLD,IERR)
+endif
+
+end subroutine check_alpha_beta
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! 赤道周りの反転(only for Misumi bunkatsu)
+!subroutine check_NSparity(Umat,PhiMat,M,N)
+!use parallel
+!implicit none
+!
+!complex(kind(0d0)), intent(in) :: Umat(1:NMAT,1:NMAT,1:num_necessary_links)
+!complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_necessary_sites)
+!integer, intent(in) :: M,N
+!
+!complex(kind(0d0)) :: Umat2(1:NMAT,1:NMAT,1:num_necessary_links)
+!complex(kind(0d0)) :: PhiMat2(1:NMAT,1:NMAT,1:num_necessary_sites)
+!
+!double precision :: SB_S,SB_L,SB_F,SB_M, SF !,SB_T
+!
+!
+!
+!
+!
+!
+!call bosonic_action_mass(SB_M,PhiMat)
+!call bosonic_action_site(SB_S,PhiMat)
+!call bosonic_action_link(SB_L,UMAT,PhiMat)
+!call bosonic_action_face(SB_F,UMAT)
+!
+!
+!
+!end subroutine check_NSparity
 
 end module check_routines

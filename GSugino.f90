@@ -139,6 +139,9 @@ call set_local_data(local_site_list)
 !call check_local_sc
 !call stop_for_test
 
+!call check_alpha_beta
+!call stop_for_test
+
 !  !call set_sc 
 !#ifdef PARALLEL
 !  call set_sc_alpha_beta_parallel
@@ -259,6 +262,7 @@ endif
     !call check_Dirac(UMAT,Phi)
     call test_hamiltonian(UMAT,PhiMat,seed)
   else
+
     if( branch_mode == 0 ) then !! normal mode
       if( branch_use == 0 ) then
         write(Fconfigout, '("CONFIG/inputconf_", i4.4, ".dat")') job_number

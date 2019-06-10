@@ -3051,6 +3051,7 @@ end subroutine syncronize_sites
 !! 必要なlink変数を通信するsubroutine
 #ifdef PARALLEL
 subroutine syncronize_links(lambda)
+use global_parameters
 use parallel
 complex(kind(0d0)), intent(inout) :: lambda(1:NMAT,1:NMAT,1:num_necessary_links)
 
@@ -3058,7 +3059,9 @@ integer :: s_send
 integer :: s_recv
 integer :: local, rank, tag
 integer, allocatable :: ISEND(:), IRECV(:) ! for MPI_WAIT 
+complex(kind(0d0)) :: tmpmat(1:NMAT,1:NMAT)
 
+!lambda=tmplambda
 !!!!!!!!
 allocate(ISEND(1:num_send_links))
 allocate(IRECV(1:num_recv_links))
@@ -3086,6 +3089,7 @@ do s_recv=1,num_recv_links
 enddo
 
 deallocate(ISEND, IRECV)
+
 end subroutine syncronize_links
 #endif
 
@@ -3131,6 +3135,52 @@ enddo
 deallocate(ISEND, IRECV)
 end subroutine syncronize_faces
 #endif
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! 必要なlink変数(1個)を通信するsubroutine
+subroutine syncronize_linkval(lambda)
+use global_parameters
+use parallel
+!complex(kind(0d0)), intent(out) :: tmplambda(1:NMAT,1:NMAT,1:num_necessary_links)
+complex(kind(0d0)), intent(out) :: lambda(1:num_necessary_links)
+
+integer :: s_send
+integer :: s_recv
+integer :: local, rank, tag
+integer, allocatable :: ISEND(:), IRECV(:) ! for MPI_WAIT 
+
+!!!!!!!!
+allocate(ISEND(1:num_send_links))
+allocate(IRECV(1:num_recv_links))
+do s_send=1,num_send_links
+  local=send_links(s_send)%label_
+  rank=send_links(s_send)%rank_
+  tag=10000*rank + global_link_of_local(local)
+
+  call MPI_ISEND(lambda(local),1,MPI_DOUBLE_COMPLEX,rank,tag,MPI_COMM_WORLD,ISEND(s_send),IERR)
+enddo
+
+do s_recv=1,num_recv_links
+  local=recv_links(s_recv)%label_
+  rank=recv_links(s_recv)%rank_
+  tag=10000*MYRANK + global_link_of_local(local)
+
+  call MPI_IRECV(lambda(local),1,MPI_DOUBLE_COMPLEX,rank,tag,MPI_COMM_WORLD,IRECV(s_recv),IERR)
+enddo
+
+do s_send=1,num_send_links
+  call MPI_WAIT(ISEND(s_send),ISTATUS,IERR)
+enddo
+do s_recv=1,num_recv_links
+  call MPI_WAIT(IRECV(s_recv),ISTATUS,IERR)
+enddo
+
+deallocate(ISEND, IRECV)
+
+!write(*,*) "IN",MYRANK,lambda
+!tmplambda=lambda
+end subroutine syncronize_linkval
+
 
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

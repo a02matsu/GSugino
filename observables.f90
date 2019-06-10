@@ -10,15 +10,12 @@
 !
 !contains
 
+#include "Observables/div_rot.f90"
 #include "Observables/local_operators.f90"
 #include "Observables/compensators.f90"
 #include "Observables/bosonic_action.f90"
 #include "Observables/WT_identities.f90"
 #include "Observables/U1V_current.f90"
-#include "Observables/divK3.f90"
-#include "Observables/divK4.f90"
-#include "Observables/rotK1.f90"
-#include "Observables/rotK2.f90"
 #include "Observables/phichi.f90"
 #include "Observables/checkFF.f90"
 #include "Observables/fermionic_operators.f90"

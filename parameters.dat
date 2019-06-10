@@ -5,7 +5,7 @@
 ## mass_f; fermion mass
 0d0 
 ##  data of the simplicial complex
-S2Misumi44.dat
+S2MisumiM8N8R10.dat 
 ## test_mode ; 0:Simulation mode 1:Test mode, 
 0
 ## branch_mode !! 0:normal, 1:make branch

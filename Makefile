@@ -56,6 +56,10 @@ SRC_CORR=calc_correlations.f90
 OBJ_CORR=calc_correlations.o
 PROG_CORR=calc_correlations.exe
 #########################
+SRC_WTU1=calc_WT.f90  
+OBJ_WTU1=calc_WT.o
+PROG_WTU1=calc_WT.exe
+#########################
 
 
 #.SUFFIXES : .o .f90 # .oを作るときは必ず.f90から作るよ
@@ -69,7 +73,7 @@ $(PROG): $(OBJS) $(OBJ_MAIN)
 obs:$(PROG_OBS)
 #########################################
 #$(PROG_OBS): $(OBJ_OBS) $(OBJ_MAIN)
-$(PROG_OBS): $(OBJ_OBS) $(OBJ_OBSMAIN)
+$(PROG_OBS): $(OBJ_OBS) $(OBJ_OBSMAIN) $(OBJS)
 	 $(FC) $(FLAGS_IFORT) -o $@ $(OBJ_OBS) $(OBJS) $(OBJ_OBSMAIN) $(LIB)
 #########################################
 dirac:$(PROG_Dirac)
@@ -84,13 +88,20 @@ $(PROG_Dinv): $(SRC_Dinv)
 #########################################
 dinv2:$(PROG_Dinv2)
 
-$(PROG_Dinv2): $(OBJ_Dinv2) $(OBJ_MAIN)
+$(PROG_Dinv2): $(OBJ_Dinv2) $(OBJS)
 	$(FC) $(FLAGS_IFORT) -o $@ $(OBJS) $(OBJ_Dinv2) $(LIB)
 #########################################
 corr:$(PROG_CORR)
 
 $(PROG_CORR): $(OBJ_CORR) $(OBJ_OBS) $(OBJS) $(OBJ_CORR)
 	$(FC) $(FLAGS_IFORT) -o $@ $(OBJS) $(OBJ_OBS) $(OBJ_CORR) $(LIB)
+#########################################
+WTU1:$(PROG_WTU1)
+
+$(PROG_WTU1): $(OBJ_WTU1) $(OBJ_OBS) $(OBJS) $(OBJ_CORR)
+	$(FC) $(FLAGS_IFORT) -o $@ $(OBJS) $(OBJ_OBS) $(OBJ_WTU1) $(LIB)
+
+
 #########################################
 # moduleをコンパイルするときの依存性を解消
 #structure_constant.o: structure_constant.f90
@@ -151,10 +162,7 @@ simulation.o: \
   $(DIR_OBS)/bosonic_action.f90 \
   $(DIR_OBS)/fermionic_operators.f90 \
   $(DIR_OBS)/WT_identities.f90 \
-  $(DIR_OBS)/divK3.f90 \
-  $(DIR_OBS)/divK4.f90 \
-  $(DIR_OBS)/rotK1.f90 \
-  $(DIR_OBS)/rotK2.f90 \
+  $(DIR_OBS)/div_rot.f90 \
   $(DIR_OBS)/U1V_current.f90 \
   $(DIR_OBS)/compensators.f90 \
   $(DIR_OBS)/phichi.f90 \
