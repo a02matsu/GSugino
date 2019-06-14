@@ -23,7 +23,7 @@ end subroutine calc_trphi2
 
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!! trF2 = 1/N Tr( f^2 ) 
+!! trF2 = 1/N Tr( f^2 )*A_f
 !! where
 !!    f=1/2 E^{\mu\nu} F_{\mu\nu} = (Uf-Uf^\dagger) / 2ia^2 A_f
 subroutine calc_trF2(trF2,UMat)
@@ -52,7 +52,7 @@ do f=1,num_faces
       trF2(f)=trF2(f)+dble(FMat(i,j)*dconjg(FMat(i,j)))
     enddo
   enddo
-  trF2(f) = trF2(f) * alpha_f(f)
+  trF2(f) = trF2(f) * alpha_f(f) * LatticeSpacing*LatticeSpacing
 enddo
 trF2=trF2/dble(NMAT)
 
