@@ -26,6 +26,7 @@ integer :: rank,tag
 integer :: ls, gs
 double precision :: rtmp
 
+
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! initialization
 iarg=iargc()
@@ -58,6 +59,9 @@ do
     endif
     !!!!!!!!!!!!!!!!
     call calc_trphi2(trphi2, PhiMat)
+
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !! write trphi2
     do gs=1,global_num_sites
       ls=local_site_of_global(gs)%label_
       rank=local_site_of_global(gs)%rank_
@@ -76,6 +80,7 @@ do
       endif
       call MPI_BARRIER(MPI_COMM_WORLD,IERR)
     enddo
+
     if( MYRANK==0 ) then
       write(N_trphi2FILE,*)
     endif

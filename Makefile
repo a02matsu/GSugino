@@ -37,8 +37,8 @@ SRC_OBSMAIN=calcobs.f90
 OBJ_OBSMAIN=calcobs.o
 PROG_OBS=calcobs.exe
 ##
-SRC_OBS=initialization_calcobs.f90
-OBJ_OBS=$(SRC_OBS:.f90=.o)
+SRC_OBSCOMM=initialization_calcobs.f90
+OBJ_OBSCOMM=$(SRC_OBSCOMM:.f90=.o)
 #########################
 SRC_Dirac=writeDirac.f90  
 OBJ_Dirac=writeDirac.o
@@ -52,9 +52,13 @@ SRC_Dinv=calcDinv_PBLAS.f90
 OBJ_Dinv=calcDinv_PBLAS.o
 PROG_Dinv=calcDinv_PBLAS.exe
 #########################
-SRC_CORR=calc_correlations.f90  
-OBJ_CORR=calc_correlations.o
-PROG_CORR=calc_correlations.exe
+SRC_TRPHI2=calc_trphi2.f90  
+OBJ_TRPHI2=calc_trphi2.o
+PROG_TRPHI2=calc_trphi2.exe
+#########################
+SRC_TRF2=calc_trf2.f90  
+OBJ_TRF2=calc_trf2.o
+PROG_TRF2=calc_trf2.exe
 #########################
 SRC_WTU1=calc_WT.f90  
 OBJ_WTU1=calc_WT.o
@@ -70,11 +74,11 @@ all:$(PROG)
 $(PROG): $(OBJS) $(OBJ_MAIN)
 	$(FC) $(FLAGS_IFORT) -o $@  $(OBJS) $(OBJ_MAIN) $(LIB)
 
-obs:$(PROG_OBS)
 #########################################
-#$(PROG_OBS): $(OBJ_OBS) $(OBJ_MAIN)
+obs:$(PROG_OBS)
 $(PROG_OBS): $(OBJ_OBS) $(OBJ_OBSMAIN) $(OBJS)
-	 $(FC) $(FLAGS_IFORT) -o $@ $(OBJ_OBS) $(OBJS) $(OBJ_OBSMAIN) $(LIB)
+	 $(FC) $(FLAGS_IFORT) -o $@ $(OBJ_OBSCOMM) $(OBJS) $(OBJ_OBSMAIN) $(LIB)
+
 #########################################
 dirac:$(PROG_Dirac)
 
@@ -91,14 +95,19 @@ dinv2:$(PROG_Dinv2)
 $(PROG_Dinv2): $(OBJ_Dinv2) $(OBJS)
 	$(FC) $(FLAGS_IFORT) -o $@ $(OBJS) $(OBJ_Dinv2) $(LIB)
 #########################################
-corr:$(PROG_CORR)
+trphi2:$(PROG_TRPHI2)
 
-$(PROG_CORR): $(OBJ_CORR) $(OBJ_OBS) $(OBJS) $(OBJ_CORR)
-	$(FC) $(FLAGS_IFORT) -o $@ $(OBJS) $(OBJ_OBS) $(OBJ_CORR) $(LIB)
+$(PROG_TRPHI2): $(OBJ_TRPHI2) $(OBJ_OBSCOMM) $(OBJS) 
+	$(FC) $(FLAGS_IFORT) -o $@ $(OBJS) $(OBJ_OBS) $(OBJ_OBSCOMM) $(OBJ_TRPHI2) $(LIB)
+#########################################
+trf2:$(PROG_TRF2)
+
+$(PROG_TRF2): $(OBJ_TRF2) $(OBJ_OBSCOMM) $(OBJS) 
+	$(FC) $(FLAGS_IFORT) -o $@ $(OBJS) $(OBJ_OBS) $(OBJ_OBSCOMM) $(OBJ_TRF2) $(LIB)
 #########################################
 WTU1:$(PROG_WTU1)
 
-$(PROG_WTU1): $(OBJ_WTU1) $(OBJ_OBS) $(OBJS) $(OBJ_CORR)
+$(PROG_WTU1): $(OBJ_WTU1) $(OBJ_OBSCOMM) $(OBJS) 
 	$(FC) $(FLAGS_IFORT) -o $@ $(OBJS) $(OBJ_OBS) $(OBJ_WTU1) $(LIB)
 
 
@@ -182,6 +191,21 @@ differential_Dirac.o: \
   matrix_functions.o
 initialization_calcobs.o: \
   global_parameters.f90
+$(OBJ_TRPHI2): \
+  global_parameters.o \
+  global_subroutines.o \
+  differential_Dirac.o \
+  simulation.o \
+  initialization_calcobs.o \
+  parallel.o 
+$(OBJ_TRF2): \
+  global_parameters.o \
+  global_subroutines.o \
+  differential_Dirac.o \
+  simulation.o \
+  initialization_calcobs.o \
+  parallel.o 
+ 
 
 
 

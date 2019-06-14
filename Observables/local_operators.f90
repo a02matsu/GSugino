@@ -21,3 +21,41 @@ trphi2=trphi2/dble(NMAT)
 
 end subroutine calc_trphi2
 
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! trF2 = 1/N Tr( f^2 ) 
+!! where
+!!    f=1/2 E^{\mu\nu} F_{\mu\nu} = (Uf-Uf^\dagger) / 2ia^2 A_f
+subroutine calc_trF2(trF2,UMat)
+use parallel
+use global_subroutines, only : make_face_variable
+implicit none
+
+double precision, intent(out) :: trF2(1:num_faces)
+complex(kind(0d0)), intent(in) :: UMat(1:NMAT,1:NMAT,1:num_necessary_faces)
+
+complex(kind(0d0)) :: Uf(1:NMAT,1:NMAT), Fmat(1:NMAT,1:NMAT)
+integer :: f,i,j
+
+trF2=(0d0,0d0)
+do f=1,num_faces
+  call make_face_variable(Uf,f,UMAT)
+  do j=1,NMAT
+    do i=1,NMAT
+      Fmat(i,j)= Uf(i,j)-dconjg(Uf(j,i))
+    enddo
+  enddo
+  Fmat=Fmat * (0d0,-0.5d0) / dcmplx( LatticeSpacing*LatticeSpacing * alpha_f(f))
+
+  do j=1,NMAT
+    do i=1,NMAT
+      trF2(f)=trF2(f)+dble(FMat(i,j)*dconjg(FMat(i,j)))
+    enddo
+  enddo
+  trF2(f) = trF2(f) * alpha_f(f)
+enddo
+trF2=trF2/dble(NMAT)
+
+end subroutine calc_trF2
+
+
