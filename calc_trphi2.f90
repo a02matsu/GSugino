@@ -43,8 +43,10 @@ call initialization
 !allocate(  PhiMat(1:NMAT,1:NMAT,1:num_necessary_sites) )
 allocate( trphi2(1:num_sites) )
 
-open(N_MEDFILE, file=MEDFILE, status='OLD',action='READ',form='unformatted')
-open(N_trphi2FILE, file=trphi2FILE, status='REPLACE')
+if( MYRANK==0 ) then
+  open(N_MEDFILE, file=MEDFILE, status='OLD',action='READ',form='unformatted')
+  open(N_trphi2FILE, file=trphi2FILE, status='REPLACE')
+endif
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 

@@ -12,41 +12,45 @@ character(128) :: config_file
 
 integer :: control
 character(128) :: MEDFILE
-character(128) :: trphi2FILE
-character(128) :: trF2FILE
+character(128) :: DinvFILE
+character(128) :: divJFILE
 integer, parameter :: N_MEDFILE=100
-integer, parameter :: N_trphi2FILE=101
-integer, parameter :: N_trF2FILE=102
+integer, parameter :: N_DinvFILE=100
+integer, parameter :: N_divJFILE=102
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! Observables
-double precision, allocatable :: trF2(:)
+complex(kind(0d0)), allocatable :: divJ(:)
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! misc
 integer :: ite
 integer :: rank,tag
 integer :: lf, gf
 double precision :: rtmp
+complex(kind(0d0)) :: ctmp
+
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! initialization
 iarg=iargc()
 if( iarg <=1 ) then
-  if (MYRANK==0) write(*,*) "use as a.out [MEDFILE] [trF2FILE]"
+  if (MYRANK==0) write(*,*) "use as a.out [MEDFILE] [DinvFILE] [divJFILE]"
   stop
 endif
 call getarg(1,MEDFILE)
-call getarg(2,trF2FILE)
+call getarg(2,DinvFILE)
+call getarg(3,divJFILE)
 INPUT_FILE_NAME="inputfile"
 call initialization 
 
 !allocate( UMAT(1:NMAT,1:NMAT,1:num_necessary_links) )
 !allocate(  PhiMat(1:NMAT,1:NMAT,1:num_necessary_sites) )
-allocate( trF2(1:num_faces) )
+allocate( divJ(1:num_faces) )
 
 if( MYRANK==0 ) then
   open(N_MEDFILE, file=MEDFILE, status='OLD',action='READ',form='unformatted')
-  open(N_trF2FILE, file=trF2FILE, status='REPLACE')
+  open(N_DinvFILE, file=DinvFILE, status='OLD',action='READ')
+  open(N_divJFILE, file=divJFILE, status='REPLACE')
 endif
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -56,42 +60,46 @@ endif
 !! output measurements 
 do 
   call read_config_from_medfile(Umat,PhiMat,ite,N_MEDFILE,control)
+  call read_Dinv(ite, Geta_eta, Glambda_eta, Gchi_eta, &
+                 Geta_lambda, Glambda_lambda, Gchi_lambda, &
+                 Geta_chi, Glambda_chi, Gchi_chi, &
+                 N_DinvFILE)
+
   if( control == 0 ) then 
     if( MYRANK == 0 ) then
-      write(N_trF2FILE,'(I7,2X)',advance='no') ite
+      write(N_divJFILE,'(I7,2X)',advance='no') ite
     endif
     !!!!!!!!!!!!!!!!
-    call calc_trF2(trF2,Umat)
+    call calc_divJ_U1V(divJ,Glambda_eta,Glambda_chi,UMAT)
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    !! write trF2
+    !! write divJ
     do gf=1,global_num_faces
       lf=local_face_of_global(gf)%label_
       rank=local_face_of_global(gf)%rank_
       tag=gf
       if( MYRANK == rank ) then
-        rtmp=trF2(lf)
+        ctmp=divJ(lf)
         if( MYRANK /= 0 ) then 
-          call MPI_SEND(rtmp,1,MPI_DOUBLE_PRECISION,0,tag,MPI_COMM_WORLD,IERR)
+          call MPI_SEND(ctmp,1,MPI_DOUBLE_COMPLEX,0,tag,MPI_COMM_WORLD,IERR)
         endif
       endif
       if( MYRANK == 0 .and. rank /= 0 ) then
-        call MPI_RECV(rtmp,1,MPI_DOUBLE_PRECISION,rank,tag,MPI_COMM_WORLD,ISTATUS,IERR)
+        call MPI_RECV(ctmp,1,MPI_DOUBLE_COMPLEX,rank,tag,MPI_COMM_WORLD,ISTATUS,IERR)
       endif
       if( MYRANK==0 ) then
-        write(N_trF2FILE,'(E15.8,2X)',advance='no') rtmp
+        write(N_divJFILE,'(E15.8,2X,E15.8,2X)',advance='no') ctmp
       endif
       call MPI_BARRIER(MPI_COMM_WORLD,IERR)
     enddo
 
-
     if( MYRANK==0 ) then
-      write(N_trF2FILE,*)
+      write(N_divJFILE,*)
     endif
   else
     if( MYRANK == 0 ) then
       close(N_MEDFILE)
-      close(N_trF2FILE)
+      close(N_divJFILE)
     endif
     exit
   endif

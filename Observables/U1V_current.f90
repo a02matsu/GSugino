@@ -8,10 +8,6 @@ use parallel
 use global_subroutines, only : syncronize_linkval, calc_prodUl_from_n1_to_n2_in_Uf
 implicit none
 
-type VEC_IN_FACE
-  integer :: num_
-  complex(kind(0d0)), allocatable :: val(:)
-end type VEC_IN_FACE
 
 complex(kind(0d0)), intent(out) :: divJ(1:num_faces)
 complex(kind(0d0)), intent(in) :: Glambda_eta(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_links,1:num_sites) 
@@ -19,15 +15,19 @@ complex(kind(0d0)), intent(in) :: Glambda_chi(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:glob
 complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_necessary_links)
 
 complex(kind(0d0)) :: vec1(1:num_necessary_links) ! 1/2 Tr(\lambda(l) \eta(s))
+complex(kind(0d0)) :: vec2(1:num_necessary_links) ! Tr(\lambda(l) \chi(f))
 
-type(VEC_IN_FACE) :: vec2(1:num_faces) ! Tr(\lambda(l) \chi(f))
+!type VEC_IN_FACE
+!  integer :: num_
+!  complex(kind(0d0)), allocatable :: val(:)
+!end type VEC_IN_FACE
+!type(VEC_IN_FACE) :: vec2(1:num_faces) ! Tr(\lambda(l) \chi(f))
 
-complex(kind(0d0)) :: tmp
 complex(kind(0d0)) :: Ucarry(1:NMAT,1:NMAT)
-complex(kind(0d0)) :: tmpmat(1:NMAT,1:NMAT)
-integer :: ll,ls,lf
+complex(kind(0d0)) :: tmp(1:num_faces)
+integer :: ll,lf,ls
 integer :: gl
-integer :: s_place,dir
+integer :: org_ll
 integer :: i,j,k,l,ii
 
 vec1=(0d0,0d0)
@@ -40,54 +40,74 @@ do ll=1,num_links
     enddo
   enddo
 enddo
-!write(*,*) vec1
-!call MPI_BARRIER(MPI_COMM_WORLD,IERR)
-!write(*,*) MYRANK,vec1
-!write(*,*) MYRANK, "==============="
 call syncronize_linkval(vec1)
-!call MPI_BARRIER(MPI_COMM_WORLD,IERR)
-!write(*,*) MYRANK,vec1
 
-do lf=1,num_faces
-  !! set size of vec2
-  vec2(lf)%num_=links_in_f(lf)%num_
-  allocate( vec2(lf)%val(1:links_in_f(lf)%num_) )
-  vec2(lf)%val=(0d0,0d0)
-  !!
-  do ii=1,links_in_f(lf)%num_
-    ll=links_in_f(lf)%link_labels_(ii)
-    dir=links_in_f(lf)%link_dirs_(ii)
-    gl=global_link_of_local(ll)
-    if( dir == 1 ) then 
-      s_place=ii
-    else
-      s_place=ii+1
-      if(s_place ==links_in_f(lf)%num_ + 1) s_place=1
+vec2=(0d0,0d0)
+do ll=1,num_links
+  gl=global_link_of_local(ll)
+  do ii=1,face_in_l(ll)%num_
+    lf=face_in_l(ll)%label_(ii)
+    !! find the place of ll in the face sharing ll
+    do org_ll=1,links_in_f(lf)%num_
+      if( links_in_f(lf)%link_labels_(org_ll) == ll ) then 
+        exit
+      endif
+    enddo
+    if( links_in_f(lf)%link_dirs_(org_ll) == 1 ) then
+      org_ll = org_ll - 1
     endif
-    call calc_prodUl_from_n1_to_n2_in_Uf(Ucarry,lf,1,s_place-1,Umat)
+    !! Ucarry = U1 ... U_orgll
+    call calc_prodUl_from_n1_to_n2_in_Uf(Ucarry,lf,1,org_ll,Umat)
     do i=1,NMAT
       do l=1,NMAT
         do j=1,NMAT
           do k=1,NMAT
-            vec2(lf)%val(ii)=vec2(lf)%val(ii) &
-              + Ucarry(i,j) * dconjg(Ucarry(l,k)) * Glambda_chi(j,k,l,i,gl,lf)
+            vec2(ll)=vec2(ll)&
+              + (0.5d0,0d0) * Ucarry(i,j) * dconjg(Ucarry(l,k)) * Glambda_chi(j,k,l,i,gl,lf)
           enddo
         enddo
       enddo
     enddo
   enddo
 enddo
+call syncronize_linkval(vec2)
 
-!call syncronize_links(vec1)
+!do lf=1,num_faces
+!  !! set size of vec2
+!  vec2(lf)%num_=links_in_f(lf)%num_
+!  allocate( vec2(lf)%val(1:links_in_f(lf)%num_) )
+!  vec2(lf)%val=(0d0,0d0)
+!  !!
+!  do ii=1,links_in_f(lf)%num_
+!    ll=links_in_f(lf)%link_labels_(ii)
+!    dir=links_in_f(lf)%link_dirs_(ii)
+!    gl=global_link_of_local(ll)
+!    if( dir == 1 ) then 
+!      s_place=ii
+!    else
+!      s_place=ii+1
+!      if(s_place == links_in_f(lf)%num_ + 1) s_place=1
+!    endif
+!    call calc_prodUl_from_n1_to_n2_in_Uf(Ucarry,lf,1,s_place-1,Umat)
+!    do i=1,NMAT
+!      do l=1,NMAT
+!        do j=1,NMAT
+!          do k=1,NMAT
+!            vec2(lf)%val(ii)=vec2(lf)%val(ii) &
+!              + Ucarry(i,j) * dconjg(Ucarry(l,k)) * Glambda_chi(j,k,l,i,gl,lf)
+!          enddo
+!        enddo
+!      enddo
+!    enddo
+!  enddo
+!enddo
+
 divJ=(0d0,0d0)
-do lf=1,num_faces
-  call calc_trrot_in_face(tmp,vec2(lf)%val,vec2(lf)%num_,lf)
-  divJ(lf)=divJ(lf)+tmp
+call calc_trrot(tmp,vec1)
+divJ = divJ + tmp
 
-  call calc_trdiv_in_face(tmp,vec1,lf)
-  divJ(lf)=divJ(lf)-tmp
-enddo
-
+call calc_trdiv(tmp,vec2)
+divJ = divJ - tmp
 
 end subroutine calc_divJ_U1V
 

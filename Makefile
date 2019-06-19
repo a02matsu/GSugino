@@ -8,6 +8,7 @@ PARA=-DPARALLEL
 PARA2=-DPARALLEL -DCOUNT_TIME
 #PARA=-DNOPARALLEL
 FLAGS_IFORT=-mkl -fpp $(PARA) -CB -traceback -g 
+FLAGS_CLUSTER=-mkl=cluster -fpp $(PARA) -CB -traceback -g 
 #FLAGS_IFORT=-mkl -parallel -ipo
 #FLAGS_IFORT=-mkl -fpp $(PARA) -O3 -ipo
 #FLAGS_GCC=-llapack -lblas
@@ -60,9 +61,9 @@ SRC_TRF2=calc_trf2.f90
 OBJ_TRF2=calc_trf2.o
 PROG_TRF2=calc_trf2.exe
 #########################
-SRC_WTU1=calc_WT.f90  
-OBJ_WTU1=calc_WT.o
-PROG_WTU1=calc_WT.exe
+SRC_divJ_U1V=calc_divJ_U1V.f90  
+OBJ_divJ_U1V=calc_divJ_U1V.o
+PROG_divJ_U1V=calc_divJ_U1V.exe
 #########################
 
 
@@ -87,13 +88,13 @@ $(PROG_Dirac): $(OBJ_Dirac) $(OBJ_MAIN)
 #########################################
 dinv:$(PROG_Dinv)
 
-$(PROG_Dinv): $(SRC_Dinv)
-	$(FC) $(FLAGS_IFORT) -o $@ $(SRC_Dinv) 
+$(PROG_Dinv): $(OBJ_Dinv)
+	$(FC) $(FLAGS_CLUSTER) -o $@ $(OBJ_Dinv) 
 #########################################
-dinv2:$(PROG_Dinv2)
-
-$(PROG_Dinv2): $(OBJ_Dinv2) $(OBJS)
-	$(FC) $(FLAGS_IFORT) -o $@ $(OBJS) $(OBJ_Dinv2) $(LIB)
+#dinv2:$(PROG_Dinv2)
+#
+#$(PROG_Dinv2): $(OBJ_Dinv2) $(OBJS)
+#	$(FC) $(FLAGS_IFORT) -o $@ $(OBJS) $(OBJ_Dinv2) $(LIB)
 #########################################
 trphi2:$(PROG_TRPHI2)
 
@@ -105,10 +106,10 @@ trf2:$(PROG_TRF2)
 $(PROG_TRF2): $(OBJ_TRF2) $(OBJ_OBSCOMM) $(OBJS) 
 	$(FC) $(FLAGS_IFORT) -o $@ $(OBJS) $(OBJ_OBS) $(OBJ_OBSCOMM) $(OBJ_TRF2) $(LIB)
 #########################################
-WTU1:$(PROG_WTU1)
+WTU1:$(PROG_divJ_U1V)
 
-$(PROG_WTU1): $(OBJ_WTU1) $(OBJ_OBSCOMM) $(OBJS) 
-	$(FC) $(FLAGS_IFORT) -o $@ $(OBJS) $(OBJ_OBS) $(OBJ_WTU1) $(LIB)
+$(PROG_divJ_U1V): $(OBJ_divJ_U1V) $(OBJ_OBSCOMM) $(OBJS) 
+	$(FC) $(FLAGS_IFORT) -o $@ $(OBJS) $(OBJ_OBS) $(OBJ_OBSCOMM) $(OBJ_divJ_U1V) $(LIB)
 
 
 #########################################
@@ -205,6 +206,15 @@ $(OBJ_TRF2): \
   simulation.o \
   initialization_calcobs.o \
   parallel.o 
+$(OBJ_divJ_U1V): \
+  global_parameters.o \
+  global_subroutines.o \
+  simulation.o \
+  initialization_calcobs.o \
+  parallel.o 
+(PROG_Dinv): \
+  $(SRC_Dinv)
+
  
 
 

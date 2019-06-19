@@ -1,41 +1,61 @@
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! divergence on a site
+!!  div(V)(s) = \sum_{l\in <s,*>}  - \sum_{l\in <*,s>} Tr(V_l) 
+subroutine calc_trdiv_in_site(trdiv,trvec)
+use global_parameters
+use global_subroutines, only : syncronize_siteval
+use parallel
+implicit none
+
+complex(kind(0d0)), intent(out) :: trdiv(1:num_necessary_sites)
+complex(kind(0d0)), intent(in) :: trvec(1:num_necessary_links)
+
+integer :: ls, ll
+integer :: i
+
+trdiv=(0d0,0d0)
+do ls=1,num_sites
+  do i=1,linktip_from_s(ls)%num_
+    ll=linktip_from_s(ls)%labels_(i) 
+    trdiv(ls)=trdiv(ls) + alpha_l(ll)*trvec(ll)
+  enddo
+  !!!
+  do i=1,linkorg_to_s(ls)%num_
+    ll=linkorg_to_s(ls)%labels_(i) 
+    trdiv(ls)=trdiv(ls) - alpha_l(ll)*trvec(ll)
+  enddo
+enddo
+
+call syncronize_siteval(trdiv)
+
+end subroutine calc_trdiv_in_site
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! Tr( div(V) )
-subroutine calc_trdiv_in_face(trdiv,trvec,lf)
+subroutine calc_trdiv(trdiv_f,trvec)
 use global_parameters
 use parallel
 implicit none
 
-complex(kind(0d0)), intent(out) :: trdiv
+complex(kind(0d0)), intent(out) :: trdiv_f(1:num_faces)
 complex(kind(0d0)), intent(in) :: trvec(1:num_necessary_links)
-integer, intent(in) :: lf
+complex(kind(0d0)) :: trdiv_s(1:num_necessary_sites)
+integer :: lf
 
 complex(kind(0d0)) :: tmp
 integer :: ls, ll, gs, gl
 integer :: i,j
 
-trdiv=(0d0,0d0)
-!do lf=1,num_faces
+trdiv_f=(0d0,0d0)
+call calc_trdiv_in_site(trdiv_s,trvec)
+do lf=1,num_faces
   do i=1,sites_in_f(lf)%num_
     ls=sites_in_f(lf)%label_(i)
-    gs=global_site_of_local(ls)
-
-    tmp=(0d0,0d0)
-    do j=1,linktip_from_s(ls)%num_
-      ll=linktip_from_s(ls)%labels_(j) 
-      tmp = tmp + alpha_l(ll)*trvec(ll)
-    enddo
-    do j=1,linkorg_to_s(ls)%num_
-      ll=linkorg_to_s(ls)%labels_(j)
-      tmp = tmp - alpha_l(ll)*trvec(ll)
-    enddo
-    tmp=tmp/dcmplx(dble(num_faces_in_s(ls)))
-
-    !trdiv(lf)=trdiv(lf)+tmp
-    trdiv=trdiv+tmp
+    trdiv_f(lf)=trdiv_f(lf) + trdiv_s(ls)/dcmplx(dble(num_faces_in_s(ls)))
   enddo
-!enddo
+enddo
 
-end subroutine calc_trdiv_in_face
+end subroutine calc_trdiv
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! Tr( rot(V) )
