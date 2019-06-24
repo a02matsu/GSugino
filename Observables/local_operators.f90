@@ -17,7 +17,7 @@ do s=1,num_sites
     enddo
   enddo
 enddo
-trphi2=trphi2/dble(NMAT)
+trphi2=trphi2/(LatticeSpacing*LatticeSpacing*dble(NMAT))
 
 end subroutine calc_trphi2
 
@@ -42,19 +42,19 @@ do f=1,num_faces
   call make_face_variable(Uf,f,UMAT)
   do j=1,NMAT
     do i=1,NMAT
-      Fmat(i,j)= Uf(i,j)-dconjg(Uf(j,i))
+      Fmat(i,j)= (0d0,-1d0)*(Uf(i,j)-dconjg(Uf(j,i)))
     enddo
   enddo
-  Fmat=Fmat * (0d0,-0.5d0) / dcmplx( LatticeSpacing*LatticeSpacing * alpha_f(f))
+  !Fmat=Fmat * (0d0,-0.5d0) / dcmplx( LatticeSpacing*LatticeSpacing * alpha_f(f))
 
   do j=1,NMAT
     do i=1,NMAT
-      trF2(f)=trF2(f)+dble(FMat(i,j)*dconjg(FMat(i,j)))
+      trF2(f)=trF2(f) + dble(FMat(i,j)*dconjg(FMat(i,j)))
     enddo
   enddo
-  trF2(f) = trF2(f) * alpha_f(f) * LatticeSpacing*LatticeSpacing
+  trF2(f) = trF2(f) / ( alpha_f(f)**2 )
 enddo
-trF2=trF2/dble(NMAT)
+trF2 = trF2/(4d0 * LatticeSpacing**4 * dble(NMAT))
 
 end subroutine calc_trF2
 
