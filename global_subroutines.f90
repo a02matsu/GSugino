@@ -3137,6 +3137,48 @@ end subroutine syncronize_faces
 #endif
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! 必要なサイト変数(1個)を通信するsubroutine(integer)
+!subroutine syncronize_siteval_int(eta)
+!use parallel
+!
+!integer, intent(inout) :: eta(1:num_necessary_sites)
+!
+!integer :: s_send
+!integer :: s_recv
+!integer :: local, rank, tag
+!integer, allocatable :: ISEND(:), IRECV(:) ! for MPI_WAIT 
+!
+!!!!!!!!!
+!allocate(ISEND(1:num_send_sites))
+!allocate(IRECV(1:num_recv_sites))
+!do s_send=1,num_send_sites
+!  local=send_sites(s_send)%label_
+!  rank=send_sites(s_send)%rank_
+!  tag=10000*rank + global_site_of_local(local)
+!
+!  call MPI_ISEND(eta(local),1,MPI_INTEGER,rank,tag,MPI_COMM_WORLD,ISEND(s_send),IERR)
+!enddo
+!
+!do s_recv=1,num_recv_sites
+!  local=recv_sites(s_recv)%label_
+!  rank=recv_sites(s_recv)%rank_
+!  tag=10000*MYRANK + global_site_of_local(local)
+!
+!  call MPI_IRECV(eta(local),1,MPI_INTEGER,rank,tag,MPI_COMM_WORLD,IRECV(s_recv),IERR)
+!enddo
+!
+!do s_send=1,num_send_sites
+!  call MPI_WAIT(ISEND(s_send),ISTATUS,IERR)
+!enddo
+!do s_recv=1,num_recv_sites
+!  call MPI_WAIT(IRECV(s_recv),ISTATUS,IERR)
+!enddo
+!
+!deallocate(ISEND, IRECV)
+!end subroutine syncronize_siteval_int
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! 必要なサイト変数(1個)を通信するsubroutine
 subroutine syncronize_siteval(eta)
 use parallel

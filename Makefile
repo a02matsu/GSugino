@@ -8,7 +8,7 @@ PARA=-DPARALLEL
 PARA2=-DPARALLEL -DCOUNT_TIME
 #PARA=-DNOPARALLEL
 FLAGS_IFORT=-mkl -fpp $(PARA) -CB -traceback -g 
-FLAGS_CLUSTER=-mkl=cluster -fpp $(PARA) -CB -traceback -g 
+FLAGS_CLUSTER=-mkl=cluster -CB -traceback -g 
 #FLAGS_IFORT=-mkl -parallel -ipo
 #FLAGS_IFORT=-mkl -fpp $(PARA) -O3 -ipo
 #FLAGS_GCC=-llapack -lblas
@@ -51,7 +51,7 @@ PROG_Dinv2=calcDinv_CG.exe
 #########################
 SRC_Dinv=calcDinv_PBLAS.f90  
 OBJ_Dinv=calcDinv_PBLAS.o
-PROG_Dinv=calcDinv_PBLAS.exe
+PROG_Dinv=calcDinv.exe
 #########################
 SRC_TRPHI2=calc_trphi2.f90  
 OBJ_TRPHI2=calc_trphi2.o
@@ -209,6 +209,7 @@ $(OBJ_TRF2): \
 $(OBJ_divJ_U1V): \
   global_parameters.o \
   global_subroutines.o \
+  differential_Dirac.o \
   simulation.o \
   initialization_calcobs.o \
   parallel.o 

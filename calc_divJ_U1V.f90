@@ -15,17 +15,20 @@ character(128) :: MEDFILE
 character(128) :: DinvFILE
 character(128) :: divJFILE
 integer, parameter :: N_MEDFILE=100
-integer, parameter :: N_DinvFILE=100
+integer, parameter :: N_DinvFILE=101
 integer, parameter :: N_divJFILE=102
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! Observables
+complex(kind(0d0)), allocatable :: divJ1(:)
+complex(kind(0d0)), allocatable :: divJ2(:)
 complex(kind(0d0)), allocatable :: divJ(:)
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! misc
 integer :: ite
 integer :: rank,tag
 integer :: lf, gf
+integer :: jj
 double precision :: rtmp
 complex(kind(0d0)) :: ctmp
 
@@ -46,6 +49,8 @@ call initialization
 !allocate( UMAT(1:NMAT,1:NMAT,1:num_necessary_links) )
 !allocate(  PhiMat(1:NMAT,1:NMAT,1:num_necessary_sites) )
 allocate( divJ(1:num_faces) )
+allocate( divJ1(1:num_faces) )
+allocate( divJ2(1:num_faces) )
 
 if( MYRANK==0 ) then
   open(N_MEDFILE, file=MEDFILE, status='OLD',action='READ',form='unformatted')
@@ -70,7 +75,7 @@ do
       write(N_divJFILE,'(I7,2X)',advance='no') ite
     endif
     !!!!!!!!!!!!!!!!
-    call calc_divJ_U1V(divJ,Glambda_eta,Glambda_chi,UMAT)
+    call calc_divJ_U1V(divJ,Glambda_eta,Gchi_lambda,UMAT)
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !! write divJ
@@ -78,6 +83,13 @@ do
       lf=local_face_of_global(gf)%label_
       rank=local_face_of_global(gf)%rank_
       tag=gf
+      !do jj=1,2
+      !  if( jj==1 ) then 
+      !    divJ=divJ1
+      !  else
+      !    divJ=divJ2
+      !  endif
+
       if( MYRANK == rank ) then
         ctmp=divJ(lf)
         if( MYRANK /= 0 ) then 
@@ -88,9 +100,11 @@ do
         call MPI_RECV(ctmp,1,MPI_DOUBLE_COMPLEX,rank,tag,MPI_COMM_WORLD,ISTATUS,IERR)
       endif
       if( MYRANK==0 ) then
-        write(N_divJFILE,'(E15.8,2X,E15.8,2X)',advance='no') ctmp
+        write(N_divJFILE,'(E15.8,2X,E15.8,2X)',advance='no') &
+          dble(ctmp), dble( (0d0,-1d0)*ctmp )
       endif
       call MPI_BARRIER(MPI_COMM_WORLD,IERR)
+      !enddo
     enddo
 
     if( MYRANK==0 ) then

@@ -1025,15 +1025,18 @@ end subroutine set_local_sites_in_f
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 subroutine set_num_local_faces_in_s
+!use global_subroutines, only : syncronize_siteval_int
 use parallel
 implicit none
 integer s,global_s
 
-allocate( num_faces_in_s(1:num_sites) )
-do s=1,num_sites
+allocate( num_faces_in_s(1:num_necessary_sites) )
+do s=1,num_necessary_sites
   global_s = global_site_of_local(s)
   num_faces_in_s(s)=global_face_in_s(global_s)%num_
 enddo
+
+!call syncronize_siteval_int(num_faces_in_s)
 
 
 end subroutine set_num_local_faces_in_s

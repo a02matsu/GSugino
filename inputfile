@@ -15,7 +15,7 @@
 ## num_ite: Number of trajectories
 10 
 ## save_med_step: Interval to save configs
-10
+0 
 ## save_config_step: Interval to save the last_config
 0
 ## obs_step: Interval to compute observables
