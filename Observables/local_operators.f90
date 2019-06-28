@@ -54,7 +54,7 @@ do f=1,num_faces
   enddo
   trF2(f) = trF2(f) / ( alpha_f(f)**2 )
 enddo
-trF2 = trF2/(4d0 * LatticeSpacing**4 * dble(NMAT))
+trF2 = trF2/(4d0 * LatticeSpacing**3 * dble(NMAT))
 
 end subroutine calc_trF2
 
