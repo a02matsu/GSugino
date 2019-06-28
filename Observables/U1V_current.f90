@@ -113,7 +113,7 @@ divJ2=(0d0,0d0)
 call calc_trrot(divJ1,vec1)
 call calc_trdiv(divJ2,vec2)
 
-divJ=(divJ1+divJ2)/dcmplx(LatticeSpacing**4)
+divJ=(divJ1+divJ2)/dcmplx(LatticeSpacing**3)
 
 end subroutine calc_divJ_U1V
 
