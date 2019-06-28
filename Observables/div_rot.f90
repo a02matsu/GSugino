@@ -53,6 +53,7 @@ do lf=1,num_faces
     ls=sites_in_f(lf)%label_(i)
     trdiv_f(lf)=trdiv_f(lf) + trdiv_s(ls)/dcmplx(dble(num_faces_in_s(ls)))
   enddo
+  trdiv_f(lf) = trdiv_f(lf) * beta_f(lf)
 enddo
 
 end subroutine calc_trdiv
