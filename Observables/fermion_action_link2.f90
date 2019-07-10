@@ -21,7 +21,6 @@ complex(kind(0d0)) :: trace, tmpSfL2, tmp
 integer :: gl,ll
 integer :: a,b,i,j,k
 
-SfL2=(0d0,0d0)
 tmpSfL2=(0d0,0d0)
 do ll=1,num_links
   gl=global_link_of_local(ll)
@@ -35,7 +34,8 @@ do ll=1,num_links
     'N','C','C',(1d0,0d0),'ADD')
   MMat= MMat * alpha_l(ll)
   !!!!
-  tmpmat=(0d0,0d0)
+  !tmpmat=(0d0,0d0)
+  trace=(0d0,0d0)
   do j=1,NMAT
     do i=1,NMAT
       tmp=(0d0,0d0)
@@ -47,7 +47,7 @@ do ll=1,num_links
   enddo
   tmpSfL2=tmpSfL2+trace
 enddo
-
+SfL2=(0d0,0d0)
 call MPI_REDUCE(tmpSfL2,SfL2,1,MPI_DOUBLE_COMPLEX, &
   MPI_SUM,0,MPI_COMM_WORLD,IERR)
 
