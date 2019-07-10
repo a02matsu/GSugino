@@ -11,14 +11,17 @@
 !contains
 
 #include "Observables/div_rot.f90"
-#include "Observables/local_operators.f90"
+#include "Observables/trphi2.f90"
+#include "Observables/trf2.f90"
 #include "Observables/compensators.f90"
 #include "Observables/bosonic_action.f90"
-#include "Observables/WT_identities.f90"
+!#include "Observables/WT_identities.f90"
 #include "Observables/U1V_current.f90"
+#include "Observables/fermion_action_link2.f90"
 #include "Observables/phichi.f90"
 #include "Observables/checkFF.f90"
 #include "Observables/fermionic_operators.f90"
+#include "Observables/trivialWT.f90"
 
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

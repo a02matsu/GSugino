@@ -60,69 +60,69 @@ call MPI_REDUCE(tmp,XiPhiEta,1,MPI_DOUBLE_COMPLEX, &
 end subroutine calc_XiPhiEta
 
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!! compute \Xi Tr(Phi eta)
-subroutine calc_XiPhiEta_org(XiPhiEta,Umat,PhiMat,triger)
-#ifdef PARALLEL
-use parallel
-#endif
-implicit none
-
-complex(kind(0d0)), intent(out) :: XiPhiEta
-complex(kind(0d0)), intent(in) :: Umat(1:NMAT,1:NMAT,1:num_necessary_links)
-complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_necessary_sites)
-integer, intent(in) :: triger
-
-complex(kind(0d0)) Xi_eta(1:NMAT,1:NMAT,1:num_necessary_sites)
-complex(kind(0d0)) Xi_lambda(1:NMAT,1:NMAT,1:num_necessary_links)
-complex(kind(0d0)) Xi_chi(1:NMAT,1:NMAT,1:num_necessary_faces)
-complex(kind(0d0)) DinvXi_eta(1:NMAT,1:NMAT,1:num_sites)
-complex(kind(0d0)) DinvXi_lambda(1:NMAT,1:NMAT,1:num_links)
-complex(kind(0d0)) DinvXi_chi(1:NMAT,1:NMAT,1:num_faces)
-
-complex(kind(0d0)) tmp
-integer :: i,j,s
-integer :: info
-
-call make_XiVec(Xi_eta,Xi_lambda,Xi_chi,Umat,PhiMat)
-info=0
-
-!call test_calc_DinvF(Xi_eta,Xi_lambda,Xi_chi,Umat,PhiMat)
-!stop
-if( triger == 0) then 
-  call calc_dinvf(dinvxi_eta,dinvxi_lambda,dinvxi_chi,xi_eta,xi_lambda,xi_chi,umat,phimat,info)
-else
-  call calc_DinvF_direct(DinvXi_eta,DinvXi_lambda,DinvXi_chi,Xi_eta,Xi_lambda,Xi_chi,Umat,PhiMat)
-endif
-
-XiPhiEta=(0d0,0d0)
-if( info==1 ) then
-#ifdef PARALLEL
-  if(MYRANK==0) then
-#endif
-  write(*,*) "# Dirac is singular"
-#ifdef PARALLEL
-  endif
-#endif
-  return
-endif
-
-tmp=(0d0,0d0)
-do s=1,num_sites
-  do j=1,NMAT
-    do i=1,NMAT
-      tmp=tmp + DinvXi_eta(i,j,s)*PhiMat(j,i,s)
-    enddo
-  enddo
-enddo
-#ifdef PARALLEL
-call MPI_REDUCE(tmp,XiPhiEta,1,MPI_DOUBLE_COMPLEX, &
-  MPI_SUM,0,MPI_COMM_WORLD,IERR)
-#else
-XiPhiEta=tmp
-#endif
-
-end subroutine calc_XiPhiEta_org 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!! compute \Xi Tr(Phi eta)
+!subroutine calc_XiPhiEta_org(XiPhiEta,Umat,PhiMat,triger)
+!#ifdef PARALLEL
+!use parallel
+!#endif
+!implicit none
+!
+!complex(kind(0d0)), intent(out) :: XiPhiEta
+!complex(kind(0d0)), intent(in) :: Umat(1:NMAT,1:NMAT,1:num_necessary_links)
+!complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_necessary_sites)
+!integer, intent(in) :: triger
+!
+!complex(kind(0d0)) Xi_eta(1:NMAT,1:NMAT,1:num_necessary_sites)
+!complex(kind(0d0)) Xi_lambda(1:NMAT,1:NMAT,1:num_necessary_links)
+!complex(kind(0d0)) Xi_chi(1:NMAT,1:NMAT,1:num_necessary_faces)
+!complex(kind(0d0)) DinvXi_eta(1:NMAT,1:NMAT,1:num_sites)
+!complex(kind(0d0)) DinvXi_lambda(1:NMAT,1:NMAT,1:num_links)
+!complex(kind(0d0)) DinvXi_chi(1:NMAT,1:NMAT,1:num_faces)
+!
+!complex(kind(0d0)) tmp
+!integer :: i,j,s
+!integer :: info
+!
+!call make_XiVec(Xi_eta,Xi_lambda,Xi_chi,Umat,PhiMat)
+!info=0
+!
+!!call test_calc_DinvF(Xi_eta,Xi_lambda,Xi_chi,Umat,PhiMat)
+!!stop
+!if( triger == 0) then 
+!  call calc_dinvf(dinvxi_eta,dinvxi_lambda,dinvxi_chi,xi_eta,xi_lambda,xi_chi,umat,phimat,info)
+!else
+!  call calc_DinvF_direct(DinvXi_eta,DinvXi_lambda,DinvXi_chi,Xi_eta,Xi_lambda,Xi_chi,Umat,PhiMat)
+!endif
+!
+!XiPhiEta=(0d0,0d0)
+!if( info==1 ) then
+!#ifdef PARALLEL
+!  if(MYRANK==0) then
+!#endif
+!  write(*,*) "# Dirac is singular"
+!#ifdef PARALLEL
+!  endif
+!#endif
+!  return
+!endif
+!
+!tmp=(0d0,0d0)
+!do s=1,num_sites
+!  do j=1,NMAT
+!    do i=1,NMAT
+!      tmp=tmp + DinvXi_eta(i,j,s)*PhiMat(j,i,s)
+!    enddo
+!  enddo
+!enddo
+!#ifdef PARALLEL
+!call MPI_REDUCE(tmp,XiPhiEta,1,MPI_DOUBLE_COMPLEX, &
+!  MPI_SUM,0,MPI_COMM_WORLD,IERR)
+!#else
+!XiPhiEta=tmp
+!#endif
+!
+!end subroutine calc_XiPhiEta_org 
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! subroutine to make S_eta, S_lambda, S_chi of

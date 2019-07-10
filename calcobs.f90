@@ -4,16 +4,14 @@ implicit none
 character(128), parameter :: PARAFILE="parameters_calcobs.dat"
 character(128) :: MEDFILE
 character(128) :: DinvFILE
-integer, parameter :: num_calcobs=8 ! 考えているobservableの数
+integer, parameter :: num_calcobs=6 ! 考えているobservableの数
 character(128) :: name_obs(1:num_calcobs) = (/ &
   "|Atr|", &
-  "Sb", &
   "Re(triv.WT)", &
   "Im(triv.WT)", &
-  "Re(SbS+SbL-rhs)", &
-  "Im(SbS+SbL-rhs)", &
-  "Re(SbL-2SbF-rhs)", &
-  "Im(SbL-2SbF-rhs)" &
+  "SbS+SbL-rhs", &
+  "SbL-2SbF-Re(SfL2)", &
+  "Im(SfL2)" &
   /)
 !integer :: trig_obs(1:num_calcobs)
 integer :: sizeM,sizeN
@@ -118,10 +116,6 @@ do
          Geta_chi, Glambda_chi, Gchi_chi, &
          N_DinvFILE)
   if( control == 0 ) then 
-    call calc_trace_compensator(Acomp_tr,PhiMat)
-    !call calc_VM_compensator(Acomp_VM,PhiMat)
-    APQ_phase = dconjg(Acomp_tr) / cdabs(Acomp_tr) 
-    Sb_computed=0
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !! calculate observables
     if( MYRANK == 0 ) then
@@ -137,6 +131,10 @@ do
     !    Umat,PhiMat)
 
     !"|Atr|", &
+      call calc_trace_compensator(Acomp_tr,PhiMat)
+      !call calc_VM_compensator(Acomp_VM,PhiMat)
+      APQ_phase = dconjg(Acomp_tr) / cdabs(Acomp_tr) 
+      Sb_computed=0
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') cdabs(Acomp_tr)
     !"Sb", &
       !call calc_bosonic_action(Sb,Umat,PhiMat)
@@ -144,43 +142,40 @@ do
       call calc_bosonic_action_link(SbL,Umat,PhiMat)
       call calc_bosonic_action_face(SbF,Umat)
       if( MYRANK == 0 ) Sb=SbS+SbL+SbF
-      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') Sb
+      !if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') Sb
     !! trivial WT
-      call calc_XiPhiEta(XiPhiEta,&
-        Geta_eta, Glambda_eta, Gchi_eta, &
-        Geta_lambda, Glambda_lambda, Gchi_lambda, &
-        Geta_chi, Glambda_chi, Gchi_chi, &
-        Umat,PhiMat)
-      tmpobs1= &
-        cdabs(Acomp_tr) * &
-        (&
-        dcmplx(Sb) &
-        + dcmplx(0.5d0*mass_square_phi)*XiPhiEta &
-        - dcmplx(0.5d0*dble(num_sitelink)) &
-        )  
+      !call calc_XiPhiEta(XiPhiEta,&
+      !  Geta_eta, Glambda_eta, Gchi_eta, &
+      !  Geta_lambda, Glambda_lambda, Gchi_lambda, &
+      !  Geta_chi, Glambda_chi, Gchi_chi, &
+      !  Umat,PhiMat)
+      !tmpobs1= &
+      !  cdabs(Acomp_tr) * &
+      !  (&
+      !  dcmplx(Sb) &
+      !  + dcmplx(0.5d0*mass_square_phi)*XiPhiEta &
+      !  - dcmplx(0.5d0*dble(num_sitelink)) &
+      !  )  
+      call calc_trivialWT(tmpobs1,Geta_eta,Geta_lambda,Geta_chi,Umat,PhiMat)
       if( MYRANK == 0 ) write(*,'(E15.8,2X,E15.8,2X)',advance='no') &
         dble(tmpobs1), dble((0d0,-1d0)*tmpobs1)
 
     !! relations in bosonic action 1
     !!  Sb_site + Sb_face = #(face)/2*dimG
     !! we need also compensator
-      tmpobs1 = &
-        dcmplx(cdabs(Acomp_tr))* &
-         (SbS + SbF - dcmplx(dble(global_num_faces*dimG)*0.5d0 ) )
-      if( MYRANK == 0 ) write(*,'(E15.8,2X,E15.8,2X)',advance='no') &
-        dble(tmpobs1), dble((0d0,-1d0)*tmpobs1)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  &
+        SbS + SbF - dble(global_num_faces*dimG)*0.5d0 
 
     !! relations in bosonic action 2
     !!  Sb_link - 2 Sb_face = lambda.lambda(U.\bar{phi}.U^-1 + \bar{phi})
     !! we need also compensator
-      call calc_SfL2(SfL2,PhiMat,Umat,Glambda_lambda)
-      tmpobs1 = &
-        dcmplx(cdabs(Acomp_tr)) * (dcmplx(SbL - 2d0*SbF) - SfL2)
-      if( MYRANK == 0 ) write(*,'(E15.8,2X,E15.8,2X)',advance='no') &
-        dble(tmpobs1), dble((0d0,-1d0)*tmpobs1)
-
-      !if( MYRANK == 0 ) write(*,'(E15.8,2X,E15.8,2X,E15.8,2X)',advance='no') &
-        !SbL, SbF, dble(SfL2)
+      call calc_Sf_link2(SfL2,PhiMat,Umat,Glambda_lambda)
+      !tmpobs1 = &
+        !dcmplx(cdabs(Acomp_tr)) * (dcmplx(SbL - 2d0*SbF) - SfL2)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') &
+        SbL - 2d0*SbF - dble(SfL2)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') &
+        dble( (0d0,-1d0)*SfL2 )
 
     if(MYRANK==0) write(*,*)
   else

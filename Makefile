@@ -74,12 +74,6 @@ all:$(PROG)
 
 $(PROG): $(OBJS) $(OBJ_MAIN)
 	$(FC) $(FLAGS_IFORT) -o $@  $(OBJS) $(OBJ_MAIN) $(LIB)
-
-#########################################
-obs:$(PROG_OBS)
-$(PROG_OBS): $(OBJ_OBS) $(OBJ_OBSMAIN) $(OBJS)
-	 $(FC) $(FLAGS_IFORT) -o $@ $(OBJ_OBSCOMM) $(OBJS) $(OBJ_OBSMAIN) $(LIB)
-
 #########################################
 dirac:$(PROG_Dirac)
 
@@ -91,10 +85,9 @@ dinv:$(PROG_Dinv)
 $(PROG_Dinv): $(OBJ_Dinv)
 	$(FC) $(FLAGS_CLUSTER) -o $@ $(OBJ_Dinv) 
 #########################################
-#dinv2:$(PROG_Dinv2)
-#
-#$(PROG_Dinv2): $(OBJ_Dinv2) $(OBJS)
-#	$(FC) $(FLAGS_IFORT) -o $@ $(OBJS) $(OBJ_Dinv2) $(LIB)
+obs:$(PROG_OBS)
+$(PROG_OBS): $(OBJ_OBS) $(OBJ_OBSMAIN) $(OBJ_OBSCOMM) $(OBJS)
+	 $(FC) $(FLAGS_IFORT) -o $@ $(OBJ_OBSCOMM) $(OBJS) $(OBJ_OBSMAIN) $(LIB)
 #########################################
 trphi2:$(PROG_TRPHI2)
 
@@ -155,6 +148,8 @@ check_routines.o: \
   matrix_functions.o \
   mt95.o \
   simplicial_complex.o
+initialization_calcobs.o: \
+  global_parameters.f90
 simulation.o: \
   global_parameters.o \
   global_subroutines.o \
@@ -171,13 +166,16 @@ simulation.o: \
   forces.f90 \
   $(DIR_OBS)/bosonic_action.f90 \
   $(DIR_OBS)/fermionic_operators.f90 \
-  $(DIR_OBS)/WT_identities.f90 \
   $(DIR_OBS)/div_rot.f90 \
   $(DIR_OBS)/U1V_current.f90 \
+  $(DIR_OBS)/fermion_action_link2.f90 \
   $(DIR_OBS)/compensators.f90 \
   $(DIR_OBS)/phichi.f90 \
   $(DIR_OBS)/checkFF.f90 \
-  $(DIR_OBS)/local_operators.f90
+  $(DIR_OBS)/trphi2.f90 \
+  $(DIR_OBS)/trf2.f90 \
+  $(DIR_OBS)/trivialWT.f90 
+  #$(DIR_OBS)/WT_identities.f90 
 Dirac_operator.o: \
   global_parameters.o \
   global_subroutines.o \
@@ -190,8 +188,11 @@ differential_Dirac.o: \
   parallel.o \
   SUN_generators.o \
   matrix_functions.o
-initialization_calcobs.o: \
-  global_parameters.f90
+$(OBJ_OBSMAIN): \
+  global_parameters.o \
+  differential_Dirac.o \
+  simulation.o \
+  initialization_calcobs.o 
 $(OBJ_TRPHI2): \
   global_parameters.o \
   global_subroutines.o \
