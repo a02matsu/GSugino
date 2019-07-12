@@ -75,7 +75,7 @@ do
       write(N_divJFILE,'(I7,2X)',advance='no') ite
     endif
     !!!!!!!!!!!!!!!!
-    call calc_divJ_U1V(divJ,Glambda_eta,Gchi_lambda,UMAT)
+    call calc_divJ_U1V(divJ1,divJ2,Glambda_eta,Gchi_lambda,UMAT)
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !! write divJ
@@ -83,12 +83,13 @@ do
       lf=local_face_of_global(gf)%label_
       rank=local_face_of_global(gf)%rank_
       tag=gf
-      !do jj=1,2
-      !  if( jj==1 ) then 
-      !    divJ=divJ1
-      !  else
-      !    divJ=divJ2
-      !  endif
+
+      do jj=1,2
+        if( jj==1 ) then 
+          divJ=divJ1
+        else
+          divJ=divJ2
+        endif
 
       if( MYRANK == rank ) then
         ctmp=divJ(lf)
@@ -104,7 +105,8 @@ do
           dble(ctmp), dble( (0d0,-1d0)*ctmp )
       endif
       call MPI_BARRIER(MPI_COMM_WORLD,IERR)
-      !enddo
+
+      enddo
     enddo
 
     if( MYRANK==0 ) then

@@ -1,7 +1,7 @@
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! calculate D^\mu J_\mu for U(1)_V current
-subroutine calc_divJ_U1V(divJ,Glambda_eta,Gchi_lambda,UMAT)
+subroutine calc_divJ_U1V(divJ1,divJ2,Glambda_eta,Gchi_lambda,UMAT)
 use global_parameters
 !use initialization_calcobs
 use parallel
@@ -9,7 +9,7 @@ use global_subroutines, only : syncronize_linkval, calc_prodUl_from_n1_to_n2_in_
 implicit none
 
 
-complex(kind(0d0)), intent(out) :: divJ(1:num_faces)
+!complex(kind(0d0)), intent(out) :: divJ(1:num_faces)
 complex(kind(0d0)), intent(in) :: Glambda_eta(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_links,1:num_sites) 
 !complex(kind(0d0)), intent(in) :: Glambda_chi(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_links,1:num_faces) 
 complex(kind(0d0)), intent(in) :: Gchi_lambda(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_faces,1:num_links) 
@@ -78,42 +78,13 @@ do ll=1,num_links
 enddo
 call syncronize_linkval(vec2)
 
-!do lf=1,num_faces
-!  !! set size of vec2
-!  vec2(lf)%num_=links_in_f(lf)%num_
-!  allocate( vec2(lf)%val(1:links_in_f(lf)%num_) )
-!  vec2(lf)%val=(0d0,0d0)
-!  !!
-!  do ii=1,links_in_f(lf)%num_
-!    ll=links_in_f(lf)%link_labels_(ii)
-!    dir=links_in_f(lf)%link_dirs_(ii)
-!    gl=global_link_of_local(ll)
-!    if( dir == 1 ) then 
-!      s_place=ii
-!    else
-!      s_place=ii+1
-!      if(s_place == links_in_f(lf)%num_ + 1) s_place=1
-!    endif
-!    call calc_prodUl_from_n1_to_n2_in_Uf(Ucarry,lf,1,s_place-1,Umat)
-!    do i=1,NMAT
-!      do l=1,NMAT
-!        do j=1,NMAT
-!          do k=1,NMAT
-!            vec2(lf)%val(ii)=vec2(lf)%val(ii) &
-!              + Ucarry(i,j) * dconjg(Ucarry(l,k)) * Glambda_chi(j,k,l,i,gl,lf)
-!          enddo
-!        enddo
-!      enddo
-!    enddo
-!  enddo
-!enddo
-
 divJ1=(0d0,0d0)
 divJ2=(0d0,0d0)
 call calc_trrot(divJ1,vec1)
 call calc_trdiv(divJ2,vec2)
 
-divJ=(divJ1+divJ2)/dcmplx(LatticeSpacing**4)
+divJ1=(divJ1)/dcmplx(LatticeSpacing**4)
+divJ2=(divJ2)/dcmplx(LatticeSpacing**4)
 
 end subroutine calc_divJ_U1V
 

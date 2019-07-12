@@ -459,33 +459,146 @@ endif
 
 end subroutine check_alpha_beta
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!! 赤道周りの反転(only for Misumi bunkatsu)
-!subroutine check_NSparity(Umat,PhiMat,M,N)
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!! subroutine to test Q-transformation of S
+!subroutine check_QS(Umat,PhiMat)
+!use matrix_functions, only : matrix_commutator, matrix_3_product
+!use Dirac_operator, only : Prod_Dirac
+!use simulation, only : make_bosonic_force_nomass
+!#ifdef PARALLEL
 !use parallel
+!#endif
 !implicit none
 !
 !complex(kind(0d0)), intent(in) :: Umat(1:NMAT,1:NMAT,1:num_necessary_links)
 !complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_necessary_sites)
-!integer, intent(in) :: M,N
 !
-!complex(kind(0d0)) :: Umat2(1:NMAT,1:NMAT,1:num_necessary_links)
-!complex(kind(0d0)) :: PhiMat2(1:NMAT,1:NMAT,1:num_necessary_sites)
+!complex(kind(0d0)) :: Qeta(1:NMAT,1:NMAT,1:num_necessary_sites)
+!complex(kind(0d0)) :: Qlambda(1:NMAT,1:NMAT,1:num_necessary_links)
+!complex(kind(0d0)) :: Qchi(1:NMAT,1:NMAT,1:num_necessary_faces)
 !
-!double precision :: SB_S,SB_L,SB_F,SB_M, SF !,SB_T
+!complex(kind(0d0)) :: tmp_eta(1:NMAT,1:NMAT,1:num_sites)
+!complex(kind(0d0)) :: tmp_lambda(1:NMAT,1:NMAT,1:num_links)
+!complex(kind(0d0)) :: tmp_chi(1:NMAT,1:NMAT,1:num_faces)
+!complex(kind(0d0)) :: Omega(1:NMAT,1:NMAT,1:num_faces)
 !
+!complex(kind(0d0)) :: Bforce_s(1:NMAT,1:NMAT,1:num_sites)
+!complex(kind(0d0)) :: Bforce_l(1:NMAT,1:NMAT,1:num_links)
+!!complex(kind(0d0)) :: Fforce_s(1:NMAT,1:NMAT,1:num_sites)
+!!complex(kind(0d0)) :: Fforce_l(1:NMAT,1:NMAT,1:num_links)
 !
+!complex(kind(0d0)) :: tmpmat(1:NMAT,1:NMAT)
+!double precision :: tmp,QS
+!integer :: info,s,l,f,i,j,triger
 !
+!call make_Qfermion(Qeta,Qlambda,Qchi,Omega,Umat,PhiMat)
+!call make_bosonic_force_nomass(Bforce_s,Bforce_l,Umat,PhiMat)
 !
+!call Prod_Dirac(tmp_eta,tmp_lambda,tmp_chi,Qeta,Qlambda,Qchi,UMAT,Phimat)
+!! Q^2 \Omega を care する
+!!do f=1,num_faces
+!!  call matrix_commutator(tmpmat,PhiMat(:,:,sites_in_f(f)%label_(1)),Omega(:,:,f))
+!!  tmp_chi(:,:,f)=tmp_chi(:,:,f)+(0d0,1d0)*dcmplx(beta_f(f))*tmpmat
+!!enddo
 !
+!if(MYRANK==0) write(*,*) "# QS = 0 ?"
+!!write(*,*) tmp_chi
+!QS=0d0
+!tmp=0d0
+!do s=1,num_sites
+!  !tmp=0d0
+!  do i=1,NMAT
+!    do j=1,NMAT
+!      tmp_eta(i,j,s)=-tmp_eta(i,j,s)+dconjg(Bforce_s(j,i,s))
+!      tmp=tmp+dble( tmp_eta(i,j,s)*dconjg(tmp_eta(i,j,s)) )
+!    enddo
+!  enddo
+!  !write(*,*) "# site",global_site_of_local(s),tmp
+!enddo
+!call MPI_REDUCE(tmp,QS,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,MPI_COMM_WORLD,IERR)
+!if(MYRANK==0) write(*,*) "#   site:",QS
 !
-!call bosonic_action_mass(SB_M,PhiMat)
-!call bosonic_action_site(SB_S,PhiMat)
-!call bosonic_action_link(SB_L,UMAT,PhiMat)
-!call bosonic_action_face(SB_F,UMAT)
+!QS=0d0
+!tmp=0d0
+!do l=1,num_links
+!  !tmp=0d0
+!  do i=1,NMAT
+!    do j=1,NMAT
+!      tmp_lambda(i,j,l) = -tmp_lambda(i,j,l)+Bforce_l(i,j,l)
+!      tmp=tmp+dble( tmp_lambda(i,j,l)*dconjg(tmp_lambda(i,j,l)) )
+!    enddo
+!  enddo
+!  !write(*,*) "# link",global_link_of_local(l),tmp
+!enddo
+!call MPI_REDUCE(tmp,QS,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,MPI_COMM_WORLD,IERR)
+!if(MYRANK==0) write(*,*) "#   link:",QS
 !
+!QS=0d0
+!tmp=0d0
+!do f=1,num_faces
+!  !tmp=0d0
+!  do i=1,NMAT
+!    do j=1,NMAT
+!      tmp_chi(i,j,f)=-tmp_chi(j,i,f)
+!      tmp=tmp+dble( tmp_chi(i,j,f)*dconjg(tmp_chi(i,j,f)) )
+!    enddo
+!  enddo
+!  !write(*,*) "# face",global_face_of_local(f),tmp
+!enddo
+!call MPI_REDUCE(tmp,QS,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,MPI_COMM_WORLD,IERR)
+!if(MYRANK==0) write(*,*) "#   face:",QS
 !
+!end subroutine check_QS
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! subroutine to make Q\Psi
+!subroutine make_Qfermion(Qeta,Qlambda,Qchi,Omega,Umat,PhiMat)
+!use global_subroutines
+!use matrix_functions, only : matrix_commutator, matrix_3_product
+!use parallel
+!implicit none
 !
-!end subroutine check_NSparity
+!complex(kind(0d0)), intent(out) :: Qeta(1:NMAT,1:NMAT,1:num_necessary_sites)
+!complex(kind(0d0)), intent(out) :: Qlambda(1:NMAT,1:NMAT,1:num_necessary_links)
+!complex(kind(0d0)), intent(out) :: Qchi(1:NMAT,1:NMAT,1:num_necessary_faces)
+!complex(kind(0d0)), intent(out) :: Omega(1:NMAT,1:NMAT,1:num_faces)
+!complex(kind(0d0)), intent(in) :: Umat(1:NMAT,1:NMAT,1:num_necessary_links)
+!complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_necessary_sites)
+!!complex(kind(0d0)), intent(in) :: PF_lambda(1:NMAT,1:NMAT,1:num_necessary_links)
+!!complex(kind(0d0)) :: comm(1:NMAT,1:NMAT)
+!
+!integer :: s,l,f,i,j
+!complex(kind(0d0)) :: Uf(1:NMAT,1:NMAT)
+!
+!do s=1,num_sites
+!  call matrix_commutator(Qeta(:,:,s),PhiMat(:,:,s),PhiMat(:,:,s),'N','C')
+!enddo
+!
+!do l=1,num_links
+!  Qlambda(:,:,l)=(0d0,-1d0)*PhiMat(:,:,link_org(l))
+!  call matrix_3_product(Qlambda(:,:,l),&
+!    Umat(:,:,l),PhiMat(:,:,link_tip(l)),Umat(:,:,l),&
+!    'N','N','C',(0d0,1d0),'ADD')
+!enddo
+!
+!do f=1,num_faces
+!  call Make_face_variable(Uf,f,UMAT)
+!  if(m_omega == 0) then 
+!    call Make_moment_map0(Omega(:,:,f),Uf)
+!  elseif(m_omega == -1) then
+!    call Make_moment_map_adm(Omega(:,:,f),Uf)
+!  endif
+!  Qchi(:,:,f)=(0d0,-0.5d0)*dcmplx(beta_f(f))*Omega(:,:,f)
+!enddo
+!
+!#ifdef PARALLEL
+!call syncronize_sites(Qeta)
+!call syncronize_links(Qlambda)
+!call syncronize_faces(Qchi)
+!#endif
+!
+!end subroutine make_Qfermion
+
+
+
 
 end module check_routines

@@ -72,4 +72,26 @@ Acomp=Acomp/dcmplx(dble(global_num_sites))
 
 end subroutine calc_VM_compensator
 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! Cartan elements
+!!   cartan(1:NMAT-1)
+!!   MAT(1:NMAT,1:NMAT)
+subroutine calc_cartan(cartan,MAT)
+use SUN_generators, only : trace_MTa
+implicit none
+
+complex(kind(0d0)), intent(out) :: cartan(:)
+complex(kind(0d0)), intent(in) :: MAT(:,:)
+integer :: n,i
+
+n=size(MAT,1)
+
+do i=1,n-1
+  call trace_MTa(cartan(i),MAT,i,n)
+enddo
+
+end subroutine calc_cartan
+
+
+
 

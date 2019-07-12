@@ -141,21 +141,27 @@ global_subroutines.o: \
   mt95.o \
   SUN_generators.o \
   matrix_functions.o
-check_routines.o: \
+initialization_calcobs.o: \
+  global_parameters.f90
+Dirac_operator.o: \
   global_parameters.o \
   global_subroutines.o \
   parallel.o \
-  matrix_functions.o \
-  mt95.o \
-  simplicial_complex.o
-initialization_calcobs.o: \
-  global_parameters.f90
+  SUN_generators.o \
+  matrix_functions.o
+differential_Dirac.o: \
+  global_parameters.o \
+  global_subroutines.o \
+  parallel.o \
+  SUN_generators.o \
+  matrix_functions.o
 simulation.o: \
   global_parameters.o \
   global_subroutines.o \
   mt95.o \
   parallel.o \
   Dirac_operator.o \
+  differential_Dirac.o \
   matrix_functions.o \
   SUN_generators.o \
   rational_algorithm.o \
@@ -174,20 +180,18 @@ simulation.o: \
   $(DIR_OBS)/checkFF.f90 \
   $(DIR_OBS)/trphi2.f90 \
   $(DIR_OBS)/trf2.f90 \
-  $(DIR_OBS)/trivialWT.f90 
+  $(DIR_OBS)/trivialWT.f90 \
+  $(DIR_OBS)/eigenvalues_of_Dirac.f90 
   #$(DIR_OBS)/WT_identities.f90 
-Dirac_operator.o: \
+check_routines.o: \
   global_parameters.o \
   global_subroutines.o \
   parallel.o \
-  SUN_generators.o \
-  matrix_functions.o
-differential_Dirac.o: \
-  global_parameters.o \
-  global_subroutines.o \
-  parallel.o \
-  SUN_generators.o \
-  matrix_functions.o
+  matrix_functions.o \
+  mt95.o \
+  simplicial_complex.o \
+  simulation.o \
+  Dirac_operator.o 
 $(OBJ_OBSMAIN): \
   global_parameters.o \
   differential_Dirac.o \
