@@ -101,7 +101,7 @@ do
         call MPI_RECV(ctmp,1,MPI_DOUBLE_COMPLEX,rank,tag,MPI_COMM_WORLD,ISTATUS,IERR)
       endif
       if( MYRANK==0 ) then
-        write(N_divJFILE,'(E15.8,2X,E15.8,2X)',advance='no') &
+        write(N_divJFILE,'(E23.16,2X,E23.16,2X)',advance='no') &
           dble(ctmp), dble( (0d0,-1d0)*ctmp )
       endif
       call MPI_BARRIER(MPI_COMM_WORLD,IERR)

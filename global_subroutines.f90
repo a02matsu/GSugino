@@ -1079,6 +1079,8 @@ end subroutine calc_diffdiff_Uf
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! caluculate product of Ul's from l1 to l2 in the face f.
+!!  n1: place of l1 in f
+!!  n2: place of l2 in f
 subroutine calc_prodUl_from_n1_to_n2_in_Uf(ProdU,f,n1,n2,UMAT)
 use matrix_functions, only : make_unit_matrix
 implicit none

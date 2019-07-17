@@ -17,13 +17,14 @@ trdiv=(0d0,0d0)
 do ls=1,num_sites
   do i=1,linktip_from_s(ls)%num_
     ll=linktip_from_s(ls)%labels_(i) 
-    trdiv(ls)=trdiv(ls) + alpha_l(ll)*trvec(ll)
+    trdiv(ls)=trdiv(ls) + dcmplx(alpha_l(ll))*trvec(ll)
   enddo
   !!!
   do i=1,linkorg_to_s(ls)%num_
     ll=linkorg_to_s(ls)%labels_(i) 
-    trdiv(ls)=trdiv(ls) - alpha_l(ll)*trvec(ll)
+    trdiv(ls)=trdiv(ls) - dcmplx(alpha_l(ll))*trvec(ll)
   enddo
+  !write(*,*) global_site_of_local(ls), dble(trdiv(ls)), dble((0d0,-1d0)*trdiv(ls))
 enddo
 
 call syncronize_siteval(trdiv)
@@ -52,6 +53,7 @@ do lf=1,num_faces
   do i=1,sites_in_f(lf)%num_
     ls=sites_in_f(lf)%label_(i)
     trdiv_f(lf)=trdiv_f(lf) + trdiv_s(ls)/dcmplx(dble(num_faces_in_s(ls)))
+    !write(*,*) global_face_of_local(lf), dble(trdiv_s(ls)), dble((0d0,-1d0)*trdiv_s(ls))
   enddo
   trdiv_f(lf) = trdiv_f(lf) * beta_f(lf)
 enddo
@@ -76,38 +78,42 @@ do lf=1,num_faces
   do i=1,links_in_f(lf)%num_
     ll=links_in_f(lf)%link_labels_(i)
     dir=links_in_f(lf)%link_dirs_(i)
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    if( global_face_of_local(lf)==1 ) dir=-dir
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     trrot(lf) = trrot(lf) + dcmplx(dble(dir))*trvec(ll)
   enddo
   trrot(lf) = trrot(lf) * beta_f(lf)
+  !write(*,*) global_face_of_local(lf), dble(trrot(lf)), dble((0d0,-1d0)*trrot(lf))
 enddo
 
 end subroutine calc_trrot
 
 
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!! Tr( rot(V) ) at face f
-!! trvec is vectors defined in the face lf
-subroutine calc_trrot_in_face(trrot,trvec,num,lf)
-use parallel
-implicit none
-
-complex(kind(0d0)), intent(out) :: trrot
-complex(kind(0d0)), intent(in) :: trvec(1:num)
-integer, intent(in) :: num ! number of links in the face lf
-integer, intent(in) :: lf ! label of local face
-
-integer :: ls, ll
-integer :: i,j
-integer :: dir
-
-trrot=(0d0,0d0)
-do i=1,links_in_f(lf)%num_
-  !ll=links_in_f(lf)%link_labels_(i)
-  dir=links_in_f(lf)%link_dirs_(i)
-  trrot = trrot + dcmplx(dble(dir))*trvec(i)
-enddo
-trrot = trrot * beta_f(lf)
-
-end subroutine calc_trrot_in_face
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!! Tr( rot(V) ) at face f
+!!! trvec is vectors defined in the face lf
+!subroutine calc_trrot_in_face(trrot,trvec,num,lf)
+!use parallel
+!implicit none
+!
+!complex(kind(0d0)), intent(out) :: trrot
+!complex(kind(0d0)), intent(in) :: trvec(1:num)
+!integer, intent(in) :: num ! number of links in the face lf
+!integer, intent(in) :: lf ! label of local face
+!
+!integer :: ls, ll
+!integer :: i,j
+!integer :: dir
+!
+!trrot=(0d0,0d0)
+!do i=1,links_in_f(lf)%num_
+!  !ll=links_in_f(lf)%link_labels_(i)
+!  dir=links_in_f(lf)%link_dirs_(i)
+!  trrot = trrot + dcmplx(dble(dir))*trvec(i)
+!enddo
+!trrot = trrot * beta_f(lf)
+!
+!end subroutine calc_trrot_in_face
 
