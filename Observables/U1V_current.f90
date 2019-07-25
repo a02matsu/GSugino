@@ -186,7 +186,7 @@ do ll=1,num_links
   enddo  
   !!!!!!!!!!!!!!!!! !!!!!!!!!!!!!!!!! !!!!!!!!!!!!!!!!!
   !! special treatment of the present discretization
-  !if(gf==1) vec2(ll)=-vec2(ll)
+  if(gf==1) vec2(ll)=-vec2(ll)
   !!!!!!!!!!!!!!!!! !!!!!!!!!!!!!!!!! !!!!!!!!!!!!!!!!!
   !write(*,*) global_link_of_local(ll), dble(vec2(ll)), dble((0d0,-1d0)*vec2(ll))
 enddo
@@ -225,7 +225,7 @@ do ii=1,face_in_l(ll)%num_
   !! special treatment of the present discretization
   if(gf==1) dir=-dir
   !!!!!!!!!!!!!!!!! !!!!!!!!!!!!!!!!! !!!!!!!!!!!!!!!!!
-  if( dir==-1 ) then 
+  if( dir==1 ) then 
     if( links_in_f(lf)%link_dirs_(org_ll) == 1 ) then
       org_ll = org_ll - 1
     endif
