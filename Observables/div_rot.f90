@@ -91,3 +91,42 @@ enddo
 end subroutine calc_trrot
 
 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! Tr( rot(V) ) onother version
+subroutine calc_trrot2(trrot,trvec)
+use parallel
+implicit none
+
+complex(kind(0d0)), intent(out) :: trrot(1:num_faces)
+complex(kind(0d0)), intent(in) :: trvec(1:num_necessary_links)
+
+integer :: ls, ll, lf
+integer :: i,j
+integer :: l1, l2
+integer :: dir
+
+trrot=(0d0,0d0)
+do lf=1,num_faces
+  do i=1,sites_in_f(lf)%num_
+    j=i-1
+    if( j==0 ) j=links_in_f(lf)%num_
+    l1=links_in_f(lf)%link_labels_(j)
+    l2=links_in_f(lf)%link_labels_(i)
+    !!!!!
+    do j=1,linktip_from_s(i)%num_
+      ll=linktip_from_s(i)%labels_(j)
+      if( ll /= l1 .and. ll /= l2 ) then
+        trrot(lf) = trfot(lf) + trvec(ll)
+      endif
+    enddo
+    !!!!!
+    do j=1,linkorg_to_s(i)%num_
+      ll=linkorg_to_s(i)%labels_(j)
+      if( ll /= l1 .and. ll /= l2 ) then
+        trrot(lf) = trfot(lf) - trvec(ll)
+      endif
+    enddo
+  enddo
+  trrot(lf) = trrot(lf) * beta_f(lf)
+enddo
+end subroutine calc_trrot2
