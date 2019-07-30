@@ -92,41 +92,41 @@ end subroutine calc_trrot
 
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!! Tr( rot(V) ) onother version
-subroutine calc_trrot2(trrot,trvec)
+!! Tr( div(V) ) onother version
+subroutine calc_trdiv2(trdiv,trvec)
 use parallel
 implicit none
 
-complex(kind(0d0)), intent(out) :: trrot(1:num_faces)
+complex(kind(0d0)), intent(out) :: trdiv(1:num_faces)
 complex(kind(0d0)), intent(in) :: trvec(1:num_necessary_links)
 
+complex(kind(0d0)) :: trdiv_s(1:num_necessary_sites)
 integer :: ls, ll, lf
 integer :: i,j
 integer :: l1, l2
-integer :: dir
+integer :: dir1, dir2
 
-trrot=(0d0,0d0)
+call calc_trdiv_in_site(trdiv_s,trvec)
+trdiv=(0d0,0d0)
 do lf=1,num_faces
   do i=1,sites_in_f(lf)%num_
-    j=i-1
-    if( j==0 ) j=links_in_f(lf)%num_
-    l1=links_in_f(lf)%link_labels_(j)
+    ls=sites_in_f(lf)%label_(i)
+    trdiv(lf)=trdiv(lf) + trdiv_s(ls)
+    !!!!!
+    if( i==1 ) then
+      l1=links_in_f(lf)%link_labels_(links_in_f(lf)%num_)
+      dir1=links_in_f(lf)%link_dirs_(links_in_f(lf)%num_)
+    else
+      l1=links_in_f(lf)%link_labels_(i-1)
+      dir1=links_in_f(lf)%link_dirs_(i-1)
+    endif
     l2=links_in_f(lf)%link_labels_(i)
+    dir2=links_in_f(lf)%link_dirs_(i)
     !!!!!
-    do j=1,linktip_from_s(i)%num_
-      ll=linktip_from_s(i)%labels_(j)
-      if( ll /= l1 .and. ll /= l2 ) then
-        trrot(lf) = trfot(lf) + trvec(ll)
-      endif
-    enddo
-    !!!!!
-    do j=1,linkorg_to_s(i)%num_
-      ll=linkorg_to_s(i)%labels_(j)
-      if( ll /= l1 .and. ll /= l2 ) then
-        trrot(lf) = trfot(lf) - trvec(ll)
-      endif
-    enddo
+    trdiv(lf) = trdiv(lf) &
+      + dcmplx(dble(dir1)*alpha_l(l1))*trvec(l1) &
+      - dcmplx(dble(dir2)*alpha_l(l2))*trvec(l2)
   enddo
-  trrot(lf) = trrot(lf) * beta_f(lf)
+  trdiv(lf) = trdiv(lf) * beta_f(lf)
 enddo
-end subroutine calc_trrot2
+end subroutine calc_trdiv2

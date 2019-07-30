@@ -53,7 +53,7 @@ call make_V2(vec2,Gchi_lambda,UMAT)
 !call make_V2_bak(vec2,Gchi_lambda,UMAT)
 
 call calc_trrot(divJ1,vec1)
-call calc_trdiv(divJ2,vec2)
+call calc_trdiv2(divJ2,vec2)
 
 divJ1=(divJ1)/dcmplx(LatticeSpacing**4)
 divJ2=(divJ2)/dcmplx(LatticeSpacing**4)

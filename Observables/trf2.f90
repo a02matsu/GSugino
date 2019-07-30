@@ -35,3 +35,32 @@ trF2 = trF2/(4d0 * LatticeSpacing**4 * dble(NMAT))
 end subroutine calc_trF2
 
 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! another definition of 
+!! trF2 = 1/N Tr( f^2 )*A_f
+!! where
+!!    f^2 = (2-Uf-Uf^\dagger) / (a^4*Af)
+subroutine calc_trF2_2(trF2,UMat)
+use parallel
+use global_subroutines, only : make_face_variable
+implicit none
+
+double precision, intent(out) :: trF2(1:num_faces)
+complex(kind(0d0)), intent(in) :: UMat(1:NMAT,1:NMAT,1:num_necessary_faces)
+
+complex(kind(0d0)) :: Uf(1:NMAT,1:NMAT)!, F2mat(1:NMAT,1:NMAT)
+integer :: f,i,j
+
+trF2=(0d0,0d0)
+do f=1,num_faces
+  call make_face_variable(Uf,f,UMAT)
+  do i=1,NMAT
+    trF2(f) = trF2(f) + 2d0 - 2d0*dble(Uf(i,i))
+  enddo
+  trF2(f) = trF2(f) / ( alpha_f(f)**2 )
+enddo
+trF2 = trF2/(4d0 * LatticeSpacing**4 * dble(NMAT))
+
+end subroutine calc_trF2_2
+
+
