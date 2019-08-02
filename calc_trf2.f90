@@ -21,13 +21,13 @@ integer, parameter :: N_trF2FILE=102
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! Observables
 double precision, allocatable :: trF2(:)
-double precision, allocatable :: trF2_2(:)
+!double precision, allocatable :: trF2_2(:)
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! misc
 integer :: ite
 integer :: rank,tag
 integer :: lf, gf
-double precision :: rtmp(1:2)
+double precision :: rtmp
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! initialization
@@ -44,7 +44,7 @@ call initialization
 !allocate( UMAT(1:NMAT,1:NMAT,1:num_necessary_links) )
 !allocate(  PhiMat(1:NMAT,1:NMAT,1:num_necessary_sites) )
 allocate( trF2(1:num_faces) )
-allocate( trF2_2(1:num_faces) )
+!allocate( trF2_2(1:num_faces) )
 
 if( MYRANK==0 ) then
   open(N_MEDFILE, file=MEDFILE, status='OLD',action='READ',form='unformatted')
@@ -63,8 +63,9 @@ do
       write(N_trF2FILE,'(I7,2X)',advance='no') ite
     endif
     !!!!!!!!!!!!!!!!
-    call calc_trF2(trF2,Umat)
-    call calc_trF2_2(trF2_2,Umat)
+    !call calc_trF2(trF2,Umat)
+    !call calc_trF2_2(trF2_2,Umat)
+    call calc_trF2omega(trF2,Umat)
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !! write trF2
@@ -73,17 +74,17 @@ do
       rank=local_face_of_global(gf)%rank_
       tag=gf
       if( MYRANK == rank ) then
-        rtmp(1)=trF2(lf)
-        rtmp(2)=trF2_2(lf)
+        rtmp=trF2(lf)
+        !rtmp(2)=trF2_2(lf)
         if( MYRANK /= 0 ) then 
-          call MPI_SEND(rtmp,2,MPI_DOUBLE_PRECISION,0,tag,MPI_COMM_WORLD,IERR)
+          call MPI_SEND(rtmp,1,MPI_DOUBLE_PRECISION,0,tag,MPI_COMM_WORLD,IERR)
         endif
       endif
       if( MYRANK == 0 .and. rank /= 0 ) then
-        call MPI_RECV(rtmp,2,MPI_DOUBLE_PRECISION,rank,tag,MPI_COMM_WORLD,ISTATUS,IERR)
+        call MPI_RECV(rtmp,1,MPI_DOUBLE_PRECISION,rank,tag,MPI_COMM_WORLD,ISTATUS,IERR)
       endif
       if( MYRANK==0 ) then
-        write(N_trF2FILE,'(E15.8,2X,E15.8,2X)',advance='no') rtmp(1), rtmp(2)
+        write(N_trF2FILE,'(E15.8,2X)',advance='no') rtmp
       endif
       call MPI_BARRIER(MPI_COMM_WORLD,IERR)
     enddo

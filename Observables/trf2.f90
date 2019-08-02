@@ -1,3 +1,37 @@
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! trF2 = 1/N Tr( f^2 )*A_f
+!! where
+!!    f=1/2 E^{\mu\nu} F_{\mu\nu} = (Uf-Uf^\dagger) / 2ia^2 A_f
+subroutine calc_trF2omega(trF2,UMat)
+use parallel
+use global_subroutines, only : make_face_variable, make_moment_map_adm
+implicit none
+
+double precision, intent(out) :: trF2(1:num_faces)
+complex(kind(0d0)), intent(in) :: UMat(1:NMAT,1:NMAT,1:num_necessary_faces)
+
+complex(kind(0d0)) :: Uf(1:NMAT,1:NMAT), Fmat(1:NMAT,1:NMAT)
+complex(kind(0d0)) :: Omega(1:NMAT,1:NMAT)
+integer :: f,i,j
+
+trF2=(0d0,0d0)
+do f=1,num_faces
+  call make_face_variable(Uf,f,UMAT)
+  call Make_moment_map_adm(Omega,Uf)
+
+  do j=1,NMAT
+    do i=1,NMAT
+      trF2(f) = trF2(f) + dble(Omega(i,j)*dconjg(Omega(i,j)))
+    enddo
+  enddo
+  trF2(f) = trF2(f)*beta_f(f)*beta_f(f)
+enddo
+trF2 = trF2/(4d0 * LatticeSpacing**4 * dble(NMAT))
+
+end subroutine calc_trF2omega
+
+
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! trF2 = 1/N Tr( f^2 )*A_f
 !! where
