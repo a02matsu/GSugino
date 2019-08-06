@@ -30,7 +30,40 @@
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! calculate D^\mu J_\mu for U(1)_V current
-subroutine calc_divJ_U1V(divJ1,divJ2,Glambda_eta,Gchi_lambda,UMAT)
+subroutine calc_divJ_U1V(divJ,Glambda_eta,Gchi_lambda,UMAT)
+use global_parameters
+!use initialization_calcobs
+use parallel
+use global_subroutines, only : syncronize_linkval, calc_prodUl_from_n1_to_n2_in_Uf
+implicit none
+
+
+complex(kind(0d0)), intent(out) :: divJ(1:num_faces)
+complex(kind(0d0)), intent(in) :: Glambda_eta(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_links,1:num_sites) 
+complex(kind(0d0)), intent(in) :: Gchi_lambda(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_faces,1:num_links) 
+complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_necessary_links)
+
+complex(kind(0d0)) :: vec1(1:num_necessary_links) ! 1/2 Tr(\lambda(l) \eta(s))
+complex(kind(0d0)) :: vec2(1:num_necessary_links) ! Tr(\lambda(l) \chi(f))
+complex(kind(0d0)) :: divJ1(1:num_faces)
+complex(kind(0d0)) :: divJ2(1:num_faces)
+
+
+call make_V1(vec1,Glambda_eta)
+call make_V2(vec2,Gchi_lambda,UMAT)
+
+call calc_trrot(divJ1,vec1)
+call calc_trdiv(divJ2,vec2)
+
+divJ=(divJ1+divJ2)/dcmplx(LatticeSpacing**4)
+
+end subroutine calc_divJ_U1V
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! calculate D^\mu J_\mu for U(1)_V current
+subroutine calc_divJ_U1V_2(divJ1,divJ2,Glambda_eta,Gchi_lambda,UMAT)
 use global_parameters
 !use initialization_calcobs
 use parallel
@@ -58,7 +91,7 @@ call calc_trdiv2(divJ2,vec2)
 divJ1=(divJ1)/dcmplx(LatticeSpacing**4)
 divJ2=(divJ2)/dcmplx(LatticeSpacing**4)
 
-end subroutine calc_divJ_U1V
+end subroutine calc_divJ_U1V_2
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
