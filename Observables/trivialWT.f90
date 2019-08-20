@@ -36,6 +36,87 @@ call calc_bosonic_action(Sbr,Umat,PhiMat)
 Sb=dcmplx(Sbr)
 
 !! (2) mass contribution
+call mass_contribution(mass_cont,Geta_eta,Geta_lambda,Geta_chi,Umat,PhiMat)
+!mass_cont=(0d0,0d0)
+!call make_XiVec(Xi_eta,Xi_lambda,Xi_chi,Umat,PhiMat)
+!DinvXi=(0d0,0d0)
+!do gs=1,global_num_sites
+!  ls2=local_site_of_global(gs)%label_
+!  rank=local_site_of_global(gs)%rank_
+!  tmpmat=(0d0,0d0)
+!  do ls=1,num_sites
+!    do k=1,NMAT
+!      do l=1,NMAT
+!        tmpmat=tmpmat+Geta_eta(:,:,l,k,gs,ls)*Xi_eta(k,l,ls)
+!      enddo
+!    enddo
+!  enddo
+!  !!!
+!  do ll=1,num_links
+!    do k=1,NMAT
+!      do l=1,NMAT
+!        tmpmat=tmpmat+Geta_lambda(:,:,l,k,gs,ll)*Xi_lambda(k,l,ll)
+!      enddo
+!    enddo
+!  enddo
+!  !!!
+!  do lf=1,num_faces
+!    do k=1,NMAT
+!      do l=1,NMAT
+!        tmpmat=tmpmat+Geta_chi(:,:,l,k,gs,lf)*Xi_chi(k,l,lf)
+!      enddo
+!    enddo
+!  enddo
+!  call MPI_REDUCE(tmpmat,DinvXi(:,:,ls2),NMAT*NMAT,MPI_DOUBLE_COMPLEX, &
+!    MPI_SUM,rank,MPI_COMM_WORLD,IERR)
+!enddo
+!trace=(0d0,0d0)
+!do ls=1,num_sites
+!  do k=1,NMAT
+!    do l=1,NMAT
+!      trace=trace - DinvXi(k,l,ls)*PhiMat(l,k,ls)
+!    enddo
+!  enddo
+!enddo
+!call MPI_REDUCE(trace,mass_cont,1,MPI_DOUBLE_COMPLEX, &
+!  MPI_SUM,0,MPI_COMM_WORLD,IERR)
+!mass_cont = mass_cont * dcmplx( 0.5d0*mass_square_phi )
+
+
+!! (3) contribution from fermion number 
+Fnumber=dcmplx(0.5d0*dble( (NMAT*NMAT-1)*(global_num_sites+global_num_links) ) )
+
+if( MYRANK==0 ) then
+  WT=Sb+mass_cont-Fnumber
+endif
+
+end subroutine calc_trivialWT
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! mass contribution to the trivial WT identity 
+!! 
+subroutine mass_contribution(mass_cont,Geta_eta,Geta_lambda,Geta_chi,Umat,PhiMat)
+implicit none
+
+complex(kind(0d0)), intent(out) :: mass_cont
+complex(kind(0d0)), intent(in) ::  Geta_eta(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_sites,1:num_sites) 
+complex(kind(0d0)) , intent(in) :: Geta_lambda(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_sites,1:num_links) 
+complex(kind(0d0)) , intent(in) :: Geta_chi(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_sites,1:num_faces) 
+complex(kind(0d0)), intent(in) :: Umat(1:NMAT,1:NMAT,1:num_necessary_links)
+complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_necessary_sites)
+
+
+complex(kind(0d0)) Xi_eta(1:NMAT,1:NMAT,1:num_necessary_sites)
+complex(kind(0d0)) Xi_lambda(1:NMAT,1:NMAT,1:num_necessary_links)
+complex(kind(0d0)) Xi_chi(1:NMAT,1:NMAT,1:num_necessary_faces)
+
+complex(kind(0d0)) tmpmat(1:NMAT,1:NMAT)
+complex(kind(0d0)) DinvXi(1:NMAT,1:NMAT,1:num_sites)
+complex(kind(0d0)) trace
+integer gs,ll,lf,ls,ls2,rank
+integer k,l
+
+
 mass_cont=(0d0,0d0)
 call make_XiVec(Xi_eta,Xi_lambda,Xi_chi,Umat,PhiMat)
 DinvXi=(0d0,0d0)
@@ -81,16 +162,7 @@ call MPI_REDUCE(trace,mass_cont,1,MPI_DOUBLE_COMPLEX, &
   MPI_SUM,0,MPI_COMM_WORLD,IERR)
 mass_cont = mass_cont * dcmplx( 0.5d0*mass_square_phi )
 
-
-!! (3) contribution from fermion number 
-Fnumber=dcmplx(0.5d0*dble( (NMAT*NMAT-1)*(global_num_sites+global_num_links) ) )
-
-if( MYRANK==0 ) then
-  WT=Sb+mass_cont-Fnumber
-endif
-
-end subroutine calc_trivialWT
-
+end subroutine mass_contribution
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! subroutine to make S_eta, S_lambda, S_chi of

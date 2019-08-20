@@ -4,14 +4,18 @@ implicit none
 character(128), parameter :: PARAFILE="parameters_calcobs.dat"
 character(128) :: MEDFILE
 character(128) :: DinvFILE
-integer, parameter :: num_calcobs=6 ! 考えているobservableの数
+integer, parameter :: num_calcobs=10 ! 考えているobservableの数
 character(128) :: name_obs(1:num_calcobs) = (/ &
   "|Atr|", &
-  "Re(triv.WT)", &
-  "Im(triv.WT)", &
-  "SbS+SbL-rhs", &
-  "SbL-2SbF-Re(SfL2)", &
-  "Im(SfL2)" &
+  "SbS", &
+  "SbL", &
+  "SbF", &
+  "Re(mass cont)", &
+  "Im(mass cont)", &
+  "Re(SfL2)", &
+  "Im(SfL2)", &
+  "dimG*(NS+NL)/2", &
+  "dimG*NF/2" &
   /)
 !integer :: trig_obs(1:num_calcobs)
 integer :: sizeM,sizeN
@@ -22,6 +26,7 @@ complex(kind(0d0)) :: Acomp_tr ! trace compensator
 complex(kind(0d0)) :: Acomp_VM ! van der monde compensator
 complex(kind(0d0)) :: APQ_phase ! A*/|A|
 complex(kind(0d0)) :: min_eigen
+complex(kind(0d0)) :: mass_cont
 !complex(kind(0d0)), allocatable :: WT1(:)
 !complex(kind(0d0)), allocatable :: WT2(:)
 complex(kind(0d0)) :: WT1, WT2
@@ -122,60 +127,50 @@ do
       write(*,'(I7,2X)',advance='no') ite
     endif
 
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    !! test for fermionic operators 
-    !call check_DinvPF(&
-    !    Geta_eta, Glambda_eta, Gchi_eta, &
-    !    Geta_lambda, Glambda_lambda, Gchi_lambda, &
-    !    Geta_chi, Glambda_chi, Gchi_chi, &
-    !    Umat,PhiMat)
-
     !"|Atr|", &
       call calc_trace_compensator(Acomp_tr,PhiMat)
       !call calc_VM_compensator(Acomp_VM,PhiMat)
       APQ_phase = dconjg(Acomp_tr) / cdabs(Acomp_tr) 
       Sb_computed=0
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') cdabs(Acomp_tr)
+
     !"Sb", &
       !call calc_bosonic_action(Sb,Umat,PhiMat)
       call calc_bosonic_action_site(SbS,PhiMat)
       call calc_bosonic_action_link(SbL,Umat,PhiMat)
       call calc_bosonic_action_face(SbF,Umat)
-      if( MYRANK == 0 ) Sb=SbS+SbL+SbF
-      !if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') Sb
-    !! trivial WT
-      !call calc_XiPhiEta(XiPhiEta,&
-      !  Geta_eta, Glambda_eta, Gchi_eta, &
-      !  Geta_lambda, Glambda_lambda, Gchi_lambda, &
-      !  Geta_chi, Glambda_chi, Gchi_chi, &
-      !  Umat,PhiMat)
-      !tmpobs1= &
-      !  cdabs(Acomp_tr) * &
-      !  (&
-      !  dcmplx(Sb) &
-      !  + dcmplx(0.5d0*mass_square_phi)*XiPhiEta &
-      !  - dcmplx(0.5d0*dble(num_sitelink)) &
-      !  )  
-      call calc_trivialWT(tmpobs1,Geta_eta,Geta_lambda,Geta_chi,Umat,PhiMat)
-      if( MYRANK == 0 ) write(*,'(E15.8,2X,E15.8,2X)',advance='no') &
-        dble(tmpobs1), dble((0d0,-1d0)*tmpobs1)
-
-    !! relations in bosonic action 1
-    !!  Sb_site + Sb_face = #(face)/2*dimG
-    !! we need also compensator
-      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  &
-        SbS + SbF - dble(global_num_faces*dimG)*0.5d0 
-
-    !! relations in bosonic action 2
-    !!  Sb_link - 2 Sb_face = lambda.lambda(U.\bar{phi}.U^-1 + \bar{phi})
-    !! we need also compensator
+      !! mass contribution to the trivial WT identity
+      call mass_contribution(mass_cont,Geta_eta,Geta_lambda,Geta_chi,Umat,PhiMat)
+      !! link part 2 of the fermionic action
       call calc_Sf_link2(SfL2,PhiMat,Umat,Glambda_lambda)
-      !tmpobs1 = &
-        !dcmplx(cdabs(Acomp_tr)) * (dcmplx(SbL - 2d0*SbF) - SfL2)
+
+      !! SbS
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  SbS
+
+      !! SbL
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  SbL
+
+      !! SbF
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  SbF
+
+      !! mass_cont
+      if( MYRANK == 0 ) write(*,'(E15.8,2X,E15.8,2X)',advance='no')  &
+        dble(mass_cont), &
+        dble((0d0,-1d0)*mass_cont)
+
+      ! SfL2
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') &
-        SbL - 2d0*SbF - dble(SfL2)
+        dble(SfL2)
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') &
         dble( (0d0,-1d0)*SfL2 )
+
+      !! fermion number in trivial WT
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') &
+        0.5d0*dble( (NMAT*NMAT-1)*(global_num_sites+global_num_links) ) 
+
+      !! fermion number in (5.8)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  &
+        dble(global_num_faces*dimG)*0.5d0 
 
     if(MYRANK==0) write(*,*)
   else

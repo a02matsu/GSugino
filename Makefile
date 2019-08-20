@@ -65,6 +65,10 @@ SRC_divJ_U1V=calc_divJ_U1V.f90
 OBJ_divJ_U1V=calc_divJ_U1V.o
 PROG_divJ_U1V=calc_divJ_U1V.exe
 #########################
+SRC_U1R=calc_exact_U1R.f90  
+OBJ_U1R=calc_exact_U1R.o
+PROG_U1R=calc_exact_U1R.exe
+#########################
 
 
 #.SUFFIXES : .o .f90 # .oを作るときは必ず.f90から作るよ
@@ -103,6 +107,12 @@ WTU1:$(PROG_divJ_U1V)
 
 $(PROG_divJ_U1V): $(OBJ_divJ_U1V) $(OBJ_OBSCOMM) $(OBJS) 
 	$(FC) $(FLAGS_IFORT) -o $@ $(OBJS) $(OBJ_OBS) $(OBJ_OBSCOMM) $(OBJ_divJ_U1V) $(LIB)
+#########################################
+U1R:$(PROG_U1R)
+
+$(PROG_U1R): $(OBJ_U1R) $(OBJ_OBSCOMM) $(OBJS) 
+	$(FC) $(FLAGS_IFORT) -o $@ $(OBJS) $(OBJ_OBS) $(OBJ_OBSCOMM) $(OBJ_U1R) $(LIB)
+
 
 
 #########################################
@@ -181,7 +191,8 @@ simulation.o: \
   $(DIR_OBS)/trphi2.f90 \
   $(DIR_OBS)/trf2.f90 \
   $(DIR_OBS)/trivialWT.f90 \
-  $(DIR_OBS)/eigenvalues_of_Dirac.f90 
+  $(DIR_OBS)/eigenvalues_of_Dirac.f90 \
+  $(DIR_OBS)/exact_U1R.f90
   #$(DIR_OBS)/WT_identities.f90 
 check_routines.o: \
   global_parameters.o \
@@ -215,6 +226,12 @@ $(OBJ_divJ_U1V): \
   global_parameters.o \
   global_subroutines.o \
   differential_Dirac.o \
+  simulation.o \
+  initialization_calcobs.o \
+  parallel.o 
+$(OBJ_U1R): \
+  global_parameters.o \
+  global_subroutines.o \
   simulation.o \
   initialization_calcobs.o \
   parallel.o 

@@ -22,5 +22,6 @@
 #include "Observables/fermionic_operators.f90"
 #include "Observables/trivialWT.f90"
 #include "Observables/eigenvalues_of_Dirac.f90"
+#include "Observables/exact_U1R.f90"
 
 
