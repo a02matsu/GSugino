@@ -19,10 +19,14 @@ do s=1,num_sites
       trphi2(s)=trphi2(s)+dble(PhiMat(i,j,s)*dconjg(PhiMat(i,j,s)))
     enddo
   enddo
-  tmp=tmp+dexp( mass_square_phi*0.5d0*overall_factor*( 1d0 - alpha_s(s) ) )
+  tmp=tmp + mass_square_phi*0.5d0*overall_factor*( 1d0 - alpha_s(s) )*trphi2(s) 
 enddo
 
 call MPI_REDUCE(tmp,mass_reweight,1,MPI_DOUBLE_PRECISION, &
   MPI_SUM,0,MPI_COMM_WORLD,IERR)
+
+if( MYRANK == 0 ) then
+  mass_reweight = dexp( mass_reweight )
+endif
 
 end subroutine calc_mass_reweight
