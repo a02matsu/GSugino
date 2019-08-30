@@ -61,7 +61,7 @@ do k=1,global_num_links
   call MPI_BCAST(origin,1,MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
   call MPI_BCAST(tip,1,MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
   !write(*,*) MYRANK,l,origin,tip
-  !write(*,*) l,origin,tip,alpha_l(l)
+  !if (MYRANK==0) write(*,*) l,origin,tip,alpha_l
   call put_link_sc(SC,l,origin,tip)
 enddo
 if( MYRANK==0 ) then 
@@ -91,6 +91,7 @@ do k=1,global_num_faces
   call MPI_BCAST(fsites,fsize,MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
 !write(*,*) MYRANK, f,fsites
   call put_face_sc(SC,f,fsites)
+!write(*,*) "2) ", MYRANK, f,fsites
 
   deallocate( fsites )
 enddo

@@ -41,6 +41,14 @@ type SITE_DIST
   integer, allocatable :: site_list_(:)
 end type SITE_DIST
 
+type A_in_B
+  integer :: num_ ! number of elements
+  integer, allocatable :: label_(:) ! global link label
+  complex(kind(0d0)), allocatable :: val_(:) ! 1~num_
+end type A_in_B
+
+
+
 ! parameter for test hamiltonian
 integer, parameter :: pb_mass=0
 integer, parameter :: pb_site=0

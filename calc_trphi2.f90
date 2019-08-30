@@ -19,6 +19,7 @@ integer, parameter :: N_trphi2FILE=101
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! Observables
 double precision, allocatable :: trphi2(:)
+double precision :: mass_reweight
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! misc
 integer :: ite
@@ -61,6 +62,7 @@ do
     endif
     !!!!!!!!!!!!!!!!
     call calc_trphi2(trphi2, PhiMat)
+    call calc_mass_reweight(mass_reweight,PhiMat)
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !! write trphi2
@@ -84,7 +86,7 @@ do
     enddo
 
     if( MYRANK==0 ) then
-      write(N_trphi2FILE,*)
+      write(N_trphi2FILE,'(E15.8,2X)') mass_reweight
     endif
   else
     if( MYRANK == 0 ) then

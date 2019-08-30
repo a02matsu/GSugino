@@ -5,6 +5,13 @@ use global_parameters
 !use global_calcobs
 implicit none
 
+!type A_in_B
+!  integer :: num_ ! number of elements
+!  integer, allocatable :: label_(:) ! global link label
+!  complex(kind(0d0)), allocatable :: val_(:) ! 1~num_
+!end type A_in_B
+
+
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! variables
 complex(kind(0d0)), allocatable :: UMAT(:,:,:) ! unitary link variables
