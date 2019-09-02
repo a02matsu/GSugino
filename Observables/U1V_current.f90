@@ -49,8 +49,8 @@ complex(kind(0d0)) :: divJ1(1:num_faces)
 complex(kind(0d0)) :: divJ2(1:num_faces)
 
 
-call make_V1(vec1,Glambda_eta)
-call make_V2(vec2,Gchi_lambda,UMAT)
+call make_trV1(vec1,Glambda_eta)
+call make_trV2(vec2,Gchi_lambda,UMAT)
 
 call calc_trrot(divJ1,vec1)
 call calc_trdiv(divJ2,vec2)
@@ -81,9 +81,8 @@ complex(kind(0d0)) :: vec2(1:num_necessary_links) ! Tr(\lambda(l) \chi(f))
 complex(kind(0d0)) :: divJ1(1:num_faces)
 complex(kind(0d0)) :: divJ2(1:num_faces)
 
-call make_V1(vec1,Glambda_eta)
-call make_V2(vec2,Gchi_lambda,UMAT)
-!call make_V2_bak(vec2,Gchi_lambda,UMAT)
+call make_trV1(vec1,Glambda_eta)
+call make_trV2(vec2,Gchi_lambda,UMAT)
 
 call calc_trrot(divJ1,vec1)
 call calc_trdiv2(divJ2,vec2)
@@ -95,8 +94,77 @@ end subroutine calc_divJ_U1V_2
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! calculate D^\mu J_\mu for U(1)_V current
+!!  rotation is taken as \sum_{l\in f} Tr( X V_l Y )
+!!  divergence is taken as summation over site-divergence/#{facce on s}
+subroutine calc_divJ_U1V_3(divJ1,divJ2,Glambda_eta,Gchi_lambda,UMAT)
+use global_parameters
+!use initialization_calcobs
+use parallel
+implicit none
+
+
+complex(kind(0d0)), intent(in) :: Glambda_eta(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_links,1:num_sites) 
+complex(kind(0d0)), intent(in) :: Gchi_lambda(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_faces,1:num_links) 
+complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_necessary_links)
+
+complex(kind(0d0)) :: vec1(1:NMAT,1:NMAT,1:num_necessary_links) ! 1/2 (\lambda(l) \eta(s))_{ij}
+complex(kind(0d0)) :: trvec2(1:num_necessary_links) ! Tr(\lambda(l) \chi(f))
+
+complex(kind(0d0)) :: divJ1(1:num_faces)
+complex(kind(0d0)) :: divJ2(1:num_faces)
+
+call make_V1(vec1,Glambda_eta)
+call make_trV2(trvec2,Gchi_lambda,UMAT)
+
+call calc_trrot2(divJ1,vec1,Umat)
+call calc_trdiv(divJ2,trvec2)
+
+divJ1=(divJ1)/dcmplx(LatticeSpacing**4)
+divJ2=(divJ2)/dcmplx(LatticeSpacing**4)
+
+end subroutine calc_divJ_U1V_3
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! calculate lambda.lambda(U.\bar{phi}.U^-1 + \bar{phi})
 subroutine make_V1(vec1,Glambda_eta)
+use global_parameters
+use parallel
+use global_subroutines, only : syncronize_links
+implicit none
+
+complex(kind(0d0)), intent(out) :: vec1(1:NMAT,1:NMAT,1:num_necessary_links) ! 1/2 Tr(\lambda(l) \eta(s))
+complex(kind(0d0)), intent(in) :: Glambda_eta(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_links,1:num_sites) 
+
+integer :: ll,ls
+integer :: gl
+integer :: org_ll
+integer :: i,j,k
+
+
+vec1=(0d0,0d0)
+do ll=1,num_links
+  gl=global_link_of_local(ll)
+  ls=link_org(ll)
+  do i=1,NMAT
+    do j=1,NMAT
+      do k=1,NMAT
+        vec1(i,j,ll)=vec1(i,j,ll) + (0.5d0,0d0)*Glambda_eta(i,k,k,j,gl,ls)
+      enddo
+    enddo
+  enddo
+enddo
+call syncronize_links(vec1)
+
+
+end subroutine make_V1
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! calculate lambda.lambda(U.\bar{phi}.U^-1 + \bar{phi})
+subroutine make_trV1(vec1,Glambda_eta)
 use global_parameters
 use parallel
 use global_subroutines, only : syncronize_linkval
@@ -125,7 +193,7 @@ enddo
 call syncronize_linkval(vec1)
 
 
-end subroutine make_V1
+end subroutine make_trV1
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -183,7 +251,7 @@ end subroutine make_V2_bak
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! calculate lambda.lambda(U.\bar{phi}.U^-1 + \bar{phi})
-subroutine make_V2(vec2,Gchi_lambda,UMAT)
+subroutine make_trV2(vec2,Gchi_lambda,UMAT)
 use global_parameters
 use parallel
 use global_subroutines, only : syncronize_linkval, calc_prodUl_from_n1_to_n2_in_Uf
@@ -224,7 +292,7 @@ do ll=1,num_links
   !write(*,*) global_link_of_local(ll), dble(vec2(ll)), dble((0d0,-1d0)*vec2(ll))
 enddo
 call syncronize_linkval(vec2)
-end subroutine make_V2
+end subroutine make_trV2
 
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

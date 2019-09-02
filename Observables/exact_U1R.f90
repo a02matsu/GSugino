@@ -54,7 +54,7 @@ type(A_in_B) :: CXLY_Fbase(1:num_faces)
 type(A_in_B) :: CXLY_Lbase(1:num_links)
 
 
-integer :: ls, ll, lf, src, tip, l_place
+integer :: ls, ll, lf, src, tip, l_place, info
 integer :: gl, gf
 integer :: i,j,k,l,kk,jj
 
@@ -74,46 +74,47 @@ do ls=1,num_sites
   !!! bosonic part
   do k=1,linkorg_to_s(ls)%num_
     ll=linkorg_to_s(ls)%labels_(k)
-    divJ(ls)=divJ(ls) + PUPU(ll) 
+    divJ(ls) = divJ(ls) + PUPU(ll)
   enddo
   do k=1,linktip_from_s(ls)%num_
     ll=linktip_from_s(ls)%labels_(k)
-    divJ(ls)=divJ(ls) - PUPU(ll)
+    divJ(ls) = divJ(ls) - PUPU(ll)
   enddo
 
   !!! eta-lambda and lambda-lambda part
   do k=1,linkorg_to_s(ls)%num_
     ll=linkorg_to_s(ls)%labels_(k)
     divJ(ls) = divJ(ls) + LUEU(ll)
+    !write(*,*) LUEU(ll)
   enddo
   do k=1,linktip_from_s(ls)%num_
     ll=linktip_from_s(ls)%labels_(k)
     divJ(ls) = divJ(ls) - LUEU(ll)
+    !write(*,*) LUEU(ll)
   enddo
+  !write(*,*) dble(divJ(ls)), dble( (0d0,-1d0)*divJ(ls))
 
   !!! chi-lambda part 
   do kk=1,linktip_from_s(ls)%num_ 
     ll=linktip_from_s(ls)%labels_(kk)
-    do jj=1,face_in_l(ll)%num_
-      lf=face_in_l(ll)%label_(jj)
-
-      do i=1,CXLY_Lbase(ll)%num_
-        if( CXLY_Lbase(ll)%label_(i) == lf ) then
-          divJ(ls) = divJ(ls) + CXLY_Lbase(ll)%val_(i)
-          exit
-        endif
-      enddo
+    do i=1,CXLY_Lbase(ll)%num_
+      divJ(ls) = divJ(ls) + CXLY_Lbase(ll)%val_(i)
     enddo
   enddo
   !!
   do lf=1,num_faces
+    !info=1
     if( sites_in_f(lf)%label_(1) == ls ) then
+      !info=0
+      !write(*,*) global_face_of_local(lf), global_site_of_local(ls)
       do i=1, CXLY_Fbase(lf)%num_ 
-        ll=CXLY_Fbase(lf)%label_(i)
-        divJ(ls) = divJ(ls) - CXLY_Fbase(ll)%val_(i)
+        divJ(ls) = divJ(ls) - CXLY_Fbase(lf)%val_(i)
       enddo
     endif
+    !if( info==1 ) then 
+    !endif
   enddo
+  !if(global_site_of_local(ls)==2) write(*,*) dble(divJ(ls)), dble( (0d0,-1d0)*divJ(ls))
 enddo
 
 end subroutine calc_exact_U1R
@@ -137,6 +138,7 @@ PUPU=(0d0,0d0)
 do ll=1,num_links
   src=link_org(ll)
   tip=link_tip(ll)
+  tmpmat=(0d0,0d0)
   call matrix_3_product(tmpmat,Umat(:,:,ll),PhiMat(:,:,tip),Umat(:,:,ll),&
     'N','C','C')
   do j=1,NMAT
@@ -144,13 +146,15 @@ do ll=1,num_links
       PUPU(ll)=PUPU(ll)+PhiMat(i,j,src)*tmpmat(j,i)
     enddo
   enddo
+  tmpmat=(0d0,0d0)
   call matrix_3_product(tmpmat,Umat(:,:,ll),PhiMat(:,:,tip),Umat(:,:,ll),&
     'N','N','C')
   do j=1,NMAT
     do i=1,NMAT
-      PUPU(ll)=PUPU(ll)+dconjg(PhiMat(j,i,src))*tmpmat(j,i)
+      PUPU(ll)=PUPU(ll)-dconjg(PhiMat(j,i,src))*tmpmat(j,i)
     enddo
   enddo
+  !write(*,*) PUPU(ll)
   PUPU(ll) = PUPU(ll) * (0d0,1d0)*dcmplx(alpha_l(ll))
 enddo
 
@@ -206,18 +210,19 @@ integer :: i,j,k,l
 
 LUEU=(0d0,0d0)
 do ll=1,num_links
-  src=global_link_of_local(link_org(ll))
+  tip=global_site_of_local(link_tip(ll))
   do l=1,NMAT
     do k=1,NMAT
       do j=1,NMAT
         do i=1,NMAT
-          LUEU(ll)=LUEU(ll) - dconjg(UMAT(k,j,ll))*(Umat(l,i,ll)) &
-                 * Geta_lambda(i,j,k,l,src,ll)
+          LUEU(ll)=LUEU(ll) &
+            - (0d0,0.5d0) &
+              * dconjg(UMAT(k,j,ll))*(Umat(l,i,ll)) &
+              * Geta_lambda(i,j,k,l,tip,ll)
         enddo
       enddo
     enddo
   enddo
-  LUEU(ll) = LUEU(ll) * (0d0,0.5d0)
 
   tip=link_tip(ll)
   call matrix_3_product(tmpmat,Umat(:,:,ll),PhiMat(:,:,tip),Umat(:,:,ll),&
@@ -239,7 +244,7 @@ end subroutine calc_Jfermion1
 !! Xmat = U_1 ... U_l
 !! Ymat = U_{l+1} ... U_n
 !! Bval = 1 - (2-Uf-Uf^\dagger)/e_max^2
-subroutine calc_XYB(Xmat,Ymat,Bval,lf, l_place,Umat)
+subroutine calc_XYBUf(Xmat,Ymat,Bval,Uf,lf, l_place,Umat)
 use global_parameters
 use global_subroutines, only : calc_XYmat, make_face_variable
 implicit none
@@ -247,9 +252,9 @@ implicit none
 complex(kind(0d0)), intent(out) :: Xmat(1:NMAT,1:NMAT)
 complex(kind(0d0)), intent(out) :: Ymat(1:NMAT,1:NMAT)
 complex(kind(0d0)), intent(out) :: Bval
+complex(kind(0d0)), intent(out) :: Uf(1:NMAT,1:NMAT)
 complex(kind(0d0)), intent(in) :: Umat(1:NMAT,1:NMAT,1:num_necessary_links)
 integer, intent(in) :: lf,l_place
-complex(kind(0d0)) :: Uf(1:NMAT,1:NMAT)
 integer :: i
 
 call calc_XYmat(Xmat,Ymat,lf,l_place,UMAT)
@@ -262,7 +267,7 @@ do i=1,NMAT
   Bval=Bval - ((2d0,0d0)-Uf(i,i)-dconjg(Uf(i,i)))/(e_max*e_max) 
 enddo
 
-end subroutine calc_XYB
+end subroutine calc_XYBUf
 
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -313,7 +318,7 @@ enddo
 do lf=1,num_faces
   do l_place=1,links_in_f(lf)%num_
     gl = global_link_of_local( links_in_f(lf)%link_labels_(l_place) )
-    call calc_XYB(Xmat,Ymat,Bval,lf,l_place,Umat)
+    call calc_XYBUf(Xmat,Ymat,Bval,Uf,lf,l_place,Umat)
 
     trace=(0d0,0d0)
     do l=1,NMAT
@@ -327,8 +332,9 @@ do lf=1,num_faces
         enddo
       enddo
     enddo
+    !write(*,*) dble(trace), dble( (0d0,-1d0)*trace )
     !! Usin
-    call make_face_variable(Uf,lf,Umat)
+    !call make_face_variable(Uf,lf,Umat)
     do i=1,NMAT
       do j=1,NMAT
         Usin(i,j) = Uf(i,j) - dconjg(Uf(j,i))
@@ -338,15 +344,6 @@ do lf=1,num_faces
     Tmat=(0d0,0d0)
     call matrix_product(Tmat,Ymat,Xmat)
     call matrix_product(Tmat,Xmat,Ymat,'C','C',(-1d0,0d0),'ADD')
-    !do i=1,NMAT
-    !  do j=1,NMAT
-    !    do k=1,NMAT
-    !      Tmat(i,j) = Tmat(i,j) &
-    !        + Ymat(i,k)*Xmat(k,j) - dconjg(Xmat(k,i)*Ymat(j,k))
-    !    enddo
-    !  enddo
-    !enddo
-    !!
     do i=1,NMAT
       do j=1,NMAT
         tmp=(0d0,0d0)
@@ -359,9 +356,10 @@ do lf=1,num_faces
           * tmp * Tmat(j,i)
       enddo
     enddo
-    CXLY_Fbase(lf)%val_ &
+    CXLY_Fbase(lf)%val_(l_place) &
       = dcmplx( alpha_f(lf)*beta_f(lf)*dble(links_in_f(lf)%link_dirs_(l_place)) ) &
           * trace
+    !write(*,*) "AAA",global_face_of_local(lf),gl, CXLY_Fbase(lf)%val_(l_place) 
   enddo
 enddo
 
@@ -379,19 +377,23 @@ enddo
 
 do gf=1,global_num_faces
   rank_send=local_face_of_global(gf)%rank_
-  lf=local_face_of_global(gf)%label_
+  lf=-1
 
   do k=1,global_links_in_f(gf)%num_
     gl=global_links_in_f(gf)%link_labels_(k)
     rank_recv=local_link_of_global(gl)%rank_
-    ll=local_link_of_global(gl)%label_
+    ll=-1
 
     tag=gf*(global_num_faces-1)+gl-1
 
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !! send phase
     if( MYRANK == rank_send ) then
+      lf=local_face_of_global(gf)%label_ 
       info=1
-      do i=1,CXLY_Fbase(lf)%num_
-        if( links_in_f(lf)%link_labels_(i) == ll ) then 
+      do i=1,links_in_f(lf)%num_
+        ll=links_in_f(lf)%link_labels_(i)
+        if( global_link_of_local( ll ) == gl ) then
           info=0
           exit
         endif
@@ -403,16 +405,20 @@ do gf=1,global_num_faces
       if( MYRANK /= rank_recv ) then 
         call MPI_SEND(CXLY_Fbase(lf)%val_(i),1,MPI_DOUBLE_COMPLEX,rank_recv,tag,MPI_COMM_WORLD,IERR)
       endif
-    elseif( MYRANK == rank_recv ) then
+    endif
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !! recv phase
+    if( MYRANK == rank_recv ) then
+      ll=local_link_of_global(gl)%label_
       info=1
       do j=1,CXLY_Lbase(ll)%num_
-        if( face_in_l(ll)%label_(j) == lf ) then
+        if( global_face_of_local(face_in_l(ll)%label_(j)) == gf ) then
           info=0
           exit
         endif
       enddo
       if( info==1 ) then 
-        write(*,*) "there is no lf in ll" 
+        write(*,*) "there is no lf in ll. Rank: ",MYRANK
         stop
       endif
       if( MYRANK /= rank_send ) then
@@ -420,6 +426,7 @@ do gf=1,global_num_faces
       else
         CXLY_Lbase(ll)%val_(j) = CXLY_Fbase(lf)%val_(i)
       endif
+      !write(*,*) "BBB",gf,global_link_of_local(ll), CXLY_Lbase(ll)%val_(j) 
     endif
   enddo
 enddo

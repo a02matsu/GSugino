@@ -143,7 +143,7 @@ SB_M=0d0
 do s=1,num_sites
   do i=1,NMAT
     do j=1,NMAT
-    SB_M=SB_M+dble(PhiMat(i,j,s)*dconjg(PhiMat(i,j,s)))
+    SB_M=SB_M+dble(PhiMat(i,j,s)*dconjg(PhiMat(i,j,s)))!*alpha_s(s)
     enddo
   enddo
 enddo

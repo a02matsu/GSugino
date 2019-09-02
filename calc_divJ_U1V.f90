@@ -76,7 +76,7 @@ do
     endif
     !!!!!!!!!!!!!!!!
     !call calc_divJ_U1V(divJ1,divJ2,Glambda_eta,Gchi_lambda,UMAT)
-    call calc_divJ_U1V(divJ,Glambda_eta,Gchi_lambda,UMAT)
+    call calc_divJ_U1V_3(divJ1,divJ2,Glambda_eta,Gchi_lambda,UMAT)
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !! write divJ
@@ -85,29 +85,29 @@ do
       rank=local_face_of_global(gf)%rank_
       tag=gf
 
-      !do jj=1,2
-      !  if( jj==1 ) then 
-      !    divJ=divJ1
-      !  else
-      !    divJ=divJ2
-      !  endif
-
-      if( MYRANK == rank ) then
-        ctmp=divJ(lf)
-        if( MYRANK /= 0 ) then 
-          call MPI_SEND(ctmp,1,MPI_DOUBLE_COMPLEX,0,tag,MPI_COMM_WORLD,IERR)
+      do jj=1,2
+        if( jj==1 ) then 
+          divJ=divJ1
+        else
+          divJ=divJ2
         endif
-      endif
-      if( MYRANK == 0 .and. rank /= 0 ) then
-        call MPI_RECV(ctmp,1,MPI_DOUBLE_COMPLEX,rank,tag,MPI_COMM_WORLD,ISTATUS,IERR)
-      endif
-      if( MYRANK==0 ) then
-        write(N_divJFILE,'(E23.16,2X,E23.16,2X)',advance='no') &
-          dble(ctmp), dble( (0d0,-1d0)*ctmp )
-      endif
-      call MPI_BARRIER(MPI_COMM_WORLD,IERR)
 
-      !enddo
+        if( MYRANK == rank ) then
+          ctmp=divJ(lf)
+          if( MYRANK /= 0 ) then 
+            call MPI_SEND(ctmp,1,MPI_DOUBLE_COMPLEX,0,tag,MPI_COMM_WORLD,IERR)
+          endif
+        endif
+        if( MYRANK == 0 .and. rank /= 0 ) then
+          call MPI_RECV(ctmp,1,MPI_DOUBLE_COMPLEX,rank,tag,MPI_COMM_WORLD,ISTATUS,IERR)
+        endif
+        if( MYRANK==0 ) then
+          write(N_divJFILE,'(E23.16,2X,E23.16,2X)',advance='no') &
+            dble(ctmp), dble( (0d0,-1d0)*ctmp )
+        endif
+        call MPI_BARRIER(MPI_COMM_WORLD,IERR)
+
+      enddo
     enddo
 
     if( MYRANK==0 ) then

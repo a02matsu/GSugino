@@ -27,7 +27,7 @@ complex(kind(0d0)), allocatable :: divJ(:)
 !! misc
 integer :: ite
 integer :: rank,tag
-integer :: lf, gf
+integer :: ls, gs
 integer :: jj
 double precision :: rtmp
 complex(kind(0d0)) :: ctmp
@@ -48,9 +48,9 @@ call initialization
 
 !allocate( UMAT(1:NMAT,1:NMAT,1:num_necessary_links) )
 !allocate(  PhiMat(1:NMAT,1:NMAT,1:num_necessary_sites) )
-allocate( divJ(1:num_faces) )
-allocate( divJ1(1:num_faces) )
-allocate( divJ2(1:num_faces) )
+allocate( divJ(1:num_sites) )
+!allocate( divJ1(1:num_faces) )
+!allocate( divJ2(1:num_faces) )
 
 if( MYRANK==0 ) then
   open(N_MEDFILE, file=MEDFILE, status='OLD',action='READ',form='unformatted')
@@ -82,20 +82,13 @@ do
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !! write divJ
-    do gf=1,global_num_faces
-      lf=local_face_of_global(gf)%label_
-      rank=local_face_of_global(gf)%rank_
-      tag=gf
-
-      !do jj=1,2
-      !  if( jj==1 ) then 
-      !    divJ=divJ1
-      !  else
-      !    divJ=divJ2
-      !  endif
+    do gs=1,global_num_sites
+      ls=local_site_of_global(gs)%label_
+      rank=local_site_of_global(gs)%rank_
+      tag=gs
 
       if( MYRANK == rank ) then
-        ctmp=divJ(lf)
+        ctmp=divJ(ls)
         if( MYRANK /= 0 ) then 
           call MPI_SEND(ctmp,1,MPI_DOUBLE_COMPLEX,0,tag,MPI_COMM_WORLD,IERR)
         endif

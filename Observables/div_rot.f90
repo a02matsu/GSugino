@@ -90,6 +90,46 @@ enddo
 
 end subroutine calc_trrot
 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! Tr( rot(V) ) by using Xmat and Ymat
+subroutine calc_trrot2(trrot,vec,Umat)
+use global_parameters
+use global_subroutines, only : calc_XYmat
+use parallel
+implicit none
+
+complex(kind(0d0)), intent(out) :: trrot(1:num_faces)
+complex(kind(0d0)), intent(in) :: vec(1:NMAT,1:NMAT,1:num_necessary_links)
+complex(kind(0d0)), intent(in) :: Umat(1:NMAT,1:NMAT,1:num_necessary_links)
+
+complex(kind(0d0)) :: Xmat(1:NMAT,1:NMAT), Ymat(1:NMAT,1:NMAT)
+integer :: ls, ll, lf
+integer :: i,j,k
+integer :: dir,l_place
+
+trrot=(0d0,0d0)
+do lf=1,num_faces
+  do l_place=1,links_in_f(lf)%num_
+    ll=links_in_f(lf)%link_labels_(l_place)
+    dir=links_in_f(lf)%link_dirs_(l_place)
+    call calc_XYmat(Xmat,Ymat,lf,l_place,Umat)
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    if( global_face_of_local(lf)==1 ) dir=-dir
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    do i=1,NMAT
+      do j=1,NMAT
+        do k=1,NMAT
+          trrot(lf) = trrot(lf) &
+            + dcmplx(dble(dir))*Xmat(i,j)*vec(j,k,ll)*Ymat(k,i)
+        enddo
+      enddo
+    enddo
+  enddo
+  trrot(lf) = trrot(lf) * beta_f(lf)
+enddo
+
+end subroutine calc_trrot2
+
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! Tr( div(V) ) onother version
