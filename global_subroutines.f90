@@ -1851,6 +1851,26 @@ endif
 
 end subroutine calc_XYmat
 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! Bval = 1 - (2-Uf-Uf^\dagger)/e_max^2
+subroutine calc_Bval(Bval,Uf)
+use global_parameters
+implicit none
+
+complex(kind(0d0)), intent(out) :: Bval
+complex(kind(0d0)), intent(in) :: Uf(1:NMAT,1:NMAT)
+integer :: i
+
+Bval=(1d0,0d0)
+do i=1,NMAT
+  Bval=Bval - ((2d0,0d0)-Uf(i,i)-dconjg(Uf(i,i)))/(e_max*e_max) 
+enddo
+
+end subroutine calc_Bval
+
+
+
+
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! calculate 
 !!   d(Xmat_{f,l;ij})/dA_{ll,ab}

@@ -193,7 +193,8 @@ simulation.o: \
   $(DIR_OBS)/trivialWT.f90 \
   $(DIR_OBS)/eigenvalues_of_Dirac.f90 \
   $(DIR_OBS)/exact_U1R.f90 \
-  $(DIR_OBS)/mass_reweighting.f90
+  $(DIR_OBS)/mass_reweighting.f90 \
+  $(DIR_OBS)/fermionic_face_lagrangian.f90
   #$(DIR_OBS)/WT_identities.f90 
 check_routines.o: \
   global_parameters.o \

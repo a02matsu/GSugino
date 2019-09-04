@@ -1,18 +1,3 @@
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!! calculate D^\mu J_\mu for U(1)_R current on the lattice 
-!module global_exact_U1R
-!implicit none
-!
-!type A_in_B
-!  integer :: num_ ! number of elements
-!  integer, allocatable :: label_(:) ! global link label
-!  complex(kind(0d0)), allocatable :: val_(:) ! 1~num_
-!end type A_in_B
-!
-!end module global_exact_U1R
-
-
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! calculate D^\mu J_\mu for U(1)_V current

@@ -1,36 +1,46 @@
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!! calculate D^\mu J_\mu for U(1)_V current
-!subroutine test_divV2(divJ1,divJ2,Glambda_eta,Gchi_lambda,UMAT)
-!use global_parameters
-!use parallel
-!use global_subroutines, only : syncronize_linkval, calc_prodUl_from_n1_to_n2_in_Uf
-!implicit none
-!
-!complex(kind(0d0)), intent(in) :: Glambda_eta(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_links,1:num_sites) 
-!complex(kind(0d0)), intent(in) :: Gchi_lambda(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_faces,1:num_links) 
-!complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_necessary_links)
-!
-!complex(kind(0d0)) :: vec1(1:num_necessary_links) ! 1/2 Tr(\lambda(l) \eta(s))
-!complex(kind(0d0)) :: vec2(1:num_necessary_links) ! Tr(\lambda(l) \chi(f))
-!
-!complex(kind(0d0)) :: divJ1(1:num_faces)
-!complex(kind(0d0)) :: divJ2(1:num_faces)
-!complex(kind(0d0)) :: Ucarry(1:NMAT,1:NMAT)
-!complex(kind(0d0)) :: tmp(1:num_faces)
-!integer :: ll,lf,ls
-!integer :: gl,gf
-!integer :: org_ll
-!integer :: i,j,k,l,ii
-!
-!
-!
-!end subroutine test_divV2
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! calculate D^\mu J_\mu for U(1)_V current
-subroutine calc_divJ_U1V(divJ,Glambda_eta,Gchi_lambda,UMAT)
+!!  vec1 ~ 1/2 Tr(\lambda(l) \eta(s))
+!!  vec2 ~ Tr(\lambda(l) \chi(f))
+!! where \chi(f) is associated with the link variable Uf
+!! as in the fermionic part of the face action
+subroutine calc_divJ_U1V(divJ1,divJ2,Glambda_eta,Gchi_lambda,UMAT)
+use global_parameters
+!use initialization_calcobs
+use parallel
+use global_subroutines, only : syncronize_linkval
+implicit none
+
+
+complex(kind(0d0)), intent(in) :: Glambda_eta(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_links,1:num_sites) 
+complex(kind(0d0)), intent(in) :: Gchi_lambda(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_faces,1:num_links) 
+complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_necessary_links)
+
+complex(kind(0d0)) :: vec1(1:num_necessary_links) ! 1/2 Tr(\lambda(l) \eta(s))
+complex(kind(0d0)) :: vec2(1:num_necessary_links) ! Tr(\lambda(l) \chi(f))
+
+complex(kind(0d0)) :: divJ1(1:num_faces)
+complex(kind(0d0)) :: divJ2(1:num_faces)
+
+!!  vec1 ~ 1/2 Tr(\lambda(l) \eta(s))
+call make_trV1(vec1,Glambda_eta)
+!!  vec2 ~ Tr(\lambda(l) \chi(f))
+call make_trV2_likeSf(vec2,Gchi_lambda,UMAT)
+
+call calc_trrot(divJ1,vec1)
+call calc_trdiv(divJ2,vec2)
+
+divJ1=(divJ1)/dcmplx(LatticeSpacing**4)
+divJ2=(divJ2)/dcmplx(LatticeSpacing**4)
+
+end subroutine calc_divJ_U1V2
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! calculate D^\mu J_\mu for U(1)_V current
+subroutine calc_divJ_U1Vorg(divJ,Glambda_eta,Gchi_lambda,UMAT)
 use global_parameters
 !use initialization_calcobs
 use parallel
@@ -57,7 +67,7 @@ call calc_trdiv(divJ2,vec2)
 
 divJ=(divJ1+divJ2)/dcmplx(LatticeSpacing**4)
 
-end subroutine calc_divJ_U1V
+end subroutine calc_divJ_U1Vorg
 
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -293,6 +303,88 @@ do ll=1,num_links
 enddo
 call syncronize_linkval(vec2)
 end subroutine make_trV2
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! 
+subroutine make_trV2_likeSf(vec2,Gchi_lambda,UMAT)
+use global_parameters
+use global_subroutines, only : syncronize_linkval
+use parallel
+implicit none
+
+complex(kind(0d0)), intent(out) :: vec2(1:num_necessary_links) ! Tr(\lambda(l) \chi(f))
+complex(kind(0d0)), intent(in) :: Gchi_lambda(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_faces,1:num_links) 
+complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_necessary_links)
+
+complex(kind(0d0)) :: Lff
+integer :: ll,lf,l_place
+integer :: gl,gf,rank_send,rank_recv,tag
+integer :: org_ll
+integer :: ii
+
+vec2=(0d0,0d0)
+do gl=1,global_num_links
+  !! find the origin face of the dual link
+  !!  gf     : global face label of the origin of the dual link of gl
+  !!  org_ll : position of the origin of the link gl in the face gf
+  do ii=1,global_face_in_1(gl)%num_
+    gf=global_face_in_l(ll)%label_(ii)
+    do org_ll=1,global_links_in_f(gf)%num_
+      if( global_links_in_f(gf)%link_labels_(org_ll) == gl ) then 
+        dir=links_in_f(lf)%link_dirs_(org_ll)
+        exit
+      endif
+    enddo
+    !!!!!!!!!!!!!!!!! !!!!!!!!!!!!!!!!! !!!!!!!!!!!!!!!!!
+    !! special treatment of the present discretization
+    if(gf==1) dir=-dir
+    !!!!!!!!!!!!!!!!! !!!!!!!!!!!!!!!!! !!!!!!!!!!!!!!!!!
+    if( dir==1 ) then 
+      if( links_in_f(lf)%link_dirs_(org_ll) == 1 ) then
+        org_ll = org_ll - 1
+      endif
+      exit
+    endif 
+  enddo
+
+  rank_send = local_face_of_global(gf)%rank_
+  rank_recv = local_link_of_global(gl)%rank_
+  tag=global_num_faces*(gf-1) + gl -1
+
+  !! send phase
+  if( MYRANK == rank_send ) then
+    lf=local_face_of_global(gf)
+    !! find the place of gl in lf
+    do l_place=1,links_in_f(lf)%num_
+      ll=liniks_in_f(lf)%link_labels_(ii)
+      if( global_link_of_local(ll) == gl ) exit
+    enddo
+    call fermionic_face_lagrangian(Lff,lf,l_place,Glambda_chi,Umat)
+
+    if( MYRANK /= rank_recv ) then 
+      call MPI_SEND(Lff,1,MPI_DOUBLE_COMPLEX,rank_recv,tag,MPI_COMM_WORLD,IERR)
+    endif
+  endif
+  !! recv phase
+  if( MYRANK == rank_recv ) then
+    ll=local_link_of_global(gl)%label_
+    if( MYRANK /= rank_send ) then
+      call MPI_RECV(vec2(ll),1,MPI_DOUBLE_COMPLEX,rank_send,tag,MPI_COMM_WORLD,ISTATUS,IERR)
+    else
+      vec2(ll) = Lff
+    endif
+    !!!!!!!!!!!!!!!!! !!!!!!!!!!!!!!!!! !!!!!!!!!!!!!!!!!
+    !! special treatment of the present discretization
+    if(gf==1) vec2(ll)=-vec2(ll)
+    !!!!!!!!!!!!!!!!! !!!!!!!!!!!!!!!!! !!!!!!!!!!!!!!!!!
+  endif
+
+  Lff = Lff * (0d0,0.5d0)
+enddo
+call syncronize_linkval(vec2)
+end subroutine make_trV2_likeSf
+
 
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
