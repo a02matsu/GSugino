@@ -17,19 +17,22 @@ complex(kind(0d0)), intent(in) :: Glambda_eta(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:glob
 complex(kind(0d0)), intent(in) :: Glambda_chi(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_links,1:num_faces) 
 complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_necessary_links)
 
-complex(kind(0d0)) :: vec1(1:num_necessary_links) ! 1/2 Tr(\lambda(l) \eta(s))
-complex(kind(0d0)) :: vec2(1:num_necessary_links) ! Tr(\lambda(l) \chi(f))
+complex(kind(0d0)) :: vec1(1:NMAT,1:NMAT,1:num_necessary_links) ! 1/2 Tr(\lambda(l) \eta(s))
+!complex(kind(0d0)) :: trvec1(1:num_necessary_links) ! 1/2 Tr(\lambda(l) \eta(s))
+complex(kind(0d0)) :: trvec2(1:num_necessary_links) ! Tr(\lambda(l) \chi(f))
 
 complex(kind(0d0)) :: divJ1(1:num_faces)
 complex(kind(0d0)) :: divJ2(1:num_faces)
 
 !!  vec1 ~ 1/2 Tr(\lambda(l) \eta(s))
-call make_trV1(vec1,Glambda_eta)
+call make_V1(vec1,Glambda_eta)
+!call make_trV1(vec1,Glambda_eta)
 !!  vec2 ~ Tr(\lambda(l) \chi(f))
-call make_trV2_likeSf(vec2,Glambda_chi,UMAT)
+call make_trV2_likeSf(trvec2,Glambda_chi,UMAT)
 
-call calc_trrot(divJ1,vec1)
-call calc_trdiv(divJ2,vec2)
+call calc_trrot2(divJ1,vec1,Umat)
+!call calc_trrot(divJ1,vec1)
+call calc_trdiv(divJ2,trvec2)
 
 divJ1=(divJ1)/dcmplx(LatticeSpacing**4)
 divJ2=(divJ2)/dcmplx(LatticeSpacing**4)
