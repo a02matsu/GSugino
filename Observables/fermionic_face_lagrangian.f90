@@ -67,7 +67,7 @@ do i=1,NMAT
   enddo
 enddo
 
-Lff = Lff * (0d0,1d0)*dcmplx( alpha_f(lf)*beta_f(lf) )
+Lff = Lff * (0d0,1d0)*dcmplx( alpha_f(lf) )
 
 end subroutine fermionic_face_lagrangian
 
