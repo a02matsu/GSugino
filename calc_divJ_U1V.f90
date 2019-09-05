@@ -76,7 +76,7 @@ do
     endif
     !!!!!!!!!!!!!!!!
     !call calc_divJ_U1V(divJ1,divJ2,Glambda_eta,Gchi_lambda,UMAT)
-    call calc_divJ_U1V_3(divJ1,divJ2,Glambda_eta,Gchi_lambda,UMAT)
+    call calc_divJ_U1V(divJ1,divJ2,Glambda_eta,Glambda_chi,UMAT)
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !! write divJ

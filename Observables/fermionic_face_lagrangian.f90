@@ -7,6 +7,7 @@
 !!   Lff ~ +2i \chi \lambda
 subroutine fermionic_face_lagrangian(Lff,lf,l_place,Glambda_chi,Umat)
 use global_parameters
+use matrix_functions, only : matrix_product
 implicit none
 
 complex(kind(0d0)), intent(out) :: Lff
@@ -21,6 +22,7 @@ complex(kind(0d0)) :: Uf(1:NMAT,1:NMAT)
 complex(kind(0d0)) :: Usin(1:NMAT,1:NMAT)
 complex(kind(0d0)) :: Tmat(1:NMAT,1:NMAT)
 complex(kind(0d0)) :: Bval
+complex(kind(0d0)) :: tmp
 integer :: gl
 integer :: i,j,k,l
 
@@ -34,7 +36,7 @@ do l=1,NMAT
   do k=1,NMAT
     do j=1,NMAT
       do i=1,NMAT
-        Lff=Lff + (1d0,0d0)/Bval &
+        Lff=Lff - (1d0,0d0)/Bval &
           * Glambda_chi(i,j,k,l,gl,lf) &
           * (Ymat(j,k)*Xmat(l,i) + dconjg(Xmat(k,j)*Ymat(i,l)))
       enddo
@@ -52,7 +54,6 @@ enddo
 Tmat=(0d0,0d0)
 call matrix_product(Tmat,Ymat,Xmat)
 call matrix_product(Tmat,Xmat,Ymat,'C','C',(-1d0,0d0),'ADD')
-!write(*,*) dble(Lff), dble( (0d0,-1d0)*Lff )
 do i=1,NMAT
   do j=1,NMAT
     tmp=(0d0,0d0)
@@ -61,7 +62,7 @@ do i=1,NMAT
         tmp=tmp+Glambda_chi(i,j,k,l,gl,lf)*Usin(l,k)
       enddo
     enddo
-    Lff = Lff - (1d0,0d0) / (e_max*e_max*Bval*Bval) &
+    Lff = Lff + (1d0,0d0) / (e_max*e_max*Bval*Bval) &
       * tmp * Tmat(j,i)
   enddo
 enddo

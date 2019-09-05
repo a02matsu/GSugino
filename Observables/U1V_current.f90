@@ -1,4 +1,3 @@
-
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! calculate D^\mu J_\mu for U(1)_V current
@@ -6,7 +5,7 @@
 !!  vec2 ~ Tr(\lambda(l) \chi(f))
 !! where \chi(f) is associated with the link variable Uf
 !! as in the fermionic part of the face action
-subroutine calc_divJ_U1V(divJ1,divJ2,Glambda_eta,Gchi_lambda,UMAT)
+subroutine calc_divJ_U1V(divJ1,divJ2,Glambda_eta,Glambda_chi,UMAT)
 use global_parameters
 !use initialization_calcobs
 use parallel
@@ -15,7 +14,7 @@ implicit none
 
 
 complex(kind(0d0)), intent(in) :: Glambda_eta(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_links,1:num_sites) 
-complex(kind(0d0)), intent(in) :: Gchi_lambda(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_faces,1:num_links) 
+complex(kind(0d0)), intent(in) :: Glambda_chi(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_links,1:num_faces) 
 complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_necessary_links)
 
 complex(kind(0d0)) :: vec1(1:num_necessary_links) ! 1/2 Tr(\lambda(l) \eta(s))
@@ -27,7 +26,7 @@ complex(kind(0d0)) :: divJ2(1:num_faces)
 !!  vec1 ~ 1/2 Tr(\lambda(l) \eta(s))
 call make_trV1(vec1,Glambda_eta)
 !!  vec2 ~ Tr(\lambda(l) \chi(f))
-call make_trV2_likeSf(vec2,Gchi_lambda,UMAT)
+call make_trV2_likeSf(vec2,Glambda_chi,UMAT)
 
 call calc_trrot(divJ1,vec1)
 call calc_trdiv(divJ2,vec2)
@@ -35,7 +34,7 @@ call calc_trdiv(divJ2,vec2)
 divJ1=(divJ1)/dcmplx(LatticeSpacing**4)
 divJ2=(divJ2)/dcmplx(LatticeSpacing**4)
 
-end subroutine calc_divJ_U1V2
+end subroutine calc_divJ_U1V
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -306,19 +305,24 @@ end subroutine make_trV2
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! inspierd by
+!!  SF^f = 1/g^2 \int ( -2i \chi D\times\lambda )
+!!       = 1/g^2 sum_f rot( V_{f,l}
+!! V_{f,l} = (i\alpha_\beta_f) (1/B(\chi X \lambda Y +...) )
+!! \lambda \chi ~ -1/(-2i) V_{f,l} = -i/2 V_{f,l}
 !! 
-subroutine make_trV2_likeSf(vec2,Gchi_lambda,UMAT)
+subroutine make_trV2_likeSf(vec2,Glambda_chi,UMAT)
 use global_parameters
 use global_subroutines, only : syncronize_linkval
 use parallel
 implicit none
 
 complex(kind(0d0)), intent(out) :: vec2(1:num_necessary_links) ! Tr(\lambda(l) \chi(f))
-complex(kind(0d0)), intent(in) :: Gchi_lambda(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_faces,1:num_links) 
+complex(kind(0d0)), intent(in) :: Glambda_chi(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_links,1:num_faces) 
 complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_necessary_links)
 
 complex(kind(0d0)) :: Lff
-integer :: ll,lf,l_place
+integer :: ll,lf,l_place,dir
 integer :: gl,gf,rank_send,rank_recv,tag
 integer :: org_ll
 integer :: ii
@@ -326,13 +330,13 @@ integer :: ii
 vec2=(0d0,0d0)
 do gl=1,global_num_links
   !! find the origin face of the dual link
-  !!  gf     : global face label of the origin of the dual link of gl
-  !!  org_ll : position of the origin of the link gl in the face gf
-  do ii=1,global_face_in_1(gl)%num_
-    gf=global_face_in_l(ll)%label_(ii)
+  !!  gf: global face label of the origin of the dual link of gl
+  !!      defined so that dir(gl) is the same with the direction of the link in gf
+  do ii=1,global_face_in_l(gl)%num_
+    gf=global_face_in_l(gl)%label_(ii)
     do org_ll=1,global_links_in_f(gf)%num_
       if( global_links_in_f(gf)%link_labels_(org_ll) == gl ) then 
-        dir=links_in_f(lf)%link_dirs_(org_ll)
+        dir=global_links_in_f(gf)%link_dirs_(org_ll)
         exit
       endif
     enddo
@@ -340,12 +344,7 @@ do gl=1,global_num_links
     !! special treatment of the present discretization
     if(gf==1) dir=-dir
     !!!!!!!!!!!!!!!!! !!!!!!!!!!!!!!!!! !!!!!!!!!!!!!!!!!
-    if( dir==1 ) then 
-      if( links_in_f(lf)%link_dirs_(org_ll) == 1 ) then
-        org_ll = org_ll - 1
-      endif
-      exit
-    endif 
+    if( dir==1 ) exit
   enddo
 
   rank_send = local_face_of_global(gf)%rank_
@@ -354,13 +353,14 @@ do gl=1,global_num_links
 
   !! send phase
   if( MYRANK == rank_send ) then
-    lf=local_face_of_global(gf)
+    lf=local_face_of_global(gf)%label_
     !! find the place of gl in lf
     do l_place=1,links_in_f(lf)%num_
-      ll=liniks_in_f(lf)%link_labels_(ii)
+      ll=links_in_f(lf)%link_labels_(l_place)
       if( global_link_of_local(ll) == gl ) exit
     enddo
     call fermionic_face_lagrangian(Lff,lf,l_place,Glambda_chi,Umat)
+    Lff=Lff*(0d0,1d0)
 
     if( MYRANK /= rank_recv ) then 
       call MPI_SEND(Lff,1,MPI_DOUBLE_COMPLEX,rank_recv,tag,MPI_COMM_WORLD,IERR)
@@ -380,7 +380,7 @@ do gl=1,global_num_links
     !!!!!!!!!!!!!!!!! !!!!!!!!!!!!!!!!! !!!!!!!!!!!!!!!!!
   endif
 
-  Lff = Lff * (0d0,0.5d0)
+  Lff = Lff * (0d0,-0.5d0)
 enddo
 call syncronize_linkval(vec2)
 end subroutine make_trV2_likeSf
