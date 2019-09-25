@@ -12,48 +12,55 @@ complex(kind(0d0)), intent(in) :: Geta_chi(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_
 
 complex(kind(0d0)) :: tmp_Acomp, tmp
 complex(kind(0d0)) :: tmpmat(1:NMAT,1:NMAT)
-complex(kind(0d0)) :: phibar_p(1:NMAT,1:NMAT)
+complex(kind(0d0)) :: phibar_p(1:NMAT,1:NMAT,0:dimG)
 complex(kind(0d0)) :: Omega(1:NMAT,1:NMAT)
 complex(kind(0d0)) :: Uf(1:NMAT,1:NMAT)
 integer :: lf,ls,gs,gf
-integer :: i,j,k,l
+integer :: i,j,k,l,p
 
 Acomp=(0d0,0d0)
 tmp_Acomp=(0d0,0d0)
 do lf=1, num_faces
-  tmp=(0d0,0d0)
   ls=sites_in_f(lf)%label_(1)
   gf=global_face_of_local(lf)
   gs=global_sites_in_f(gf)%label_(1)
 
-  !! phibar_p = \bar(\PhiMat)^(dimG-1)
+  !! phibar_p = \bar(\PhiMat)^p
+  phibar_p(:,:,0)=(0d0,0d0)
+  do i=1,NMAT
+    phibar_p(i,i,0)=(1d0,0d0)
+  enddo
+  !!
   do j=1,NMAT
     do i=1,NMAT
-      phibar_p(i,j)=dconjg(PhiMat(j,i,ls))
+      phibar_p(i,j,1)=dconjg(PhiMat(j,i,ls))
     enddo
   enddo
-  do k=1,dimG-2
-    tmpmat=phibar_p
-    call matrix_product(phibar_p,tmpmat,PhiMat(:,:,ls),'N','C')
+  !!1
+  do k=2,dimG
+    call matrix_product(phibar_p(:,:,k),phibar_p(:,:,k-1),PhiMat(:,:,ls),'N','C')
   enddo
 
-  do k=1,NMAT
-    do j=1,NMAT
-      do i=1,NMAT
-        tmp = tmp + dcmplx(dble(dimG))*phibar_p(i,j)*Geta_chi(j,k,k,i,gs,lf)
+  tmp=(0d0,0d0)
+  do p=1,dimG
+    do l=1,NMAT
+      do k=1,NMAT
+        do j=1,NMAT
+          do i=1,NMAT
+            tmp = tmp + phibar_p(i,j,p-1)*phibar_p(k,l,dimG-p)&
+              *Geta_chi(j,k,l,i,gs,lf)
+          enddo
+        enddo
       enddo
     enddo
   enddo
 
-  !! phibar_p = \bar(\PhiMat)^(dimG)
-  tmpmat=phibar_p
-  call matrix_product(phibar_p,tmpmat,PhiMat(:,:,ls),'N','C')
   !! Omega
   call Make_face_variable(Uf,lf,UMAT)
   call Make_moment_map_adm(Omega,Uf)
   do j=1,NMAT
     do i=1,NMAT
-      tmp = tmp + (0d0,0.5d0)*beta_f(lf)*phibar_p(i,j)*Omega(j,i)
+      tmp = tmp + (0d0,0.5d0)*beta_f(lf)*phibar_p(i,j,dimG)*Omega(j,i)
     enddo
   enddo
 
