@@ -120,8 +120,10 @@ do lf=1,num_faces
       do j=1,NMAT
         do k=1,NMAT
           trrot(lf) = trrot(lf) &
-            + (0.5d0,0d0)*dcmplx(dble(dir)) &
-            *(Xmat(i,j)*Ymat(k,i)+dconjg(Ymat(j,i)*Xmat(i,k)))*vec(j,k,ll)
+            + (1.0d0,0d0)*dcmplx(dble(dir)) &
+            *Xmat(i,j)*Ymat(k,i)*vec(j,k,ll)
+            !+ (0.5d0,0d0)*dcmplx(dble(dir)) &
+            !*(Xmat(i,j)*Ymat(k,i)+dconjg(Ymat(j,i)*Xmat(i,k)))*vec(j,k,ll)
         enddo
       enddo
     enddo

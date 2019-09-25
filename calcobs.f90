@@ -4,9 +4,10 @@ implicit none
 character(128), parameter :: PARAFILE="parameters_calcobs.dat"
 character(128) :: MEDFILE
 character(128) :: DinvFILE
-integer, parameter :: num_calcobs=10 ! 考えているobservableの数
+integer, parameter :: num_calcobs=11 ! 考えているobservableの数
 character(128) :: name_obs(1:num_calcobs) = (/ &
   "|Atr|", &
+  "|Aface|", &
   "SbS", &
   "SbL", &
   "SbF", &
@@ -23,7 +24,7 @@ integer :: sizeM,sizeN
 double precision :: Sb, SbS, SbL, SbF
 complex(kind(0d0)) :: SfL2
 complex(kind(0d0)) :: Acomp_tr ! trace compensator
-complex(kind(0d0)) :: Acomp_VM ! van der monde compensator
+complex(kind(0d0)) :: Acomp_face ! face compensator
 complex(kind(0d0)) :: APQ_phase ! A*/|A|
 complex(kind(0d0)) :: min_eigen
 complex(kind(0d0)) :: mass_cont
@@ -127,12 +128,18 @@ do
       write(*,'(I7,2X)',advance='no') ite
     endif
 
+    Sb_computed=0
+
     !"|Atr|", &
       call calc_trace_compensator(Acomp_tr,PhiMat)
       !call calc_VM_compensator(Acomp_VM,PhiMat)
       APQ_phase = dconjg(Acomp_tr) / cdabs(Acomp_tr) 
-      Sb_computed=0
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') cdabs(Acomp_tr)
+
+    !"|Aface|", &
+      call calc_face_compensator(Acomp_face,Umat,PhiMat,Geta_chi)
+      !APQ_phase = dconjg(Acomp_tr) / cdabs(Acomp_tr) 
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') cdabs(Acomp_face)
 
     !"Sb", &
       !call calc_bosonic_action(Sb,Umat,PhiMat)

@@ -166,6 +166,7 @@ do ll=1,num_links
       enddo
     enddo
   enddo
+  !vec1(:,:,ll)=vec1(:,:,ll)*alpha_l(ll)
 enddo
 call syncronize_links(vec1)
 

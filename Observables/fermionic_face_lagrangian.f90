@@ -1,5 +1,5 @@
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!! SF^f = 1/2g^2 \sum_f \sum_{l\in Lf} \epsilon_{l,f) Lff(f,l)
+!! SF^f = 1/2g^2 \sum_f \sum_{l\in Lf} \alpha_f\beta_f\epsilon_{l,f) Lff(f,l)
 !! is essentially the rotation of Lff. 
 !! In the continuum limit, this part is nothing but
 !!  SFc^f = 1/2g^2 \int dx\sqrt{g} Tr( +2i \chi rot(\lambda) )

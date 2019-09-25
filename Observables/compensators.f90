@@ -1,4 +1,73 @@
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+subroutine calc_face_compensator(Acomp,Umat,PhiMat,Geta_chi)
+use parallel
+use global_parameters
+use matrix_functions, only : matrix_product
+implicit none
+
+complex(kind(0d0)), intent(out) :: Acomp
+complex(kind(0d0)), intent(in) :: Umat(1:NMAT,1:NMAT,1:num_necessary_links)
+complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_necessary_sites)
+complex(kind(0d0)), intent(in) :: Geta_chi(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_sites,1:num_faces) 
+
+complex(kind(0d0)) :: tmp_Acomp, tmp
+complex(kind(0d0)) :: tmpmat(1:NMAT,1:NMAT)
+complex(kind(0d0)) :: phibar_p(1:NMAT,1:NMAT)
+complex(kind(0d0)) :: Omega(1:NMAT,1:NMAT)
+complex(kind(0d0)) :: Uf(1:NMAT,1:NMAT)
+integer :: lf,ls,gs,gf
+integer :: i,j,k,l
+
+Acomp=(0d0,0d0)
+tmp_Acomp=(0d0,0d0)
+do lf=1, num_faces
+  tmp=(0d0,0d0)
+  ls=sites_in_f(lf)%label_(1)
+  gf=global_face_of_local(lf)
+  gs=global_sites_in_f(gf)%label_(1)
+
+  !! phibar_p = \bar(\PhiMat)^(dimG-1)
+  do j=1,NMAT
+    do i=1,NMAT
+      phibar_p(i,j)=dconjg(PhiMat(j,i,ls))
+    enddo
+  enddo
+  do k=1,dimG-2
+    tmpmat=phibar_p
+    call matrix_product(phibar_p,tmpmat,PhiMat(:,:,ls),'N','C')
+  enddo
+
+  do k=1,NMAT
+    do j=1,NMAT
+      do i=1,NMAT
+        tmp = tmp + dcmplx(dble(dimG))*phibar_p(i,j)*Geta_chi(j,k,k,i,gs,lf)
+      enddo
+    enddo
+  enddo
+
+  !! phibar_p = \bar(\PhiMat)^(dimG)
+  tmpmat=phibar_p
+  call matrix_product(phibar_p,tmpmat,PhiMat(:,:,ls),'N','C')
+  !! Omega
+  call Make_face_variable(Uf,lf,UMAT)
+  call Make_moment_map_adm(Omega,Uf)
+  do j=1,NMAT
+    do i=1,NMAT
+      tmp = tmp + (0d0,0.5d0)*beta_f(lf)*phibar_p(i,j)*Omega(j,i)
+    enddo
+  enddo
+
+  tmp_Acomp=tmp_Acomp + alpha_f(lf)*tmp
+enddo
+
+call MPI_REDUCE(tmp_Acomp,Acomp,1,MPI_DOUBLE_COMPLEX, &
+  MPI_SUM,0,MPI_COMM_WORLD,IERR)
+  
+Acomp=Acomp/dcmplx(dble(global_num_faces))
+
+end subroutine calc_face_compensator
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 subroutine calc_trace_compensator(Acomp,PhiMat)
 use parallel
 implicit none
