@@ -1,6 +1,6 @@
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!! A = ( Tr(\bar(\phi)^2)/N )^{dimG*\chi/4}
-subroutine calc_phibar_uecompensator(Acomp,PhiMat)
+!! A = 1/NS sum_s ( 1/N Tr(\bar(\phi)^2) )^{dimG*\chi/4}
+subroutine calc_phibar_compensator(Acomp,PhiMat)
 use parallel
 use global_parameters
 use matrix_functions, only : matrix_product
@@ -18,7 +18,7 @@ integer :: i,j
 eular=global_num_sites-global_num_links+global_num_faces 
 ratio=dble((NMAT*NMAT-1)*eular)/4d0 
 Acomp=(0d0,0d0)
-A_tmp=(0d0,0d0)
+tmp_Acomp=(0d0,0d0)
 do ls=1,num_sites
   tmp=(0d0,0d0)
   do i=1,NMAT
@@ -33,7 +33,7 @@ do ls=1,num_sites
   tmp_Acomp=tmp_Acomp + dcmplx(radius**ratio) * cdexp( (0d0,1d0)*dcmplx(phase*ratio) )
 enddo
 
-call MPI_REDUCE(A_tmp,Acomp,1,MPI_DOUBLE_COMPLEX, &
+call MPI_REDUCE(tmp_Acomp,Acomp,1,MPI_DOUBLE_COMPLEX, &
   MPI_SUM,0,MPI_COMM_WORLD,IERR)
   
 Acomp=Acomp/dcmplx(dble(global_num_sites))
