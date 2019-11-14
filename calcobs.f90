@@ -4,7 +4,7 @@ implicit none
 character(128), parameter :: PARAFILE="parameters_calcobs.dat"
 character(128) :: MEDFILE
 character(128) :: DinvFILE
-integer, parameter :: num_calcobs=14 ! 考えているobservableの数
+integer, parameter :: num_calcobs=15 ! 考えているobservableの数
 character(128) :: name_obs(1:num_calcobs) = (/ &
   "|Atr|", &
   "|Aface|", &
@@ -19,7 +19,8 @@ character(128) :: name_obs(1:num_calcobs) = (/ &
   "Re(SfL2)", &
   "Im(SfL2)", &
   "dimG*(NS+NL)/2", &
-  "dimG*NF/2" &
+  "dimG*NF/2", &
+  "WT_site" &
   /)
 !integer :: trig_obs(1:num_calcobs)
 integer :: sizeM,sizeN
@@ -35,6 +36,7 @@ complex(kind(0d0)) :: Acomp_phibar ! phia compensator
 complex(kind(0d0)) :: QC_Xi ! Q(Aphibar).\Xi 
 complex(kind(0d0)) :: min_eigen
 complex(kind(0d0)) :: mass_cont
+complex(kind(0d0)) :: WT_site
 !complex(kind(0d0)), allocatable :: WT1(:)
 !complex(kind(0d0)), allocatable :: WT2(:)
 complex(kind(0d0)) :: WT1, WT2
@@ -190,6 +192,11 @@ do
     !! fermion number in (5.8)
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  &
         dble(global_num_faces*dimG)*0.5d0 
+
+    !! trivial WT for site
+      call calc_siteWT(WT_site, Geta_eta,PhiMat)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble(WT_site)
+
 
     if(MYRANK==0) write(*,*)
   else

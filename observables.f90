@@ -25,5 +25,7 @@
 #include "Observables/exact_U1R.f90"
 #include "Observables/mass_reweighting.f90"
 #include "Observables/fermionic_face_lagrangian.f90"
+#include "Observables/siteWT.f90"
+#include "Observables/make_Xi.f90"
 
 

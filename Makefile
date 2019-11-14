@@ -8,9 +8,9 @@ PARA=-DPARALLEL
 PARA2=-DPARALLEL -DCOUNT_TIME
 #PARA=-DNOPARALLEL
 #FLAGS_IFORT=-mkl -fpp $(PARA) -CB -traceback -g 
-FLAGS_CLUSTER=-mkl=cluster -CB -traceback -g 
+FLAGS_CLUSTER=-mkl=cluster -fpp $(PARA) -CB -traceback -g 
 #FLAGS_IFORT=-mkl -parallel -ipo
-FLAGS_IFORT=-mkl -fpp $(PARA) -O3 -ipo
+#FLAGS_IFORT=-mkl -fpp $(PARA) -O3 -ipo
 #FLAGS_GCC=-llapack -lblas
 # コンパイルのために順番が大事。下層ほど先に書く。 
 SRCS=\
@@ -77,12 +77,12 @@ PROG_U1R=calc_exact_U1R.exe
 all:$(PROG) 
 
 $(PROG): $(OBJS) $(OBJ_MAIN)
-	$(FC) $(FLAGS_IFORT) -o $@  $(OBJS) $(OBJ_MAIN) $(LIB)
+	$(FC) $(FLAGS_CLUSTER) -o $@  $(OBJS) $(OBJ_MAIN) $(LIB)
 #########################################
 dirac:$(PROG_Dirac)
 
 $(PROG_Dirac): $(OBJ_Dirac) $(OBJ_MAIN)
-	$(FC) $(FLAGS_IFORT) -o $@ $(OBJS) $(OBJ_Dirac) $(LIB)
+	$(FC) $(FLAGS_CLUSTER) -o $@ $(OBJS) $(OBJ_Dirac) $(LIB)
 #########################################
 dinv:$(PROG_Dinv)
 
@@ -91,27 +91,27 @@ $(PROG_Dinv): $(OBJ_Dinv)
 #########################################
 obs:$(PROG_OBS)
 $(PROG_OBS): $(OBJ_OBS) $(OBJ_OBSMAIN) $(OBJ_OBSCOMM) $(OBJS)
-	 $(FC) $(FLAGS_IFORT) -o $@ $(OBJ_OBSCOMM) $(OBJS) $(OBJ_OBSMAIN) $(LIB)
+	 $(FC) $(FLAGS_CLUSTER) -o $@ $(OBJ_OBSCOMM) $(OBJS) $(OBJ_OBSMAIN) $(LIB)
 #########################################
 trphi2:$(PROG_TRPHI2)
 
 $(PROG_TRPHI2): $(OBJ_TRPHI2) $(OBJ_OBSCOMM) $(OBJS) 
-	$(FC) $(FLAGS_IFORT) -o $@ $(OBJS) $(OBJ_OBS) $(OBJ_OBSCOMM) $(OBJ_TRPHI2) $(LIB)
+	$(FC) $(FLAGS_CLUSTER) -o $@ $(OBJS) $(OBJ_OBS) $(OBJ_OBSCOMM) $(OBJ_TRPHI2) $(LIB)
 #########################################
 trf2:$(PROG_TRF2)
 
 $(PROG_TRF2): $(OBJ_TRF2) $(OBJ_OBSCOMM) $(OBJS) 
-	$(FC) $(FLAGS_IFORT) -o $@ $(OBJS) $(OBJ_OBS) $(OBJ_OBSCOMM) $(OBJ_TRF2) $(LIB)
+	$(FC) $(FLAGS_CLUSTER) -o $@ $(OBJS) $(OBJ_OBS) $(OBJ_OBSCOMM) $(OBJ_TRF2) $(LIB)
 #########################################
 WTU1:$(PROG_divJ_U1V)
 
 $(PROG_divJ_U1V): $(OBJ_divJ_U1V) $(OBJ_OBSCOMM) $(OBJS) 
-	$(FC) $(FLAGS_IFORT) -o $@ $(OBJS) $(OBJ_OBS) $(OBJ_OBSCOMM) $(OBJ_divJ_U1V) $(LIB)
+	$(FC) $(FLAGS_CLUSTER) -o $@ $(OBJS) $(OBJ_OBS) $(OBJ_OBSCOMM) $(OBJ_divJ_U1V) $(LIB)
 #########################################
 U1R:$(PROG_U1R)
 
 $(PROG_U1R): $(OBJ_U1R) $(OBJ_OBSCOMM) $(OBJS) 
-	$(FC) $(FLAGS_IFORT) -o $@ $(OBJS) $(OBJ_OBS) $(OBJ_OBSCOMM) $(OBJ_U1R) $(LIB)
+	$(FC) $(FLAGS_CLUSTER) -o $@ $(OBJS) $(OBJ_OBS) $(OBJ_OBSCOMM) $(OBJ_U1R) $(LIB)
 
 
 
@@ -122,7 +122,7 @@ $(PROG_U1R): $(OBJ_U1R) $(OBJ_OBSCOMM) $(OBJS)
 #structure_constant.mod: structure_constant.f90 structure_constant.o
 #	#@:
 %.o: %.f90
-	$(FC) $(FLAGS_IFORT) -c $<
+	$(FC) $(FLAGS_CLUSTER) -c $<
 %.mod: %.f90 %.o
 	@true
 
@@ -194,7 +194,9 @@ simulation.o: \
   $(DIR_OBS)/eigenvalues_of_Dirac.f90 \
   $(DIR_OBS)/exact_U1R.f90 \
   $(DIR_OBS)/mass_reweighting.f90 \
-  $(DIR_OBS)/fermionic_face_lagrangian.f90
+  $(DIR_OBS)/fermionic_face_lagrangian.f90 \
+  $(DIR_OBS)/siteWT.f90 \
+  $(DIR_OBS)/make_Xi.f90 \
   #$(DIR_OBS)/WT_identities.f90 
 check_routines.o: \
   global_parameters.o \
