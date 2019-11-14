@@ -41,7 +41,7 @@ implicit none
 
 complex(kind(0d0)), intent(out) :: mass_cont
 complex(kind(0d0)), intent(in) ::  Geta_eta(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_sites,1:num_sites) 
-complex(kind(0d0)), intent(in) :: Xi_eta(1:NMAT,1:NMAT,1:num_necessary_links)
+complex(kind(0d0)), intent(in) :: Xi_eta(1:NMAT,1:NMAT,1:num_necessary_sites)
 complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_necessary_sites)
 
 complex(kind(0d0)) tmpmat(1:NMAT,1:NMAT)
@@ -115,7 +115,7 @@ enddo
 call MPI_REDUCE(trace,Sfsite,1,MPI_DOUBLE_COMPLEX, &
   MPI_SUM,0,MPI_COMM_WORLD,IERR)
 
-Sfsite=Sfsite * dcmplx( -overall_factor )
+Sfsite=Sfsite * dcmplx( overall_factor )
 
 
 end subroutine fermion_action_site
