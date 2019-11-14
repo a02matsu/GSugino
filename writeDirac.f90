@@ -7,7 +7,7 @@ character(128), allocatable :: DiracFILE(:)
 integer, parameter :: N_MEDFILE=100
 integer, parameter :: N_DiracFILE=101
 integer, parameter :: N_tmpfile=102
-character(128), parameter :: tmpfile='abcdefg'
+integer :: ini, len
 character(128) :: COMMAND
 
 contains
@@ -124,14 +124,17 @@ call make_SUN_generators(T,NMAT)
 if( MYRANK==0 ) then
 do narg=1,iarg
   call getarg(narg,MEDFILE(narg))
-  COMMAND = 'echo "' // trim(adjustl(MEDFILE(narg))) // '" | sed "s/medconfig/Dirac/" > ' // trim(adjustl(tmpfile) )
-  call system(COMMAND)
-  !!!
-  if( MYRANK == 0 ) then
-    open(N_tmpfile, file=tmpfile, status='OLD',action='READ')
-    READ(N_tmpfile,'(a)') DiracFILE(narg)
-    close(N_tmpfile)
-  endif
+!  COMMAND = 'echo "' // trim(adjustl(MEDFILE(narg))) // '" | sed "s/medconfig/Dirac/" > ' // trim(adjustl(tmpfile) )
+!  call system(COMMAND)
+!  !!!
+!  if( MYRANK == 0 ) then
+!    open(N_tmpfile, file=tmpfile, status='OLD',action='READ')
+!    READ(N_tmpfile,'(a)') DiracFILE(narg)
+!    close(N_tmpfile)
+!  endif
+ini=index(MEDFILE(narg),"medconfig")
+DiracFILE(narg)=MEDFILE(narg)(1:ini-1)//"Dirac"//MEDFILE(narg)(ini+9:)
+DiracFILE(narg)=trim(adjustl(DiracFILE(narg)))
 enddo
 endif
 
