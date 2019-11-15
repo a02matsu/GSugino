@@ -4,7 +4,7 @@ implicit none
 character(128), parameter :: PARAFILE="parameters_calcobs.dat"
 character(128) :: MEDFILE
 character(128) :: DinvFILE
-integer, parameter :: num_calcobs=15 ! 考えているobservableの数
+integer, parameter :: num_calcobs=16 ! 考えているobservableの数
 character(128) :: name_obs(1:num_calcobs) = (/ &
   "|Atr|", &
   "|Aface|", &
@@ -20,7 +20,8 @@ character(128) :: name_obs(1:num_calcobs) = (/ &
   "Im(SfL2)", &
   "dimG*(NS+NL)/2", &
   "dimG*NF/2", &
-  "WT_site" &
+  "WT_site", &
+  "WT_link" &
   /)
 !integer :: trig_obs(1:num_calcobs)
 integer :: sizeM,sizeN
@@ -37,6 +38,7 @@ complex(kind(0d0)) :: QC_Xi ! Q(Aphibar).\Xi
 complex(kind(0d0)) :: min_eigen
 complex(kind(0d0)) :: mass_cont
 complex(kind(0d0)) :: WT_site
+complex(kind(0d0)) :: WT_link
 !complex(kind(0d0)), allocatable :: WT1(:)
 !complex(kind(0d0)), allocatable :: WT2(:)
 complex(kind(0d0)) :: WT1, WT2
@@ -196,6 +198,10 @@ do
     !! trivial WT for site
       call calc_siteWT(WT_site, Geta_eta,PhiMat)
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble(WT_site)
+
+    !! trivial WT for link
+      call calc_linkWT(WT_link,Glambda_eta,Geta_lambda,Glambda_lambda,PhiMat,Umat)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble(WT_link)
 
 
     if(MYRANK==0) write(*,*)

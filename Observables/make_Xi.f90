@@ -68,3 +68,35 @@ call syncronize_sites(Xi_eta)
 
 end subroutine make_XiVec_site
 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! subroutine to make S_lambda
+!!  \Zia = Tr(lambda S_lambda)
+subroutine make_XiVec_link(Xi_lambda,Umat,PhiMat)
+use matrix_functions, only : matrix_3_product
+use parallel
+implicit none
+
+complex(kind(0d0)), intent(out) :: Xi_lambda(1:NMAT,1:NMAT,1:num_necessary_links)
+complex(kind(0d0)), intent(in) :: Umat(1:NMAT,1:NMAT,1:num_necessary_links)
+complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_necessary_sites)
+
+complex(kind(0d0)) :: tmpmat(1:NMAT,1:NMAT)
+integer :: l
+integer :: i,j
+
+do l=1,num_links
+  do j=1,NMAT
+    do i=1,NMAT
+      tmpmat(i,j)=-dconjg( PhiMat(j,i,link_org(l)) )
+    enddo
+  enddo
+  call matrix_3_product(tmpmat,&
+    Umat(:,:,l),PhiMat(:,:,link_tip(l)),Umat(:,:,l),&
+    'N','C','C',(1d0,0d0),'ADD') 
+  Xi_lambda(:,:,l)=(0d0,-1d0)*dcmplx(alpha_l(l)*overall_factor)*tmpmat
+enddo
+
+call syncronize_links(Xi_lambda)
+end subroutine make_XiVec_link
+
+

@@ -196,6 +196,7 @@ simulation.o: \
   $(DIR_OBS)/mass_reweighting.f90 \
   $(DIR_OBS)/fermionic_face_lagrangian.f90 \
   $(DIR_OBS)/siteWT.f90 \
+  $(DIR_OBS)/linkWT.f90 \
   $(DIR_OBS)/make_Xi.f90 \
   #$(DIR_OBS)/WT_identities.f90 
 check_routines.o: \
