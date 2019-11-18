@@ -27,11 +27,11 @@ do ll=1,num_links
   !!!
   do j=1, NMAT
     do i=1, NMAT
-      MMat(i,j)=dconjg( PhiMat(j,i,link_org(ll)) )
+      MMat(i,j)=dconjg( -PhiMat(j,i,link_org(ll)) )
     enddo
   enddo
   call matrix_3_product(MMat,Umat(:,:,ll),PhiMat(:,:,link_tip(ll)),Umat(:,:,ll),&
-    'N','C','C',(1d0,0d0),'ADD')
+    'N','C','C',(-1d0,0d0),'ADD')
   MMat= MMat * alpha_l(ll)
   !!!!
   !tmpmat=(0d0,0d0)

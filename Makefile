@@ -184,7 +184,12 @@ simulation.o: \
   $(DIR_OBS)/fermionic_operators.f90 \
   $(DIR_OBS)/div_rot.f90 \
   $(DIR_OBS)/U1V_current.f90 \
+  $(DIR_OBS)/fermion_action_site.f90 \
+  $(DIR_OBS)/fermion_action_link1.f90 \
   $(DIR_OBS)/fermion_action_link2.f90 \
+  $(DIR_OBS)/fermion_action_face1.f90 \
+  $(DIR_OBS)/fermion_action_face2.f90 \
+  $(DIR_OBS)/fermionic_face_lagrangian.f90 \
   $(DIR_OBS)/compensators.f90 \
   $(DIR_OBS)/phichi.f90 \
   $(DIR_OBS)/checkFF.f90 \
@@ -194,11 +199,9 @@ simulation.o: \
   $(DIR_OBS)/eigenvalues_of_Dirac.f90 \
   $(DIR_OBS)/exact_U1R.f90 \
   $(DIR_OBS)/mass_reweighting.f90 \
-  $(DIR_OBS)/fermionic_face_lagrangian.f90 \
   $(DIR_OBS)/siteWT.f90 \
   $(DIR_OBS)/linkWT.f90 \
-  $(DIR_OBS)/make_Xi.f90 \
-  #$(DIR_OBS)/WT_identities.f90 
+  $(DIR_OBS)/make_Xi.f90 
 check_routines.o: \
   global_parameters.o \
   global_subroutines.o \

@@ -16,7 +16,12 @@
 #include "Observables/compensators.f90"
 #include "Observables/bosonic_action.f90"
 #include "Observables/U1V_current.f90"
+#include "Observables/fermion_action_site.f90"
+#include "Observables/fermion_action_link1.f90"
 #include "Observables/fermion_action_link2.f90"
+#include "Observables/fermion_action_face1.f90"
+#include "Observables/fermion_action_face2.f90"
+#include "Observables/fermionic_face_lagrangian.f90"
 #include "Observables/phichi.f90"
 #include "Observables/checkFF.f90"
 #include "Observables/fermionic_operators.f90"
@@ -24,9 +29,9 @@
 #include "Observables/eigenvalues_of_Dirac.f90"
 #include "Observables/exact_U1R.f90"
 #include "Observables/mass_reweighting.f90"
-#include "Observables/fermionic_face_lagrangian.f90"
 #include "Observables/siteWT.f90"
 #include "Observables/linkWT.f90"
+#include "Observables/faceWT.f90"
 #include "Observables/make_Xi.f90"
 
 
