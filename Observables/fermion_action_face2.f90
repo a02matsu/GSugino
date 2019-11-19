@@ -19,8 +19,8 @@ tmp_Sf_face=(0d0,0d0)
 do lf=1,num_faces
   do l_place=1,links_in_f(lf)%num_
     call fermionic_face_lagrangian(Lff,lf,l_place,Glambda_chi,Umat)
-    write(*,*) Lff
     dir = links_in_f(lf)%link_dirs_(l_place) 
+    write(*,*) dir
     tmp_Sf_face = tmp_Sf_face &
       + dcmplx( dble(dir) * alpha_f(lf)*beta_f(lf) ) * Lff
   enddo
