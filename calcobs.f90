@@ -237,7 +237,6 @@ do
     !! trivial Sf_face2
       call calc_Sf_face2(Sf,Glambda_chi,Umat)
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble(Sf)
-      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble((0d0,1d0)*Sf)
 
     !! mass contribution in WT_site
       call mass_contribution_site(mass_cont,Geta_eta,PhiMat)
