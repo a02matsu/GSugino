@@ -249,6 +249,7 @@ do
     !! mass contribution in WT_face
       call mass_contribution_face(mass_cont,Gchi_eta,Umat,PhiMat)
        if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble(mass_cont)
+       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble((0d0,1d0)*mass_cont)
 
 
 
