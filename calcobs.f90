@@ -4,7 +4,7 @@ implicit none
 character(128), parameter :: PARAFILE="parameters_calcobs.dat"
 character(128) :: MEDFILE
 character(128) :: DinvFILE
-integer, parameter :: num_calcobs=22 ! 考えているobservableの数
+integer, parameter :: num_calcobs=25 ! 考えているobservableの数
 character(128) :: name_obs(1:num_calcobs) = (/ &
   "|Atr|", &
   "|Aface|", &
@@ -27,7 +27,10 @@ character(128) :: name_obs(1:num_calcobs) = (/ &
   "Sf_link1", &
   "Sf_link2", &
   "Sf_face1", &
-  "Sf_face2" &
+  "Sf_face2", &
+  "WTmass_site", &
+  "WTmass_link", &
+  "WTmass_face" &
   /)
 !integer :: trig_obs(1:num_calcobs)
 integer :: sizeM,sizeN
@@ -234,6 +237,18 @@ do
     !! trivial Sf_face2
       call calc_Sf_face2(Sf,Glambda_chi,Umat)
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble(Sf)
+
+    !! mass contribution in WT_site
+      call mass_contribution_site(mass_cont,Geta_eta,Xi_eta,PhiMat)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble(mass_cont)
+
+    !! mass contribution in WT_link
+      call  mass_contribution_link(mass_cont,Glambda_eta,Xi_lambda,Umat,PhiMat)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble(mass_cont)
+
+    !! mass contribution in WT_face
+      call mass_contribution_face(mass_cont,Gchi_eta,Umat,PhiMat)
+       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble(mass_cont)
 
 
 
