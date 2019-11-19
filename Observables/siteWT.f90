@@ -34,7 +34,7 @@ end subroutine calc_siteWT
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! mass contribution to the trivial WT identity 
 !!  -1/2g^2 mu^2/2  Tr( \phi_s \eta_s) \Xi 
-subroutine mass_contribution_site(mass_cont,Geta_eta,Xi_eta,PhiMat)
+subroutine mass_contribution_site(mass_cont,Geta_eta,PhiMat)
 implicit none
 
 complex(kind(0d0)), intent(out) :: mass_cont
