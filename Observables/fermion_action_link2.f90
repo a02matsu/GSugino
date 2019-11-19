@@ -4,8 +4,7 @@
 subroutine calc_Sf_link2(SfL2, PhiMat, Umat, Glambda_lambda)
 use global_parameters
 use parallel
-use matrix_functions, only : matrix_3_product, trace_MM
-use SUN_generators, only : trace_MTa, make_Mijkl_from_modes
+use matrix_functions, only : matrix_3_product
 implicit none
 
 complex(kind(0d0)), intent(out) :: SfL2
@@ -27,14 +26,13 @@ do ll=1,num_links
   !!!
   do j=1, NMAT
     do i=1, NMAT
-      MMat(i,j)=dconjg( -PhiMat(j,i,link_org(ll)) )
+      MMat(i,j)=dconjg( PhiMat(j,i,link_org(ll)) )
     enddo
   enddo
   call matrix_3_product(MMat,Umat(:,:,ll),PhiMat(:,:,link_tip(ll)),Umat(:,:,ll),&
-    'N','C','C',(-1d0,0d0),'ADD')
-  MMat= MMat * alpha_l(ll)
+    'N','C','C',(1d0,0d0),'ADD')
+  MMat= MMat * dcmplx(-alpha_l(ll))
   !!!!
-  !tmpmat=(0d0,0d0)
   trace=(0d0,0d0)
   do j=1,NMAT
     do i=1,NMAT
