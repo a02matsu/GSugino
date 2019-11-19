@@ -62,7 +62,7 @@ do i=1,NMAT
         tmp=tmp+Glambda_chi(i,j,k,l,gl,lf)*Usin(l,k)
       enddo
     enddo
-    Lff = Lff + (1d0,0d0) / (e_max*e_max*Bval*Bval) &
+    Lff = Lff + (1d0,0d0) / dcmplx(e_max*e_max*Bval*Bval) &
       * tmp * Tmat(j,i)
   enddo
 enddo
