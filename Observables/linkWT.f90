@@ -16,10 +16,8 @@ complex(kind(0d0)), intent(in) ::  Glambda_lambda(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:
 double precision :: Sblink
 complex(kind(0d0)) :: mass_cont
 complex(kind(0d0)) :: Sflink1, Sflink2
-complex(kind(0d0)) Xi_lambda(1:NMAT,1:NMAT,1:num_necessary_links)
+!complex(kind(0d0)) Xi_lambda(1:NMAT,1:NMAT,1:num_necessary_links)
 
-!! (0) preparation (making \Xi)
-call make_XiVec_link(Xi_lambda,Umat,Phimat)
 
 !! (1) bosonic action
 call calc_bosonic_action_link(Sblink,Umat,PhiMat)
@@ -29,7 +27,7 @@ call calc_Sf_link1(Sflink1,Glambda_eta,Umat,PhiMat)
 call calc_Sf_link2(Sflink2,PhiMat,Umat,Glambda_eta)
 
 !! (3) mass contribution
-call mass_contribution_link(mass_cont,Glambda_eta,Xi_lambda,Umat,PhiMat)
+call mass_contribution_link(mass_cont,Glambda_eta,Umat,PhiMat)
 
 
 if( MYRANK==0 ) then
@@ -41,21 +39,24 @@ end subroutine calc_linkWT
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! mass contribution to the trivial WT identity 
 !!  -1/2g^2 mu^2/2  Tr( \phi_s \eta_s) \Xi_L
-subroutine mass_contribution_link(mass_cont,Glambda_eta,Xi_lambda,Umat,PhiMat)
+subroutine mass_contribution_link(mass_cont,Glambda_eta,Umat,PhiMat)
 implicit none
 
 complex(kind(0d0)), intent(out) :: mass_cont
 complex(kind(0d0)), intent(in) :: Glambda_eta(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_links,1:num_sites) 
-complex(kind(0d0)), intent(in) :: Xi_lambda(1:NMAT,1:NMAT,1:num_necessary_links)
 complex(kind(0d0)), intent(in) :: UMat(1:NMAT,1:NMAT,1:num_necessary_links)
 complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_necessary_sites)
 
+complex(kind(0d0)):: Xi_lambda(1:NMAT,1:NMAT,1:num_necessary_links)
 complex(kind(0d0)) tmpmat(1:NMAT,1:NMAT)
 complex(kind(0d0)) DinvXi(1:NMAT,1:NMAT,1:num_links)
 complex(kind(0d0)) trace
 integer gl,ll, rank
 integer ls
 integer k,l
+
+!! (0) preparation (making \Xi)
+call make_XiVec_link(Xi_lambda,Umat,Phimat)
 
 mass_cont=(0d0,0d0)
 

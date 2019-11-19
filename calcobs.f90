@@ -239,11 +239,11 @@ do
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble(Sf)
 
     !! mass contribution in WT_site
-      call mass_contribution_site(mass_cont,Geta_eta,Xi_eta,PhiMat)
+      call mass_contribution_site(mass_cont,Geta_eta,PhiMat)
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble(mass_cont)
 
     !! mass contribution in WT_link
-      call  mass_contribution_link(mass_cont,Glambda_eta,Xi_lambda,Umat,PhiMat)
+      call  mass_contribution_link(mass_cont,Glambda_eta,Umat,PhiMat)
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble(mass_cont)
 
     !! mass contribution in WT_face

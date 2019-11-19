@@ -13,16 +13,14 @@ complex(kind(0d0)), intent(in) ::  Geta_eta(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global
 double precision :: Sbsite
 complex(kind(0d0)) :: mass_cont
 complex(kind(0d0)) :: Sfsite
-complex(kind(0d0)) Xi_eta(1:NMAT,1:NMAT,1:num_necessary_sites)
+!complex(kind(0d0)) Xi_eta(1:NMAT,1:NMAT,1:num_necessary_sites)
 
-!! (0) preparation (making \Xi)
-call make_XiVec_site(Xi_eta,Phimat)
 
 !! (1) bosonic action
 call calc_bosonic_action_site(Sbsite,PhiMat)
 
 !! (2) mass contribution
-call mass_contribution_site(mass_cont,Geta_eta,Xi_eta,PhiMat)
+call mass_contribution_site(mass_cont,Geta_eta,PhiMat)
 
 !! (3) contribution from fermion number 
 call calc_Sf_site(Sfsite,Geta_eta,PhiMat)
@@ -41,15 +39,18 @@ implicit none
 
 complex(kind(0d0)), intent(out) :: mass_cont
 complex(kind(0d0)), intent(in) ::  Geta_eta(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_sites,1:num_sites) 
-complex(kind(0d0)), intent(in) :: Xi_eta(1:NMAT,1:NMAT,1:num_necessary_sites)
 complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_necessary_sites)
 
+complex(kind(0d0)):: Xi_eta(1:NMAT,1:NMAT,1:num_necessary_sites)
 complex(kind(0d0)) tmpmat(1:NMAT,1:NMAT)
 complex(kind(0d0)) DinvXi(1:NMAT,1:NMAT,1:num_sites)
 complex(kind(0d0)) trace
 integer gt,lt, rank
 integer ls
 integer k,l
+
+!! (0) preparation (making \Xi)
+call make_XiVec_site(Xi_eta,Phimat)
 
 mass_cont=(0d0,0d0)
 
