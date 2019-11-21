@@ -157,19 +157,28 @@ if( p5 == 0 ) then
     elseif( m_omega == -1 ) then 
       call calc_fermion_force_from_omega_adm&
         (tmpmat1,lambda,chi,Dlambda,Dchi,Umat,Uf,ll)
-  !  else
-  !    call calc_fermion_force_from_omega&
-  !      (tmp_force,lambda,chi,Dlambda,Dchi,Umat,Uf,Ufm,ll)
     endif
-!  !else
-!  !  call calc_fermion_force_from_omega_test&
-!  !    (dDdA_lambda,dDdA_chi,UMAT,lambda_mat,chi_mat)
-!  !endif
   tmp_force=tmp_force+tmpmat1
 endif 
-!dDdA_eta=dDdA_eta*dcmplx(overall_factor)
-!dDdA_lambda=dDdA_lambda*dcmplx(overall_factor)
-!dDdA_chi=dDdA_chi*dcmplx(overall_factor)
+
+!! fermion mass term
+if( p_mass == 0 ) then
+  s=link_tip(ll)
+  do r=1,N_Remez4
+    call matrix_3_product(tmpmat2,Umat(:,:,ll),Deta(:,:,s,r),Umat(:,:,ll),'N','C','C')
+    call matrix_commutator(tmpmat1,tmpmat2,lambda(:,:,ll,r))
+    tmp_force= tmp_force + dcmplx( (-Remez_alpha4(r))*alpha_l(ll)*mass_f ) * tmpmat1
+    !!
+    call matrix_3_product(tmpmat2,Umat(:,:,ll),eta(:,:,s,r),Umat(:,:,ll),'N','N','C')
+    call matrix_commutator(tmpmat1,Dlambda(:,:,ll,r),tmpmat2,'C','N')
+    tmp_force=tmp_force + dcmplx( (-Remez_alpha4(r))*alpha_l(ll)*mass_f ) * tmpmat1
+  enddo
+
+ call calc_fermion_force_from_massf&
+    (tmpmat1,lambda,chi,Dlambda,Dchi,Umat,ll)
+ tmp_force=tmp_force+tmpmat1
+endif
+
 force=(0d0,0d0)
 do ii=1,NMAT
   do jj=1,NMAT
@@ -439,8 +448,7 @@ do k=1,face_in_l(ll)%num_
   
   do l_place=1,links_in_f(f)%num_
     l=links_in_f(f)%link_labels_(l_place)
-    dir_factor=(0d0,-1d0)*dcmplx(&
-      dble(links_in_f(f)%link_dirs_(l_place)) * alpha_f(f) * beta_f(f) )
+    dir_factor=(0d0,-1d0)*dcmplx( alpha_f(f) * beta_f(f) )
 
     !!!!!!!!!!!!!!!!!!
     !! Xmat and Ymat
@@ -517,6 +525,120 @@ do k=1,face_in_l(ll)%num_
   enddo                                   
 enddo                                     
 end subroutine calc_fermion_force_from_omega_m0
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+subroutine calc_fermion_force_from_massf&
+    (pre_force,lambda,chi,Dlambda,Dchi,Umat,ll)
+implicit none
+
+complex(kind(0d0)), intent(out) :: pre_force(1:NMAT,1:NMAT)
+complex(kind(0d0)), intent(in) :: lambda(1:NMAT,1:NMAT,1:num_necessary_links,1:N_Remez4)
+complex(kind(0d0)), intent(in) :: chi(1:NMAT,1:NMAT,1:num_necessary_faces,1:N_Remez4)
+complex(kind(0d0)), intent(in) :: Dlambda(1:NMAT,1:NMAT,1:num_necessary_links,1:N_Remez4)
+complex(kind(0d0)), intent(in) :: Dchi(1:NMAT,1:NMAT,1:num_necessary_faces,1:N_Remez4)
+complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_necessary_links)
+integer, intent(in) :: ll
+
+complex(kind(0d0)) :: Xmat(1:NMAT,1:NMAT),Ymat(1:NMAT,1:NMAT)
+complex(kind(0d0)) :: tmpmat1(1:NMAT,1:NMAT)
+complex(kind(0d0)) :: XY_Mae(1:NMAT,1:NMAT)
+complex(kind(0d0)) :: XY_Ushiro(1:NMAT,1:NMAT)
+complex(kind(0d0)) :: XY_factor
+complex(kind(0d0)) :: dir_factor
+integer :: k,l,f,l_place,ll_place,X_last,r!,kk
+
+pre_force=(0d0,0d0)
+do k=1,face_in_l(ll)%num_
+  f=face_in_l(ll)%label_(k)
+
+  !!!!!!!!!!!!!!!!!!
+  !! place of ll in f
+  do ll_place=1,links_in_f(f)%num_
+    if( links_in_f(f)%link_labels_(ll_place) == ll ) exit
+  enddo
+  
+  do l_place=1,links_in_f(f)%num_
+    l=links_in_f(f)%link_labels_(l_place)
+    !dir_factor=(0d0,-1d0)*dcmplx(&
+      !dble(links_in_f(f)%link_dirs_(l_place)) * alpha_f(f) * beta_f(f) )
+    dir_factor=(0d0,-1d0)*dcmplx( alpha_f(f) * beta_f(f) * mass_f )
+
+    !!!!!!!!!!!!!!!!!!
+    !! Xmat and Ymat
+    call calc_XYmat(Xmat,Ymat,f,l_place,UMAT)
+
+    !!!!!!!!!!!!!!!!!!
+    !! last entry of Xmat
+    if( links_in_f(f)%link_dirs_(l_place) == 1 ) then
+      X_last = l_place-1
+    else
+      X_last = l_place
+    endif
+
+    do r=1,N_Remez4
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !! dX/dA contribution
+      if( ll_place <= X_last ) then
+        call div_dXdA(XY_Mae,XY_Ushiro,XY_factor,f,l_place,ll_place,UMAT)
+
+        !!!!!!!!!!!!!!!
+        !! tmpmat1=lambda.Y
+        !! tmpmat2=Dlambda^\dag . Y
+        call matrix_3_product(tmpmat1,lambda(:,:,l,r),Ymat,Dchi(:,:,f,r),&
+          'N','N','C',XY_factor)
+        call matrix_3_product(tmpmat1,Dlambda(:,:,l,r),Ymat,chi(:,:,f,r),&
+          'C','N','N',-XY_factor,'ADD')
+        !!!!!!!!!!!!!!!                 
+        call matrix_3_product(pre_force,XY_Ushiro,tmpmat1,XY_Mae,'N','N','N',&
+          -Remez_alpha4(r)*dir_factor,'ADD')
+        !!!!!!!!!!!!!!!                 
+                                        
+        call matrix_3_product(tmpmat1,Dchi(:,:,f,r),Ymat,lambda(:,:,l,r),&
+          'C','C','N',-XY_factor)
+        call matrix_3_product(tmpmat1,chi(:,:,f,r),Ymat,Dlambda(:,:,l,r),&
+          'N','C','C',XY_factor,'ADD')
+        !!!!!!!!!!!!!!!                 
+        call matrix_3_product(pre_force,XY_Mae,tmpmat1,XY_Ushiro,'C','N','C',&
+          -Remez_alpha4(r)*dir_factor,'ADD')
+        !!!!!!!!!!!!!!!                 
+                                        
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!    
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!    
+      !! dY/dA contribution             
+      else                              
+        call div_dYdA(XY_Mae,XY_Ushiro,XY_factor,f,l_place,ll_place,UMAT)
+        !!!!!!!!!!!!!!!                 
+        !! tmpmat1=X . lambda           
+        !! tmpmat2=X. Dlambda^dag       
+        call matrix_3_product(tmpmat1,Dchi(:,:,f,r),Xmat,lambda(:,:,l,r),&
+          'C','N','N',XY_factor)
+        call matrix_3_product(tmpmat1,chi(:,:,f,r),Xmat,Dlambda(:,:,l,r),&
+          'N','N','C',-XY_factor,'ADD')
+                                        
+        !!!!!!!!!!!!!!!                 
+        call matrix_3_product(pre_force,XY_Ushiro,tmpmat1,XY_Mae,'N','N','N',&
+          -Remez_alpha4(r)*dir_factor,'ADD')
+        !!!!!!!!!!!!!!!                 
+                                        
+        !!!!!!!!!!!!!!!                 
+        !! tmpmat1= lambda . Xdag       
+        !! tmpmat2= Dlambda^dag . Xdag  
+        call matrix_3_product(tmpmat1,lambda(:,:,l,r),Xmat,Dchi(:,:,f,r),&
+          'N','C','C',-XY_factor)
+        call matrix_3_product(tmpmat1,Dlambda(:,:,l,r),Xmat,chi(:,:,f,r),&
+          'C','C','N',XY_factor,'ADD')
+                                        
+        !!!!!!!!!!!!!!!                 
+        call matrix_3_product(pre_force,XY_Mae,tmpmat1,XY_Ushiro,'C','N','C',&
+          -Remez_alpha4(r)*dir_factor,'ADD')
+        !!!!!!!!!!!!!!!                  
+      endif                             
+    enddo                                
+  enddo                                   
+enddo                                     
+end subroutine calc_fermion_force_from_massf
+                                         
                                          
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! subroutine to return product of d/d\Phi D

@@ -57,7 +57,6 @@ integer k,l
 
 !! (0) preparation (making \Xi)
 call make_XiVec_face(Xi_chi,Umat)
-
 mass_cont=(0d0,0d0)
 
 DinvXi=(0d0,0d0)

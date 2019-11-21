@@ -61,7 +61,7 @@ integer, parameter :: p2=0
 integer, parameter :: p3=0
 integer, parameter :: p4=0
 integer, parameter :: p5=0
-integer, parameter :: p_mass=1
+integer, parameter :: p_mass=0
 
 integer, parameter :: Dirac_write=0
 
