@@ -55,17 +55,17 @@ integer, parameter :: pb_site=0
 integer, parameter :: pb_link=0
 integer, parameter :: pb_face=0 
 
-integer, parameter :: pf=0 ! set 1 if you do NOT wanna include fermion
+integer, parameter :: pf=0 ! set 1 if you do NOT want to include fermion
 integer, parameter :: p1=0
 integer, parameter :: p2=0
 integer, parameter :: p3=0
 integer, parameter :: p4=0
 integer, parameter :: p5=0
-integer, parameter :: p_mass=0
+integer, parameter :: p_mass=1
 
 integer, parameter :: Dirac_write=0
 
-! set 1 if you wanna check distribution of the simplicial complex
+! set 1 if you want to check distribution of the simplicial complex
 integer, parameter :: check_sub_sc=0
 
 ! bosonic and fermionic forces

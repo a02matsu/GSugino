@@ -1876,51 +1876,98 @@ end subroutine calc_Bval
 !!   d(Xmat_{f,l;ij})/dA_{ll,ab}
 !! where Xmat is defined by
 !!   d(Uf)_{ij}/dA_{l,ab} = X_{ia} Y_{bj}
-subroutine calc_dXdA(dXdA,f,l_place,ll_place,UMAT)
-implicit none
+!subroutine calc_dXdA(dXdA,f,l_place,ll_place,UMAT)
+!implicit none
+!
+!complex(kind(0d0)), intent(out) :: dXdA(1:NMAT,1:NMAT,1:NMAT,1:NMAT)
+!complex(kind(0d0)), intent(in) :: Umat(1:NMAT,1:NMAT,1:num_necessary_links)
+!integer, intent(in) :: f,l_place,ll_place
+!
+!integer :: a,b,i,j
+!integer :: Ushiro_last, Mae_last
+!complex(kind(0d0)) :: dir_factor
+!complex(kind(0d0)) :: Mae(1:NMAT,1:NMAT), Ushiro(1:NMAT,1:NMAT)
+!
+!
+!dir_factor=dcmplx(dble(links_in_f(f)%link_dirs_(ll_place)))*(0d0,1d0)
+!if( links_in_f(f)%link_dirs_(ll_place) == 1 ) then
+!  Mae_last=ll_place-1
+!else
+!  Mae_last=ll_place
+!endif
+!
+!if( links_in_f(f)%link_dirs_(l_place) == 1 ) then
+!  Ushiro_last=l_place-1
+!else
+!  Ushiro_last=l_place
+!endif
+!call calc_prodUl_from_n1_to_n2_in_Uf(Mae,f,1,Mae_last,Umat)
+!call calc_prodUl_from_n1_to_n2_in_Uf(Ushiro,f,Mae_last+1,Ushiro_last,Umat)
+!
+!do b=1,NMAT
+!  do a=1,NMAT
+!    do j=1,NMAT
+!      do i=1,NMAT
+!        dXdA(i,j,a,b)=dir_factor * Mae(i,b) * Ushiro(a,j)
+!      enddo
+!    enddo
+!  enddo
+!enddo
+!end subroutine calc_dXdA
 
-complex(kind(0d0)), intent(out) :: dXdA(1:NMAT,1:NMAT,1:NMAT,1:NMAT)
-complex(kind(0d0)), intent(in) :: Umat(1:NMAT,1:NMAT,1:num_necessary_links)
-integer, intent(in) :: f,l_place,ll_place
-
-integer :: a,b,i,j
-integer :: Ushiro_last, Mae_last
-complex(kind(0d0)) :: dir_factor
-complex(kind(0d0)) :: Mae(1:NMAT,1:NMAT), Ushiro(1:NMAT,1:NMAT)
 
 
-dir_factor=dcmplx(dble(links_in_f(f)%link_dirs_(ll_place)))*(0d0,1d0)
-if( links_in_f(f)%link_dirs_(ll_place) == 1 ) then
-  Mae_last=ll_place-1
-else
-  Mae_last=ll_place
-endif
-
-if( links_in_f(f)%link_dirs_(l_place) == 1 ) then
-  Ushiro_last=l_place-1
-else
-  Ushiro_last=l_place
-endif
-call calc_prodUl_from_n1_to_n2_in_Uf(Mae,f,1,Mae_last,Umat)
-call calc_prodUl_from_n1_to_n2_in_Uf(Ushiro,f,Mae_last+1,Ushiro_last,Umat)
-
-do b=1,NMAT
-  do a=1,NMAT
-    do j=1,NMAT
-      do i=1,NMAT
-        dXdA(i,j,a,b)=dir_factor * Mae(i,b) * Ushiro(a,j)
-      enddo
-    enddo
-  enddo
-enddo
-end subroutine calc_dXdA
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! calculate 
+!!   d(Ymat_{f,l;ij})/dA_{ll,ab}
+!! where Xmat is defined by
+!!   d(Uf)_{ij}/dA_{l,ab} = X_{ia} Y_{bj}
+!subroutine calc_dYdA(dYdA,f,l_place,ll_place,UMAT)
+!implicit none
+!
+!complex(kind(0d0)), intent(out) :: dYdA(1:NMAT,1:NMAT,1:NMAT,1:NMAT)
+!complex(kind(0d0)), intent(in) :: Umat(1:NMAT,1:NMAT,1:num_necessary_links)
+!integer, intent(in) :: f,l_place,ll_place
+!
+!integer :: a,b,i,j
+!integer :: Mae_first, Mae_last
+!complex(kind(0d0)) :: dir_factor
+!complex(kind(0d0)) :: Mae(1:NMAT,1:NMAT), Ushiro(1:NMAT,1:NMAT)
+!
+!
+!if( links_in_f(f)%link_dirs_(l_place) == 1 ) then
+!  Mae_first=l_place
+!else
+!  Mae_first=l_place+1
+!endif
+!
+!dir_factor=dcmplx(dble(links_in_f(f)%link_dirs_(ll_place)))*(0d0,1d0)
+!if( links_in_f(f)%link_dirs_(ll_place) == 1 ) then
+!  Mae_last=ll_place-1
+!else
+!  Mae_last=ll_place
+!endif
+!
+!call calc_prodUl_from_n1_to_n2_in_Uf(Mae,f,Mae_first,Mae_last,Umat)
+!call calc_prodUl_from_n1_to_n2_in_Uf(Ushiro,f,Mae_last+1,links_in_f(f)%num_,Umat)
+!
+!do b=1,NMAT
+!  do a=1,NMAT
+!    do j=1,NMAT
+!      do i=1,NMAT
+!        dYdA(i,j,a,b)=dir_factor * Mae(i,b) * Ushiro(a,j)
+!      enddo
+!    enddo
+!  enddo
+!enddo
+!end subroutine calc_dYdA
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! calculate 
 !!   d(Xmat_{f,l;ij})/dA_{ll,ab} = factor * Mae_{ib} * Ushiro_{aj}
 !! where Xmat is defined by
 !!   d(Uf)_{ij}/dA_{l,ab} = X_{ia} Y_{bj}
-subroutine div_dXdA(Mae,Ushiro,dir_factor,f,l_place,ll_place,UMAT)
+subroutine calc_dXdA(Mae,Ushiro,dir_factor,f,l_place,ll_place,UMAT)
 implicit none
 
 complex(kind(0d0)), intent(out) :: Mae(1:NMAT,1:NMAT), Ushiro(1:NMAT,1:NMAT)
@@ -1929,7 +1976,6 @@ complex(kind(0d0)), intent(in) :: Umat(1:NMAT,1:NMAT,1:num_necessary_links)
 integer, intent(in) :: f,l_place,ll_place
 
 integer :: Ushiro_last, Mae_last
-
 
 !dir_factor=dcmplx(dble(links_in_f(f)%link_dirs_(ll_place)))*(0d0,1d0)
 if( links_in_f(f)%link_dirs_(ll_place) == 1 ) then
@@ -1948,58 +1994,12 @@ endif
 call calc_prodUl_from_n1_to_n2_in_Uf(Mae,f,1,Mae_last,Umat)
 call calc_prodUl_from_n1_to_n2_in_Uf(Ushiro,f,Mae_last+1,Ushiro_last,Umat)
 
-end subroutine div_dXdA
-
-
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!! calculate 
-!!   d(Ymat_{f,l;ij})/dA_{ll,ab}
-!! where Xmat is defined by
-!!   d(Uf)_{ij}/dA_{l,ab} = X_{ia} Y_{bj}
-subroutine calc_dYdA(dYdA,f,l_place,ll_place,UMAT)
-implicit none
-
-complex(kind(0d0)), intent(out) :: dYdA(1:NMAT,1:NMAT,1:NMAT,1:NMAT)
-complex(kind(0d0)), intent(in) :: Umat(1:NMAT,1:NMAT,1:num_necessary_links)
-integer, intent(in) :: f,l_place,ll_place
-
-integer :: a,b,i,j
-integer :: Mae_first, Mae_last
-complex(kind(0d0)) :: dir_factor
-complex(kind(0d0)) :: Mae(1:NMAT,1:NMAT), Ushiro(1:NMAT,1:NMAT)
-
-
-if( links_in_f(f)%link_dirs_(l_place) == 1 ) then
-  Mae_first=l_place
-else
-  Mae_first=l_place+1
-endif
-
-dir_factor=dcmplx(dble(links_in_f(f)%link_dirs_(ll_place)))*(0d0,1d0)
-if( links_in_f(f)%link_dirs_(ll_place) == 1 ) then
-  Mae_last=ll_place-1
-else
-  Mae_last=ll_place
-endif
-
-call calc_prodUl_from_n1_to_n2_in_Uf(Mae,f,Mae_first,Mae_last,Umat)
-call calc_prodUl_from_n1_to_n2_in_Uf(Ushiro,f,Mae_last+1,links_in_f(f)%num_,Umat)
-
-do b=1,NMAT
-  do a=1,NMAT
-    do j=1,NMAT
-      do i=1,NMAT
-        dYdA(i,j,a,b)=dir_factor * Mae(i,b) * Ushiro(a,j)
-      enddo
-    enddo
-  enddo
-enddo
-end subroutine calc_dYdA
+end subroutine calc_dXdA
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! calculate 
 !!   d(Ymat_{f,l;ij})/dA_{ll,ab} = factor * Mae_{ib} * Ushiro_{aj}
-subroutine div_dYdA(Mae,Ushiro,dir_factor,f,l_place,ll_place,UMAT)
+subroutine calc_dYdA(Mae,Ushiro,dir_factor,f,l_place,ll_place,UMAT)
 implicit none
 
 complex(kind(0d0)), intent(out) :: Mae(1:NMAT,1:NMAT), Ushiro(1:NMAT,1:NMAT)
@@ -2016,17 +2016,19 @@ else
   Mae_first=l_place+1
 endif
 
-dir_factor=dcmplx(dble(links_in_f(f)%link_dirs_(ll_place)))*(0d0,1d0)
+!dir_factor=dcmplx(dble(links_in_f(f)%link_dirs_(ll_place)))*(0d0,1d0)
 if( links_in_f(f)%link_dirs_(ll_place) == 1 ) then
   Mae_last=ll_place-1
+  dir_factor=(0d0,1d0)
 else
   Mae_last=ll_place
+  dir_factor=(0d0,-1d0)
 endif
 
 call calc_prodUl_from_n1_to_n2_in_Uf(Mae,f,Mae_first,Mae_last,Umat)
 call calc_prodUl_from_n1_to_n2_in_Uf(Ushiro,f,Mae_last+1,links_in_f(f)%num_,Umat)
 
-end subroutine div_dYdA
+end subroutine calc_dYdA
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! calculate 

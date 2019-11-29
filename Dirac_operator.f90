@@ -492,7 +492,6 @@ do f=1,num_faces
 enddo
 endif
 
-
 !! (5) face action 2
 if( p5==0 ) then
   if( m_omega == 0 ) then
@@ -510,32 +509,32 @@ endif
 
 !! (mass) fermion mass term
 if( p_mass == 0 ) then
-  call Dirac_mass(DF_chi,DF_lambda,DF_eta,Umat,eta_mat,lambda_mat,chi_mat)
+!  call Dirac_mass(DF_chi,DF_lambda,DF_eta,Umat,eta_mat,lambda_mat,chi_mat)
 
-!#ifdef PARALLEL
-!  call localmat_to_globalvec(tmp_vec,eta_mat,lambda_mat,chi_mat)
-!  if(MYRANK==0) then 
-!    tmp_Dvec=(0d0,0d0)
-!    do i=1,sizeD/2
-!      tmp_Dvec(2*i-1)=tmp_Dvec(2*i-1) + overall_factor * dcmplx(mass_f)*tmp_vec(2*i) 
-!      tmp_Dvec(2*i)=tmp_Dvec(2*i) - overall_factor * dcmplx(mass_f)*tmp_vec(2*i-1) 
-!    enddo
-!  endif
-!  call MPI_BCAST(tmp_Dvec,sizeD,MPI_DOUBLE_COMPLEX,0,MPI_COMM_WORLD,IERR)
-!  call globalvec_to_localmat(tmp_eta,tmp_lambda,tmp_chi,tmp_Dvec)
-!#else
-!  call mat_to_vec(tmp_vec,eta_mat,lambda_mat,chi_mat)
-!  tmp_Dvec=(0d0,0d0)
-!  do i=1,sizeD/2
-!    tmp_Dvec(2*i-1)=tmp_Dvec(2*i-1) + overall_factor * dcmplx(mass_f)*tmp_vec(2*i) 
-!    tmp_Dvec(2*i)=tmp_Dvec(2*i) - overall_factor * dcmplx(mass_f)*tmp_vec(2*i-1) 
-!  enddo
-!  call vec_to_mat(tmp_eta,tmp_lambda,tmp_chi,tmp_Dvec)
-!#endif
-!
-!  DF_eta=DF_eta+tmp_eta
-!  DF_lambda=DF_lambda+tmp_lambda
-!  DF_chi=DF_chi+tmp_chi
+#ifdef PARALLEL
+  call localmat_to_globalvec(tmp_vec,eta_mat,lambda_mat,chi_mat)
+  if(MYRANK==0) then 
+    tmp_Dvec=(0d0,0d0)
+    do i=1,sizeD/2
+      tmp_Dvec(2*i-1)=tmp_Dvec(2*i-1) + overall_factor * dcmplx(mass_f)*tmp_vec(2*i) 
+      tmp_Dvec(2*i)=tmp_Dvec(2*i) - overall_factor * dcmplx(mass_f)*tmp_vec(2*i-1) 
+    enddo
+  endif
+  call MPI_BCAST(tmp_Dvec,sizeD,MPI_DOUBLE_COMPLEX,0,MPI_COMM_WORLD,IERR)
+  call globalvec_to_localmat(tmp_eta,tmp_lambda,tmp_chi,tmp_Dvec)
+#else
+  call mat_to_vec(tmp_vec,eta_mat,lambda_mat,chi_mat)
+  tmp_Dvec=(0d0,0d0)
+  do i=1,sizeD/2
+    tmp_Dvec(2*i-1)=tmp_Dvec(2*i-1) + overall_factor * dcmplx(mass_f)*tmp_vec(2*i) 
+    tmp_Dvec(2*i)=tmp_Dvec(2*i) - overall_factor * dcmplx(mass_f)*tmp_vec(2*i-1) 
+  enddo
+  call vec_to_mat(tmp_eta,tmp_lambda,tmp_chi,tmp_Dvec)
+#endif
+
+  DF_eta=DF_eta+tmp_eta
+  DF_lambda=DF_lambda+tmp_lambda
+  DF_chi=DF_chi+tmp_chi
 endif
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -699,6 +698,7 @@ end subroutine Dirac_Omega
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!111
 subroutine Dirac_Omega_m0(DF_chi,DF_lambda,Umat,lambda_mat,chi_mat)
+use matrix_functions, only : make_unit_matrix
 implicit none
 
 complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_necessary_links)
@@ -720,26 +720,25 @@ complex(kind(0d0)) :: dir_factor
 do f=1,num_necessary_faces
   do l_place=1,links_in_f(f)%num_
     l=links_in_f(f)%link_labels_(l_place)
-    dir_factor=dcmplx(dble(links_in_f(f)%link_dirs_(l_place)))*(0d0,-1d0)
 
     if( f <= num_faces .or. l <= num_links ) then 
       call calc_XYmat(Xmat,Ymat,f,l_place,UMAT)
+      !call make_unit_matrix(Ymat)
+
+      dir_factor=dcmplx(dble(links_in_f(f)%link_dirs_(l_place)) &
+        * alpha_f(f)*beta_f(f)*overall_factor )*(0d0,1d0)
     endif
 
     if( f <= num_faces ) then 
       call matrix_3_product(tmpmat1,Xmat,lambda_mat(:,:,l),Ymat)
       call matrix_3_product(tmpmat1,Ymat,lambda_mat(:,:,l),Xmat,'C','N','C',(1d0,0d0),'ADD')
-      DF_chi(:,:,f)=DF_chi(:,:,f) &
-        + overall_factor * dcmplx(alpha_f(f)*beta_f(f)) &
-        * dir_factor * tmpmat1
+      DF_chi(:,:,f)=DF_chi(:,:,f) + dir_factor * tmpmat1
     endif
 
     if( l <= num_links ) then 
       call matrix_3_product(tmpmat1,Ymat,chi_mat(:,:,f),Xmat)
       call matrix_3_product(tmpmat1,Xmat,chi_mat(:,:,f),Ymat,'C','N','C',(1d0,0d0),'ADD')
-      DF_lambda(:,:,l)=DF_lambda(:,:,l) &
-        - overall_factor * dcmplx(alpha_f(f)*beta_f(f)) &
-        * dir_factor * tmpmat1
+      DF_lambda(:,:,l)=DF_lambda(:,:,l) - dir_factor * tmpmat1
     endif
   enddo
 enddo
