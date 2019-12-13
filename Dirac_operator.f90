@@ -595,7 +595,6 @@ integer :: i,j,k,l,f,a, l_place
 complex(kind(0d0)) :: dir_factor
 complex(kind(0d0)) :: im_over_2
 
-!im_over_2=(0d0,0.5d0)*dcmplx(dble(m_omega))
 
 do f=1,num_necessary_faces
 !! preparation( Cos^{-1} and Omega )
@@ -639,10 +638,6 @@ do f=1,num_necessary_faces
         call matrix_product(UXmat,Uf0tom(:,:,k),Xmat)
         !! YUmat
         call matrix_product(YUmat,Ymat,Uf0tom(:,:,m_omega-k-1))
-          !!!!!!!!!!!!!!!!!!!!!!!!!!
-          !! for development
-          !call make_unit_matrix(YUmat)
-          !!!!!!!!!!!!!!!!!!!!!!!!!!
   
         !!!!  DF_chi
         if( f<=num_faces ) then 

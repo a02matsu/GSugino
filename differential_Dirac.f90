@@ -302,10 +302,6 @@ do a=1,face_in_l(ll)%num_
       call matrix_product(UXmat,Uf0tom(:,:,k),Xmat)
       !! YUmat
       call matrix_product(YUmat,Ymat,Uf0tom(:,:,m_omega-k-1))
-      !!!!!!!!!!!!!!!!!!!!!!!!!!
-      !! for development
-      !call make_unit_matrix(YUmat)
-      !!!!!!!!!!!!!!!!!!!!!!!!!!
 
       !! dUf/dA in UX part
       if( k>=1 ) then
@@ -326,6 +322,7 @@ do a=1,face_in_l(ll)%num_
 
       !! dX/dA in UX part
       if( ll_place <= X_last ) then 
+        call calc_dXdA(dXY_Mae,dXY_Ushiro,ll_dir_factor,f,l_place,ll_place,UMAT)
         !!!!!!!!!!!!!!!!!!!!!!!!!
         ! formar part
         call matrix_product( dUX_Mae, Uf0tom(:,:,k), dXY_Mae )
@@ -358,6 +355,7 @@ do a=1,face_in_l(ll)%num_
 
       !! dY/dA in UY part
       if( ll_place > X_last ) then 
+        call calc_dYdA(dXY_Mae,dXY_Ushiro,ll_dir_factor,f,l_place,ll_place,UMAT)
         ! formar part
         dYU_Mae=dXY_Mae
         ! latter part
@@ -380,7 +378,9 @@ enddo
 
 end subroutine calc_fermion_force_from_omega
 
-subroutine update_preforce(pre_force,ini_F1,F1_F2,F2_fin,lambda,chi,Dlambda,Dchi,l,f,dir_factor,order)
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+subroutine update_preforce(pre_force,ini_F1,F1_F2,F2_fin,&
+    lambda,chi,Dlambda,Dchi,l,f,dir_factor,order)
 implicit none
 
 complex(kind(0d0)), intent(inout) :: pre_force(1:NMAT,1:NMAT)
