@@ -320,18 +320,7 @@ do a=1,face_in_l(ll)%num_
           ini_F1=dUX_Ushiro
           F1_F2=YUmat
           call matrix_product(F2_fin,Cosinv,dUX_Mae)
-          do r=1,N_Remez4
-            ! term 1
-            call matrix_3_product(tmpmat1,ini_F1,lambda(:,:,l,r),F1_F2)
-            call matrix_3_product(tmpmat2,tmpmat1,Dchi(:,:,f,r),F2_fin,'N','C','N')
-            pre_force=pre_force &
-              -Remez_alpha4(r)*dir_factor*tmpmat2
-            ! term 5
-            call matrix_3_product(tmpmat1,ini_F1,Dlambda(:,:,l,r),F1_F2,'N','C','N')
-            call matrix_3_product(tmpmat2,tmpmat1,chi(:,:,f,r),F2_fin)
-            pre_force=pre_force &
-              +Remez_alpha4(r)*dir_factor*tmpmat2 
-          enddo
+          call update_preforce(pre_force,ini_F1,F1_F2,F2_fin,lambda,chi,Dlambda,Dchi,l,f,dir_factor,1)
         enddo
       endif
 
@@ -347,19 +336,7 @@ do a=1,face_in_l(ll)%num_
         ini_F1=dUX_Ushiro
         F1_F2=YUmat
         call matrix_product(F2_fin,Cosinv,dUX_Mae)
-        do r=1,N_Remez4
-          ! term 1
-          call matrix_3_product(tmpmat1,ini_F1,lambda(:,:,l,r),F1_F2)
-          call matrix_3_product(tmpmat2,tmpmat1,Dchi(:,:,f,r),F2_fin,'N','C','N')
-          pre_force=pre_force &
-            -Remez_alpha4(r)*dir_factor*tmpmat2
-          ! term 5
-          call matrix_3_product(tmpmat1,ini_F1,Dlambda(:,:,l,r),F1_F2,'N','C','N')
-          call matrix_3_product(tmpmat2,tmpmat1,chi(:,:,f,r),F2_fin)
-          pre_force=pre_force &
-            +Remez_alpha4(r)*dir_factor*tmpmat2 
-
-        enddo
+        call update_preforce(pre_force,ini_F1,F1_F2,F2_fin,lambda,chi,Dlambda,Dchi,l,f,dir_factor,1)
       endif
 
       !! YU part
@@ -429,6 +406,57 @@ do a=1,face_in_l(ll)%num_
 enddo
 
 end subroutine calc_fermion_force_from_omega
+
+subroutine update_preforce(pre_force,ini_F1,F1_F2,F2_fin,lambda,chi,Dlambda,Dchi,l,f,dir_factor,order)
+implicit none
+
+complex(kind(0d0)), intent(inout) :: pre_force(1:NMAT,1:NMAT)
+complex(kind(0d0)), intent(in) :: lambda(1:NMAT,1:NMAT,1:num_necessary_links,1:N_Remez4)
+complex(kind(0d0)), intent(in) :: chi(1:NMAT,1:NMAT,1:num_necessary_faces,1:N_Remez4)
+complex(kind(0d0)), intent(in) :: Dlambda(1:NMAT,1:NMAT,1:num_necessary_links,1:N_Remez4)
+complex(kind(0d0)), intent(in) :: Dchi(1:NMAT,1:NMAT,1:num_necessary_faces,1:N_Remez4)
+integer, intent(in) :: l,f
+complex(kind(0d0)), intent(in) :: dir_factor
+integer, intent(in) :: order ! order=1: Dchi d(...)/dA lambda (...)
+                             !      =2: Dchi (...) lambda d(...)/dA
+
+complex(kind(0d0)) :: tmpmat1(1:NMAT,1:NMAT)
+complex(kind(0d0)) :: tmpmat2(1:NMAT,1:NMAT)
+complex(kind(0d0)) :: ini_F1(1:NMAT,1:NMAT)
+complex(kind(0d0)) :: F1_F2(1:NMAT,1:NMAT)
+complex(kind(0d0)) :: F2_fin(1:NMAT,1:NMAT)
+
+integer :: r
+
+if( order==1 ) then 
+  do r=1,N_Remez4
+    ! term in Dchi-lambda
+    call matrix_3_product(tmpmat1,ini_F1,lambda(:,:,l,r),F1_F2)
+    call matrix_3_product(tmpmat2,tmpmat1,Dchi(:,:,f,r),F2_fin,'N','C','N')
+    pre_force=pre_force &
+      -Remez_alpha4(r)*dir_factor*tmpmat2
+    ! term in Dlambda-chi
+    call matrix_3_product(tmpmat1,ini_F1,Dlambda(:,:,l,r),F1_F2,'N','C','N')
+    call matrix_3_product(tmpmat2,tmpmat1,chi(:,:,f,r),F2_fin)
+    pre_force=pre_force &
+      +Remez_alpha4(r)*dir_factor*tmpmat2 
+  enddo
+elseif( order==2 ) then
+  do r=1,N_Remez4
+    ! term in Dchi-lambda
+    call matrix_3_product(tmpmat1,ini_F1,Dchi(:,:,f,r),F1_F2,'N','C','N')
+    call matrix_3_product(tmpmat2,tmpmat1,lambda(:,:,l,r),F2_fin)
+    pre_force=pre_force &
+      -Remez_alpha4(r)*dir_factor*tmpmat2
+    ! term in Dlambda-chi
+    call matrix_3_product(tmpmat1,ini_F1,chi(:,:,f,r),F1_F2)
+    call matrix_3_product(tmpmat2,tmpmat1,Dlambda(:,:,l,r),F2_fin,'N','C','N')
+    pre_force=pre_force &
+      +Remez_alpha4(r)*dir_factor*tmpmat2 
+  enddo
+endif
+
+end subroutine update_preforce
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 subroutine calc_fermion_force_from_omega_adm&
