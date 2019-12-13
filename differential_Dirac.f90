@@ -304,7 +304,7 @@ do a=1,face_in_l(ll)%num_
       call matrix_product(YUmat,Ymat,Uf0tom(:,:,m_omega-k-1))
       !!!!!!!!!!!!!!!!!!!!!!!!!!
       !! for development
-      call make_unit_matrix(YUmat)
+      !call make_unit_matrix(YUmat)
       !!!!!!!!!!!!!!!!!!!!!!!!!!
 
       !! dUf/dA in UX part
@@ -340,62 +340,35 @@ do a=1,face_in_l(ll)%num_
       endif
 
       !! YU part
-!      if( m_omega-k-1>=1 ) then
-!        do kk=0,m_omega-k-2
-!          !!!!!!!!!!!!!!!!!!!!!!!!!
-!          ! formar part
-!          call matrix_3_product( dYU_Mae, Ymat, Uf0tom(:,:,kk), dU_Mae)
-!          ! latter part
-!          call matrix_product(dYU_Ushiro, dU_Ushiro, Uf0tom(:,:,m_omega-k-kk-2))
-!
-!          ! term 1 
-!          ini_F1=dYU_Ushiro
-!          call matrix_product(F1_F2,Cosinv,UXmat)
-!          F2_fin=dYU_Mae
-!          do r=1,N_Remez4
-!            call matrix_3_product(tmpmat1,ini_F1,Dchi(:,:,f,r),F1_F2,'N','C','N')
-!            call matrix_3_product(tmpmat2,tmpmat1,lambda(:,:,l,r),F2_fin)
-!            pre_force=pre_force &
-!              -Remez_alpha4(r)*dir_factor*tmpmat2
-!          enddo
-!
-!          ! term 5 
-!          ini_F1=-dYU_Ushiro
-!          call matrix_product(F1_F2,Cosinv,UXmat)
-!          F2_fin=dYU_Mae
-!          do r=1,N_Remez4
-!            call matrix_3_product(tmpmat1,ini_F1,chi(:,:,f,r),F1_F2)
-!            call matrix_3_product(tmpmat2,tmpmat1,Dlambda(:,:,l,r),F2_fin,'N','C','N')
-!            pre_force=pre_force &
-!              -Remez_alpha4(r)*dir_factor*tmpmat2
-!          enddo
-!        enddo
-!      endif
-!
-!      !! dY/dA in UY part
-!      if( ll_place > X_last ) then 
-!        ! term 1 dY/dA
-!        call matrix_product(ini_F1,dXY_Ushiro,Uf0tom(:,:,m_omega-k-1))
-!        call matrix_product(F1_F2, Cosinv, UXmat)
-!        F2_fin=dXY_Mae
-!        do r=1,N_Remez4
-!          call matrix_3_product(tmpmat1,ini_F1,Dchi(:,:,f,r),F1_F2,'N','C','N')
-!          call matrix_3_product(tmpmat2,tmpmat1,lambda(:,:,l,r),F2_fin)
-!          pre_force=pre_force &
-!            -Remez_alpha4(r)*dir_factor*tmpmat2
-!        enddo
-!
-!        ! term 5 dY/dA
-!        call matrix_product(ini_F1,dXY_Ushiro,Uf0tom(:,:,m_omega-k-1))
-!        call matrix_product(F1_F2, Cosinv, UXmat)
-!        F2_fin=-dXY_Mae
-!        do r=1,N_Remez4
-!          call matrix_3_product(tmpmat1,ini_F1,chi(:,:,f,r),F1_F2)
-!          call matrix_3_product(tmpmat2,tmpmat1,Dlambda(:,:,l,r),F2_fin,'N','C','N')
-!          pre_force=pre_force &
-!            -Remez_alpha4(r)*dir_factor*tmpmat2
-!        enddo
-!      endif
+      if( m_omega-k-1>=1 ) then
+        do kk=0,m_omega-k-2
+          !!!!!!!!!!!!!!!!!!!!!!!!!
+          ! formar part
+          call matrix_3_product( dYU_Mae, Ymat, Uf0tom(:,:,kk), dU_Mae)
+          ! latter part
+          call matrix_product(dYU_Ushiro, dU_Ushiro, Uf0tom(:,:,m_omega-k-kk-2))
+
+          ! term 1 and 5 
+          ini_F1=dYU_Ushiro
+          call matrix_product(F1_F2,Cosinv,UXmat)
+          F2_fin=dYU_Mae
+          call update_preforce(pre_force,ini_F1,F1_F2,F2_fin,lambda,chi,Dlambda,Dchi,l,f,dir_factor,2)
+        enddo
+      endif
+
+      !! dY/dA in UY part
+      if( ll_place > X_last ) then 
+        ! formar part
+        dYU_Mae=dXY_Mae
+        ! latter part
+        call matrix_product(dYU_Ushiro, dXY_Ushiro, Uf0tom(:,:,m_omega-k-1))
+
+        ! term 1 and 5 
+        ini_F1=dYU_Ushiro
+        call matrix_product(F1_F2,Cosinv,UXmat)
+        F2_fin=dYU_Mae
+        call update_preforce(pre_force,ini_F1,F1_F2,F2_fin,lambda,chi,Dlambda,Dchi,l,f,dir_factor,2)
+      endif
 
       !! SinU part
 
