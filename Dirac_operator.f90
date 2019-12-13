@@ -583,8 +583,10 @@ complex(kind(0d0)), intent(out) :: DF_chi(1:NMAT,1:NMAT,1:num_faces)
 
 complex(kind(0d0)) :: Ufm(1:NMAT,1:NMAT)
 complex(kind(0d0)) :: Uf(1:NMAT,1:NMAT)
+complex(kind(0d0)) :: Uf0tom(1:NMAT,1:NMAT,0:m_omega-1)
 complex(kind(0d0)) :: Xmat(1:NMAT,1:NMAT),Ymat(1:NMAT,1:NMAT)
-complex(kind(0d0)) :: Cosinv(1:NMAT,1:NMAT),Omega_mat(1:NMAT,1:NMAT)
+complex(kind(0d0)) :: Cosinv(1:NMAT,1:NMAT)
+complex(kind(0d0)) :: Sinmat(1:NMAT,1:NMAT)
 complex(kind(0d0)) :: UXmat(1:NMAT,1:NMAT),YUmat(1:NMAT,1:NMAT)
 complex(kind(0d0)) :: tmpmat1(1:NMAT,1:NMAT)
 complex(kind(0d0)) :: tmpmat2(1:NMAT,1:NMAT)
@@ -593,7 +595,7 @@ integer :: i,j,k,l,f,a, l_place
 complex(kind(0d0)) :: dir_factor
 complex(kind(0d0)) :: im_over_2
 
-im_over_2=(0d0,0.5d0)*dcmplx(dble(m_omega))
+!im_over_2=(0d0,0.5d0)*dcmplx(dble(m_omega))
 
 do f=1,num_necessary_faces
 !! preparation( Cos^{-1} and Omega )
@@ -606,85 +608,84 @@ do f=1,num_necessary_faces
   do i=1,NMAT
     do j=1,NMAT
       Cosinv(i,j) = Ufm(i,j) + dconjg(Ufm(j,i))
-      tmpmat1(i,j) = Ufm(i,j) - dconjg(Ufm(j,i))
+      Sinmat(i,j) = Ufm(i,j) - dconjg(Ufm(j,i))
     enddo
   enddo
   !! Cos^{-1}
-  !call HermitianMatrix_inverse(Cosinv)
   call Matrix_inverse(Cosinv)
-  !! Omega
-  call ZHEMM('L','U',NMAT,NMAT,(0d0,-2d0)/dcmplx(dble(m_omega)), &
-    Cosinv(:,:), NMAT, &
-    tmpmat1, NMAT, &
-    (0d0,0d0),Omega_mat(:,:) , NMAT)
-  if( NMAT > 2 ) then 
-    call make_matrix_traceless(Omega_mat)
-  endif
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  !! for development
+  call make_unit_matrix(Cosinv)
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
   do l_place=1,links_in_f(f)%num_
     l=links_in_f(f)%link_labels_(l_place)
     dir_factor=&
-      dcmplx(dble(links_in_f(f)%link_dirs_(l_place)))*(0d0,2d0)/dcmplx(dble(m_omega)) 
+      (0d0,-2d0)/dcmplx(m_omega)*overall_factor &
+      *dcmplx(links_in_f(f)%link_dirs_(l_place))&
+      *dcmplx(alpha_f(f)*beta_f(f))
 
     if( f<=num_faces .or. l<=num_links ) then 
 
-      call calc_Xmat(Xmat,f,l_place,UMAT)
-      call calc_Ymat(Ymat,f,l_place,UMAT)
-      
+      call calc_XYmat(Xmat,Ymat,f,l_place,UMAT)
+      !!
+      do k=0,m_omega-1
+        call matrix_power(Uf0tom(:,:,k),Uf(:,:),k)
+      enddo
+
       do k=0,m_omega-1
         !! UXmat
-        if(k==0) then 
-          UXmat=Xmat
-        elseif(k==1) then
-          call matrix_product(UXmat,Uf,Xmat)
-        else
-          call matrix_power(tmpmat1,Uf,k)
-          call matrix_product(UXmat,tmpmat1,Xmat)
-        endif
+        call matrix_product(UXmat,Uf0tom(:,:,k),Xmat)
         !! YUmat
-        if(m_omega-k-1==0) then
-          YUmat=Ymat
-        elseif(m_omega-k-1==1) then
-          call matrix_product(YUmat,Ymat,Uf)
-        else
-          call matrix_power(tmpmat1,Uf,m_omega-k-1)
-          call matrix_product(YUmat,Ymat,tmpmat1)
-        endif
-  
+        call matrix_product(YUmat,Ymat,Uf0tom(:,:,m_omega-k-1))
+          !!!!!!!!!!!!!!!!!!!!!!!!!!
+          !! for development
+          call make_unit_matrix(YUmat)
+          !!!!!!!!!!!!!!!!!!!!!!!!!!
   
         !!!!  DF_chi
         if( f<=num_faces ) then 
+          tmpmat1=(0d0,0d0)
+          tmpmat2=(0d0,0d0)
+          ! term 1
+          ! tmpmat1 = UX.lambda.YU 
           call matrix_3_product(tmpmat1,UXmat,lambda_mat(:,:,l),YUmat)
-          call matrix_3_product(tmpmat2,YUmat,lambda_mat(:,:,l),UXmat,'C','N','C')
+          ! term 2
+          ! tmpmat2 = YU^dag.lambda.UX^dag
+!          call matrix_3_product(tmpmat2,YUmat,lambda_mat(:,:,l),UXmat,'C','N','C')
   
           tmpmat3=tmpmat1+tmpmat2
-          call matrix_product(tmpmat3,tmpmat1-tmpmat2,omega_mat,&
-            'N','N',im_over_2,'ADD')
+          ! term 3 and term 4
+!          call matrix_3_product(tmpmat3,&
+!            tmpmat1-tmpmat2,Cosinv,Sinmat,&
+!            'N','N','N',(-1d0,0d0),'ADD')
   
           call matrix_product(tmpmat1,Cosinv,tmpmat3)
-  
-          DF_chi(:,:,f)=DF_chi(:,:,f) &
-            - overall_factor &
-              * dcmplx(alpha_f(f)*beta_f(f)) &
-              * dir_factor * tmpmat1
+
+          DF_chi(:,:,f)=DF_chi(:,:,f) +  dir_factor * tmpmat1
         endif
   
         !!!!  DF_lambda
         if( l<=num_links ) then 
+          ! tmpmat1 = chi.Cosinv
           call matrix_product(tmpmat1,chi_mat(:,:,f),Cosinv)
-          call matrix_3_product(tmpmat3,YUmat,tmpmat1,UXmat)
-          call matrix_3_product(tmpmat3,UXmat,tmpmat1,YUmat,'C','N','C',(1d0,0d0),'ADD')
+
+          ! term 5 
+          ! tmpmat3 = -YU.(chi.Cinv).UX - UX^dag.(chi.Cinv).(YU)^dag
+          call matrix_3_product(tmpmat3,YUmat,-tmpmat1,UXmat)
+          ! term 6
+!          call matrix_3_product(tmpmat3,UXmat,-tmpmat1,YUmat,'C','N','C',(1d0,0d0),'ADD')
   
-          call matrix_product(tmpmat2,Omega_mat,tmpmat1)
-          call matrix_3_product(tmpmat3,YUmat,tmpmat2,UXmat,'N','N','N',&
-            im_over_2,'ADD')
-          call matrix_3_product(tmpmat3,UXmat,tmpmat2,YUmat,'C','N','C',&
-            (-1d0,0d0)*im_over_2,'ADD')
+          ! tmpmat2 = Sin.Cosinv.chi.Cosinv
+!          call matrix_3_product(tmpmat2,Cosinv,Sinmat,tmpmat1)
+!          
+!          call matrix_3_product(tmpmat3,YUmat,tmpmat2,UXmat,'N','N','N',&
+!            (1d0,0d0),'ADD')
+!          call matrix_3_product(tmpmat3,UXmat,tmpmat2,YUmat,'C','N','C',&
+!            (-1d0,0d0),'ADD')
   
-          DF_lambda(:,:,l)=DF_lambda(:,:,l) &
-            + overall_factor &
-              * dcmplx(alpha_f(f)*beta_f(f)) &
-              * dir_factor * tmpmat3 !(tmpmat1+tmpmat2)
+          DF_lambda(:,:,l)=DF_lambda(:,:,l) + dir_factor * tmpmat3 
         endif
       enddo
     endif

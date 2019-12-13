@@ -4,6 +4,29 @@ module matrix_functions
 implicit none
 
 contains
+
+!***********************************************************
+!***********************************************************
+!  make hermitian transpose
+SUBROUTINE Hermitian_Conjugate(MATDAG,MAT)
+implicit none
+
+complex(kind(0d0)), intent(in) :: MAT(:,:)
+complex(kind(0d0)), intent(out) :: MATDAG(:,:)
+
+integer :: NMAT,i,j
+
+NMAT=size(MAT,1)
+do i=1,NMAT
+  do j=1,NMAT
+    MATDAG(i,j)=dconjg(MAT(j,i))
+  enddo
+enddo
+
+
+end SUBROUTINE Hermitian_Conjugate
+
+
 !***********************************************************
 !***********************************************************
 !  Trace of matrix  
