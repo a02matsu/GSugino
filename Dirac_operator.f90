@@ -587,6 +587,7 @@ complex(kind(0d0)) :: Uf0tom(1:NMAT,1:NMAT,0:m_omega-1)
 complex(kind(0d0)) :: Xmat(1:NMAT,1:NMAT),Ymat(1:NMAT,1:NMAT)
 complex(kind(0d0)) :: Cosinv(1:NMAT,1:NMAT)
 complex(kind(0d0)) :: Sinmat(1:NMAT,1:NMAT)
+complex(kind(0d0)) :: Omega(1:NMAT,1:NMAT)
 complex(kind(0d0)) :: UXmat(1:NMAT,1:NMAT),YUmat(1:NMAT,1:NMAT)
 complex(kind(0d0)) :: tmpmat1(1:NMAT,1:NMAT)
 complex(kind(0d0)) :: tmpmat2(1:NMAT,1:NMAT)
@@ -604,18 +605,23 @@ do f=1,num_necessary_faces
   else
     call matrix_power(Ufm,Uf(:,:),m_omega)
   endif
+  !! Sinmat and Cos^{-1}
   do i=1,NMAT
     do j=1,NMAT
       Cosinv(i,j) = Ufm(i,j) + dconjg(Ufm(j,i))
       Sinmat(i,j) = Ufm(i,j) - dconjg(Ufm(j,i))
     enddo
   enddo
-  !! Cos^{-1}
   call Matrix_inverse(Cosinv)
+
+  !! Omega = Cosinv . Sinmat
+  call matrix_product(Omega,Cosinv,Sinmat)
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !! for development
-  call make_unit_matrix(Cosinv)
+  !call make_unit_matrix(Cosinv)
+  !call make_unit_matrix(Sinmat)
+  !call make_unit_matrix(Omega)
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
   do l_place=1,links_in_f(f)%num_
@@ -648,13 +654,13 @@ do f=1,num_necessary_faces
           call matrix_3_product(tmpmat1,UXmat,lambda_mat(:,:,l),YUmat)
           ! term 2
           ! tmpmat2 = YU^dag.lambda.UX^dag
-!          call matrix_3_product(tmpmat2,YUmat,lambda_mat(:,:,l),UXmat,'C','N','C')
+          call matrix_3_product(tmpmat2,YUmat,lambda_mat(:,:,l),UXmat,'C','N','C')
   
           tmpmat3=tmpmat1+tmpmat2
           ! term 3 and term 4
-!          call matrix_3_product(tmpmat3,&
-!            tmpmat1-tmpmat2,Cosinv,Sinmat,&
-!            'N','N','N',(-1d0,0d0),'ADD')
+          call matrix_product(tmpmat3,&
+            tmpmat1-tmpmat2,Omega, &
+            'N','N',(-1d0,0d0),'ADD')
   
           call matrix_product(tmpmat1,Cosinv,tmpmat3)
 
@@ -670,15 +676,15 @@ do f=1,num_necessary_faces
           ! tmpmat3 = -YU.(chi.Cinv).UX - UX^dag.(chi.Cinv).(YU)^dag
           call matrix_3_product(tmpmat3,YUmat,-tmpmat1,UXmat)
           ! term 6
-!          call matrix_3_product(tmpmat3,UXmat,-tmpmat1,YUmat,'C','N','C',(1d0,0d0),'ADD')
+          call matrix_3_product(tmpmat3,UXmat,-tmpmat1,YUmat,'C','N','C',(1d0,0d0),'ADD')
   
           ! tmpmat2 = Sin.Cosinv.chi.Cosinv
-!          call matrix_3_product(tmpmat2,Cosinv,Sinmat,tmpmat1)
-!          
-!          call matrix_3_product(tmpmat3,YUmat,tmpmat2,UXmat,'N','N','N',&
-!            (1d0,0d0),'ADD')
-!          call matrix_3_product(tmpmat3,UXmat,tmpmat2,YUmat,'C','N','C',&
-!            (-1d0,0d0),'ADD')
+          call matrix_product(tmpmat2,Omega,tmpmat1)
+          
+          call matrix_3_product(tmpmat3,YUmat,tmpmat2,UXmat,'N','N','N',&
+            (1d0,0d0),'ADD')
+          call matrix_3_product(tmpmat3,UXmat,tmpmat2,YUmat,'C','N','C',&
+            (-1d0,0d0),'ADD')
   
           DF_lambda(:,:,l)=DF_lambda(:,:,l) + dir_factor * tmpmat3 
         endif

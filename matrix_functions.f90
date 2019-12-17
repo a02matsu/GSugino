@@ -606,6 +606,87 @@ call ZGEMM('N',C3,NMAT,NMAT,NMAT,alpha, &
 
 end subroutine Matrix_3_Product
 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! product of 4 matrices
+! prod = alpha * MAT1.MAT2.Mat3.Mat4
+!   or
+! prod = alpha * MAT1.MAT2.Mat3.Mat4 + prod for ADD="A"
+!  * the size of comm, MAT1, MAT2, Mat3 and MAT4 must be the same.
+!  * beta is potional and the default is (0d0,0d0) 
+!  * conj1 and conj2 and conj3 and conj4 are optional and 
+!    conj1 = N or C or T (default: N)
+!    conj2 = N or C or T (default: N)
+!    conj3 = N or C or T (default: N)
+!    conj4 = N or C or T (default: N)
+subroutine matrix_4_product(prod,mat1,mat2,mat3,mat4,char1,char2,char3,char4,alpha_input,ADD)
+implicit none
+
+complex(kind(0d0)), intent(in) :: MAT1(:,:), MAT2(:,:), MAT3(:,:),MAT4(:,:)
+complex(kind(0d0)), intent(inout) :: prod(:,:)
+complex(kind(0d0)), allocatable :: tmp(:,:),tmp2(:,:)
+character, optional :: char1,char2,char3,char4
+character(3), optional :: ADD
+complex(kind(0d0)), optional :: alpha_input
+character :: C1,C2,C3,C4
+complex(kind(0d0)) :: beta,alpha
+
+integer :: NMAT
+
+NMAT=size(MAT1,1)
+allocate( tmp(1:NMAT,1:NMAT) )
+allocate( tmp2(1:NMAT,1:NMAT) )
+
+if (present(char1)) then
+  C1=char1
+else
+  C1='N'
+endif
+
+if (present(char2)) then
+  C2=char2
+else
+  C2='N'
+endif
+
+if (present(char3)) then
+  C3=char3
+else
+  C3='N'
+endif
+
+if (present(char4)) then
+  C4=char4
+else
+  C4='N'
+endif
+
+alpha=(1d0,0d0)
+if (present(alpha_input)) then
+  alpha=alpha_input
+endif
+
+beta=(0d0,0d0)
+if (present(ADD)) then
+  if (ADD == "ADD" .or. ADD == 'A') beta=(1d0,0d0)
+endif
+
+call ZGEMM(C1,C2,NMAT,NMAT,NMAT,(1d0,0d0), &
+  MAT1, NMAT, &
+  MAT2, NMAT, &
+  (0d0,0d0), tmp, NMAT)
+
+call ZGEMM('N',C3,NMAT,NMAT,NMAT,(1d0,0d0), &
+  tmp, NMAT, &
+  MAT3, NMAT, &
+  (0d0,0d0), tmp2, NMAT)
+
+call ZGEMM('N',C4,NMAT,NMAT,NMAT,alpha, &
+  tmp2, NMAT, &
+  MAT4, NMAT, &
+  beta, prod, NMAT)
+
+end subroutine Matrix_4_Product
+
 
 !***********************************************************
 !***********************************************************

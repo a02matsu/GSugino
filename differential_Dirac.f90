@@ -212,6 +212,7 @@ complex(kind(0d0)) :: Ufm(1:NMAT,1:NMAT)
 complex(kind(0d0)) :: Xmat(1:NMAT,1:NMAT),Ymat(1:NMAT,1:NMAT)
 complex(kind(0d0)) :: Cosinv(1:NMAT,1:NMAT)
 complex(kind(0d0)) :: Sinmat(1:NMAT,1:NMAT)
+complex(kind(0d0)) :: Omega(1:NMAT,1:NMAT)
 complex(kind(0d0)) :: UXmat(1:NMAT,1:NMAT),YUmat(1:NMAT,1:NMAT)
 complex(kind(0d0)) :: tmpmat1(1:NMAT,1:NMAT)
 complex(kind(0d0)) :: tmpmat2(1:NMAT,1:NMAT)
@@ -264,9 +265,13 @@ do a=1,face_in_l(ll)%num_
     enddo
   enddo
   call Matrix_inverse(Cosinv)
+  !! Omega = (Ufm-Ufm^-1)/(Ufm+Ufm^-1)
+  call matrix_product(Omega,Cosinv,Sinmat)
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !! for development
-  call make_unit_matrix(Cosinv)
+  !call make_unit_matrix(Cosinv)
+  !call make_unit_matrix(Sinmat)
+  !call make_unit_matrix(Omega)
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 
@@ -317,6 +322,25 @@ do a=1,face_in_l(ll)%num_
           F1_F2=YUmat
           call matrix_product(F2_fin,Cosinv,dUX_Mae)
           call update_preforce(pre_force,ini_F1,F1_F2,F2_fin,lambda,chi,Dlambda,Dchi,l,f,dir_factor,1)
+
+          ! term 2 and 6
+          call Hermitian_Conjugate(ini_F1,dUX_Mae)
+          call matrix_product(F1_F2,Cosinv,YUmat,'N','C')
+          call Hermitian_Conjugate(F2_fin,dUX_Ushiro)
+          call update_preforce(pre_force,ini_F1,F1_F2,F2_fin,lambda,chi,Dlambda,Dchi,l,f,-dir_factor,2)
+
+          ! term 3 and 7
+          ini_F1=-dUX_Ushiro
+          call matrix_product(F1_F2,YUmat,Omega)
+          call matrix_product(F2_fin,Cosinv,dUX_Mae)
+          call update_preforce(pre_force,ini_F1,F1_F2,F2_fin,lambda,chi,Dlambda,Dchi,l,f,dir_factor,1)
+
+          ! term 4 and 8
+          call matrix_product(ini_F1,dUX_Mae,Omega,'C','N')
+          call matrix_product(F1_F2,Cosinv,YUmat,'N','C')
+          call Hermitian_Conjugate(F2_fin,dUX_Ushiro)
+          call update_preforce(pre_force,ini_F1,F1_F2,F2_fin,lambda,chi,Dlambda,Dchi,l,f,-dir_factor,2)
+
         enddo
       endif
 
@@ -334,6 +358,24 @@ do a=1,face_in_l(ll)%num_
         F1_F2=YUmat
         call matrix_product(F2_fin,Cosinv,dUX_Mae)
         call update_preforce(pre_force,ini_F1,F1_F2,F2_fin,lambda,chi,Dlambda,Dchi,l,f,dir_factor,1)
+
+        ! term 2 and 6
+        call Hermitian_Conjugate(ini_F1,dUX_Mae)
+        call matrix_product(F1_F2,Cosinv,YUmat,'N','C')
+        call Hermitian_Conjugate(F2_fin,dUX_Ushiro)
+        call update_preforce(pre_force,ini_F1,F1_F2,F2_fin,lambda,chi,Dlambda,Dchi,l,f,-dir_factor,2)
+
+        ! term 3 and 7
+        ini_F1=-dUX_Ushiro
+        call matrix_product(F1_F2,YUmat,Omega)
+        call matrix_product(F2_fin,Cosinv,dUX_Mae)
+        call update_preforce(pre_force,ini_F1,F1_F2,F2_fin,lambda,chi,Dlambda,Dchi,l,f,dir_factor,1)
+
+        ! term 4 and 8
+        call matrix_product(ini_F1,dUX_Mae,Omega,'C','N')
+        call matrix_product(F1_F2,Cosinv,YUmat,'N','C')
+        call Hermitian_Conjugate(F2_fin,dUX_Ushiro)
+        call update_preforce(pre_force,ini_F1,F1_F2,F2_fin,lambda,chi,Dlambda,Dchi,l,f,-dir_factor,2)
       endif
 
       !! YU part
@@ -350,6 +392,25 @@ do a=1,face_in_l(ll)%num_
           call matrix_product(F1_F2,Cosinv,UXmat)
           F2_fin=dYU_Mae
           call update_preforce(pre_force,ini_F1,F1_F2,F2_fin,lambda,chi,Dlambda,Dchi,l,f,dir_factor,2)
+
+          ! term 2 and 6
+          call Hermitian_Conjugate(ini_F1,dYU_Mae)
+          call Hermitian_Conjugate(F1_F2,UXmat)
+          call matrix_product(F2_fin,Cosinv,dYU_Ushiro,'N','C')
+          call update_preforce(pre_force,ini_F1,F1_F2,F2_fin,lambda,chi,Dlambda,Dchi,l,f,-dir_factor,1)
+
+          ! term 3 and 7
+          call matrix_product(ini_F1,dYU_Ushiro,Omega)
+          call matrix_product(F1_F2,Cosinv,UXmat)
+          F2_fin=-dYU_Mae
+          call update_preforce(pre_force,ini_F1,F1_F2,F2_fin,lambda,chi,Dlambda,Dchi,l,f,dir_factor,2)
+
+          ! term 4 and 8
+          call Hermitian_Conjugate(ini_F1,dYU_Mae)
+          call matrix_product(F1_F2,UXmat,Omega,'C','N')
+          call matrix_product(F2_fin,Cosinv,dYU_Ushiro,'N','C')
+          call update_preforce(pre_force,ini_F1,F1_F2,F2_fin,lambda,chi,Dlambda,Dchi,l,f,-dir_factor,1)
+
         enddo
       endif
 
@@ -366,11 +427,131 @@ do a=1,face_in_l(ll)%num_
         call matrix_product(F1_F2,Cosinv,UXmat)
         F2_fin=dYU_Mae
         call update_preforce(pre_force,ini_F1,F1_F2,F2_fin,lambda,chi,Dlambda,Dchi,l,f,dir_factor,2)
+
+        ! term 2 and 6
+        call Hermitian_Conjugate(ini_F1,dYU_Mae)
+        call Hermitian_Conjugate(F1_F2,UXmat)
+        call matrix_product(F2_fin,Cosinv,dYU_Ushiro,'N','C')
+        call update_preforce(pre_force,ini_F1,F1_F2,F2_fin,lambda,chi,Dlambda,Dchi,l,f,-dir_factor,1)
+
+        ! term 3 and 7
+        call matrix_product(ini_F1,dYU_Ushiro,Omega)
+        call matrix_product(F1_F2,Cosinv,UXmat)
+        F2_fin=-dYU_Mae
+        call update_preforce(pre_force,ini_F1,F1_F2,F2_fin,lambda,chi,Dlambda,Dchi,l,f,dir_factor,2)
+
+        ! term 4 and 8
+        call Hermitian_Conjugate(ini_F1,dYU_Mae)
+        call matrix_product(F1_F2,UXmat,Omega,'C','N')
+        call matrix_product(F2_fin,Cosinv,dYU_Ushiro,'N','C')
+        call update_preforce(pre_force,ini_F1,F1_F2,F2_fin,lambda,chi,Dlambda,Dchi,l,f,-dir_factor,1)
+
       endif
 
-      !! SinU part
-
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !! cosinv part
+      ! former part
+
+      do kk=0,m_omega-1
+        call matrix_product(tmpmat1, Uf0tom(:,:,kk),dU_Mae)
+        call matrix_product(tmpmat2, dU_Ushiro,Uf0tom(:,:,m_omega-1-kk))
+
+        ! F2_fin is common
+        call matrix_product(F2_fin,Cosinv,-tmpmat1) ! take care for the sign
+
+        ! term 1 and 5
+        call matrix_3_product(ini_F1,tmpmat2,Cosinv,UXmat)
+        F1_F2=YUmat
+        call update_preforce(pre_force,ini_F1,F1_F2,F2_fin,lambda,chi,Dlambda,Dchi,l,f,dir_factor,1)
+  
+        ! term 2 and 6
+        call matrix_3_product(ini_F1,tmpmat2,Cosinv,YUmat,'N','N','C')
+        call Hermitian_conjugate(F1_F2,UXmat)
+        call update_preforce(pre_force,ini_F1,F1_F2,F2_fin,lambda,chi,Dlambda,Dchi,l,f,dir_factor,1)
+
+        ! term 3 and 7
+        call matrix_3_product(ini_F1,tmpmat2,Cosinv,UXmat)
+        call matrix_product(F1_F2,YUmat,Omega)
+        call update_preforce(pre_force,ini_F1,F1_F2,F2_fin,lambda,chi,Dlambda,Dchi,l,f,-dir_factor,1)
+  
+        ! term 4 and 8
+        call matrix_3_product(ini_F1,tmpmat2,Cosinv,YUmat,'N','N','C')
+        call matrix_product(F1_F2,UXmat,Omega,'C','N')
+        call update_preforce(pre_force,ini_F1,F1_F2,F2_fin,lambda,chi,Dlambda,Dchi,l,f,dir_factor,1)
+
+        ! latter part
+        ! F2_fin is common
+        call matrix_product(F2_fin,Cosinv,tmpmat2,'N','C') 
+
+        ! term 1 and 5
+        call matrix_3_product(ini_F1,tmpmat1,Cosinv,UXmat,'C','N','N')
+        F1_F2=YUmat
+        call update_preforce(pre_force,ini_F1,F1_F2,F2_fin,lambda,chi,Dlambda,Dchi,l,f,dir_factor,1)
+  
+        ! term 2 and 6
+        call matrix_3_product(ini_F1,tmpmat1,Cosinv,YUmat,'C','N','C')
+        call Hermitian_conjugate(F1_F2,UXmat)
+        call update_preforce(pre_force,ini_F1,F1_F2,F2_fin,lambda,chi,Dlambda,Dchi,l,f,dir_factor,1)
+
+        ! term 3 and 7
+        call matrix_3_product(ini_F1,tmpmat1,Cosinv,UXmat,'C','N','N')
+        call matrix_product(F1_F2,YUmat,Omega)
+        call update_preforce(pre_force,ini_F1,F1_F2,F2_fin,lambda,chi,Dlambda,Dchi,l,f,-dir_factor,1)
+  
+        ! term 4 and 8
+        call matrix_3_product(ini_F1,tmpmat1,Cosinv,YUmat,'C','N','C')
+        call matrix_product(F1_F2,UXmat,Omega,'C','N')
+        call update_preforce(pre_force,ini_F1,F1_F2,F2_fin,lambda,chi,Dlambda,Dchi,l,f,dir_factor,1)
+
+      enddo
+
+
+      !! Omega part
+      do kk=0, m_omega-1
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!
+        !! former part
+        call matrix_3_product(tmpmat1,Cosinv,Uf0tom(:,:,kk),dU_Mae)
+
+        ! ini_F1 is common
+        call matrix_product(tmpmat2,dU_Ushiro, Uf0tom(:,:,m_omega-kk-1))
+        ini_F1=tmpmat2
+        call matrix_product(ini_F1,&
+          tmpmat2, Omega, 'N','N',(-1d0,0d0),'ADD')
+
+        ! term 3 and 7
+        call matrix_product(F1_F2,-Cosinv,UXmat)
+        call matrix_product(F2_fin,YUmat,tmpmat1)
+        call update_preforce(pre_force,ini_F1,F1_F2,F2_fin,lambda,chi,Dlambda,Dchi,l,f,dir_factor,2)
+  
+        ! term 4 and 8
+        call matrix_product(F1_F2,Cosinv,YUmat,'N','C')
+        call matrix_product(F2_fin,UXmat,tmpmat1,'C','N')
+        call update_preforce(pre_force,ini_F1,F1_F2,F2_fin,lambda,chi,Dlambda,Dchi,l,f,dir_factor,2)
+
+
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!
+        !! latter part
+        call matrix_3_product(tmpmat1,&
+          Cosinv,Uf0tom(:,:,m_omega-kk-1),dU_Ushiro,&
+          'N','C','C')
+
+        ! ini_F1 is common
+        call matrix_product(tmpmat2, dU_Mae, Uf0tom(:,:,kk),'C','C')
+        ini_F1=tmpmat2
+        call matrix_product(ini_F1, &
+          tmpmat2, Omega, 'N','N',(1d0,0d0),'ADD')
+
+        ! term 3 and 7
+        call matrix_product(F1_F2,-Cosinv,UXmat)
+        call matrix_product(F2_fin,YUmat,tmpmat1)
+        call update_preforce(pre_force,ini_F1,F1_F2,F2_fin,lambda,chi,Dlambda,Dchi,l,f,dir_factor,2)
+  
+        ! term 4 and 8
+        call matrix_product(F1_F2,Cosinv,YUmat,'N','C')
+        call matrix_product(F2_fin,UXmat,tmpmat1,'C','N')
+        call update_preforce(pre_force,ini_F1,F1_F2,F2_fin,lambda,chi,Dlambda,Dchi,l,f,dir_factor,2)
+
+      enddo
 
     enddo
   enddo
@@ -384,6 +565,9 @@ subroutine update_preforce(pre_force,ini_F1,F1_F2,F2_fin,&
 implicit none
 
 complex(kind(0d0)), intent(inout) :: pre_force(1:NMAT,1:NMAT)
+complex(kind(0d0)), intent(in) :: ini_F1(1:NMAT,1:NMAT)
+complex(kind(0d0)), intent(in) :: F1_F2(1:NMAT,1:NMAT)
+complex(kind(0d0)), intent(in) :: F2_fin(1:NMAT,1:NMAT)
 complex(kind(0d0)), intent(in) :: lambda(1:NMAT,1:NMAT,1:num_necessary_links,1:N_Remez4)
 complex(kind(0d0)), intent(in) :: chi(1:NMAT,1:NMAT,1:num_necessary_faces,1:N_Remez4)
 complex(kind(0d0)), intent(in) :: Dlambda(1:NMAT,1:NMAT,1:num_necessary_links,1:N_Remez4)
@@ -395,9 +579,6 @@ integer, intent(in) :: order ! order=1: Dchi d(...)/dA lambda (...)
 
 complex(kind(0d0)) :: tmpmat1(1:NMAT,1:NMAT)
 complex(kind(0d0)) :: tmpmat2(1:NMAT,1:NMAT)
-complex(kind(0d0)) :: ini_F1(1:NMAT,1:NMAT)
-complex(kind(0d0)) :: F1_F2(1:NMAT,1:NMAT)
-complex(kind(0d0)) :: F2_fin(1:NMAT,1:NMAT)
 
 integer :: r
 
