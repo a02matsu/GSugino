@@ -112,7 +112,7 @@ end subroutine make_XiVec_link
 !! subroutine to make S_chi of
 !!  \Zia = Tr(eta S_eta) + Tr(lambda S_lambda) + Tr(chi S_chi)
 subroutine make_XiVec_face(Xi_chi,Umat)
-use matrix_functions, only : matrix_commutator,matrix_3_product
+use matrix_functions, only : matrix_commutator,matrix_3_product,matrix_power
 use parallel
 implicit none
 
@@ -120,14 +120,20 @@ complex(kind(0d0)), intent(out) :: Xi_chi(1:NMAT,1:NMAT,1:num_necessary_faces)
 complex(kind(0d0)), intent(in) :: Umat(1:NMAT,1:NMAT,1:num_necessary_links)
 
 complex(kind(0d0)) :: tmpmat(1:NMAT,1:NMAT)
-complex(kind(0d0)) :: Uf(1:NMAT,1:NMAT)
+complex(kind(0d0)) :: Uf(1:NMAT,1:NMAT),Ufm(1:NMAT,1:NMAT)
 integer :: s,l,f
 integer :: i,j
 
 do f=1,num_faces
   call make_face_variable(Uf,f,Umat)
-  if(m_omega==0) call make_moment_map0(tmpmat,Uf)
-  if(m_omega==-1) call make_moment_map_adm(tmpmat,Uf)
+  if(m_omega==0) then 
+    call make_moment_map0(tmpmat,Uf)
+  elseif(m_omega==-1) then
+    call make_moment_map_adm(tmpmat,Uf)
+  else
+    call matrix_power(Ufm,Uf,m_omega)
+    call make_moment_map(tmpmat,Ufm)
+  endif
   Xi_chi(:,:,f)=(0d0,-0.5d0)*dcmplx(alpha_f(f)*beta_f(f)*overall_factor)*tmpmat
 enddo
 

@@ -247,7 +247,7 @@ end subroutine check_QS
 !! subroutine to make Q\Psi
 subroutine make_Qfermion(Qeta,Qlambda,Qchi,Omega,Umat,PhiMat)
 use global_subroutines
-use matrix_functions, only : matrix_commutator, matrix_3_product
+use matrix_functions, only : matrix_commutator, matrix_3_product,matrix_power
 use parallel
 implicit none
 
@@ -262,6 +262,7 @@ complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_necessary_sites)
 
 integer :: s,l,f,i,j
 complex(kind(0d0)) :: Uf(1:NMAT,1:NMAT)
+complex(kind(0d0)) :: Ufm(1:NMAT,1:NMAT)
 
 do s=1,num_sites
   call matrix_commutator(Qeta(:,:,s),PhiMat(:,:,s),PhiMat(:,:,s),'N','C')
@@ -280,6 +281,9 @@ do f=1,num_faces
     call Make_moment_map0(Omega(:,:,f),Uf)
   elseif(m_omega == -1) then
     call Make_moment_map_adm(Omega(:,:,f),Uf)
+  else
+    call matrix_power(Ufm,Uf,m_omega)
+    call Make_moment_map(Omega(:,:,f),Ufm)
   endif
   Qchi(:,:,f)=(0d0,-0.5d0)*dcmplx(beta_f(f))*Omega(:,:,f)
 enddo
