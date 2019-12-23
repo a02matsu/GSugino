@@ -16,6 +16,7 @@ integer :: dir
 
 Sf_face=(0d0,0d0)
 tmp_Sf_face=(0d0,0d0)
+Lff=(0d0,0d0)
 do lf=1,num_faces
   do l_place=1,links_in_f(lf)%num_
     if( m_omega==-1 ) then 

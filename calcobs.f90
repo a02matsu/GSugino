@@ -218,25 +218,27 @@ do
       call calc_faceWT(WT_face,Glambda_chi,Gchi_eta,Gchi_chi,PhiMat,Umat)
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble(WT_face)
 
-    !! trivial Sf_site
+    !! Sf_site
       call calc_Sf_site(Sf,Geta_eta,PhiMat)
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble(Sf)
 
-    !! trivial Sf_link1
+    !! Sf_link1
       call calc_Sf_link1(Sf,Geta_lambda,Umat,PhiMat)
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble(Sf)
 
-    !! trivial Sf_link2
+    !! Sf_link2
       call calc_Sf_link2(Sf, PhiMat, Umat, Glambda_lambda)
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble(Sf)
 
-    !! trivial Sf_face1
+    !! Sf_face1
       call calc_Sf_face1(Sf,Gchi_chi,PhiMat)
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble(Sf)
 
-    !! trivial Sf_face2
+    !! Sf_face2
       call calc_Sf_face2(Sf,Glambda_chi,Umat)
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble(Sf)
+      !if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble((0d0,-1d0)*Sf)
+
 
     !! mass contribution in WT_site
       call mass_contribution_site(mass_cont,Geta_eta,PhiMat)
