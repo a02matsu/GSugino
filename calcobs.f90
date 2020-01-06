@@ -4,7 +4,7 @@ implicit none
 character(128), parameter :: PARAFILE="parameters_calcobs.dat"
 character(128) :: MEDFILE
 character(128) :: DinvFILE
-integer, parameter :: num_calcobs=25 ! 考えているobservableの数
+integer, parameter :: num_calcobs=26 ! 考えているobservableの数
 character(128) :: name_obs(1:num_calcobs) = (/ &
   "|Atr|", &
   "|Aface|", &
@@ -14,23 +14,31 @@ character(128) :: name_obs(1:num_calcobs) = (/ &
   "SbS", &
   "SbL", &
   "SbF", &
-  "Re(mass cont)", &
-  "Im(mass cont)", &
-  "Re(SfL2)", &
-  "Im(SfL2)", &
+  !"Re(mass cont)", &
+  !"Im(mass cont)", &
+  !"Re(SfL2)", &
+  !"Im(SfL2)", &
   "dimG*(NS+NL)/2", &
   "dimG*NF/2", &
-  "WT_site", &
-  "WT_link", &
-  "WT_face", &
-  "Sf_site", &
-  "Sf_link1", &
-  "Sf_link2", &
-  "Sf_face1", &
-  "Sf_face2", &
-  "WTmass_site", &
-  "WTmass_link", &
-  "WTmass_face" &
+  !"WT_site", &
+  !"WT_link", &
+  !"WT_face", &
+  "Re(Sf_site)", &
+  "Im(Sf_site)", &
+  "Re(Sf_link1)", &
+  "Im(Sf_link1)", &
+  "Re(Sf_link2)", &
+  "Im(Sf_link2)", &
+  "Re(Sf_face1)", &
+  "Im(Sf_face1)", &
+  "Re(Sf_face2)", &
+  "Im(Sf_face2)", &
+  "Re(WTmass_site)", &
+  "Im(WTmass_site)", &
+  "Re(WTmass_link)", &
+  "Im(WTmass_link)", &
+  "Re(WTmass_face)", &
+  "Im(WTmass_face)" &
   /)
 !integer :: trig_obs(1:num_calcobs)
 integer :: sizeM,sizeN
@@ -186,17 +194,17 @@ do
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  SbF
 
     !! mass_cont
-      call mass_contribution(mass_cont,Geta_eta,Geta_lambda,Geta_chi,Umat,PhiMat)
-      if( MYRANK == 0 ) write(*,'(E15.8,2X,E15.8,2X)',advance='no')  &
-        dble(mass_cont), &
-        dble((0d0,-1d0)*mass_cont)
+!      call mass_contribution(mass_cont,Geta_eta,Geta_lambda,Geta_chi,Umat,PhiMat)
+!      if( MYRANK == 0 ) write(*,'(E15.8,2X,E15.8,2X)',advance='no')  &
+!        dble(mass_cont), &
+!        dble((0d0,-1d0)*mass_cont)
 
     !! SfL2
-      call calc_Sf_link2(SfL2,PhiMat,Umat,Glambda_lambda)
-      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') &
-        dble(SfL2)
-      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') &
-        dble( (0d0,-1d0)*SfL2 )
+!      call calc_Sf_link2(SfL2,PhiMat,Umat,Glambda_lambda)
+!      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') &
+!        dble(SfL2)
+!      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') &
+!        dble( (0d0,-1d0)*SfL2 )
 
     !! fermion number in trivial WT
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') &
@@ -206,51 +214,59 @@ do
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  &
         dble(global_num_faces*dimG)*0.5d0 
 
-    !! trivial WT for site
-      call calc_siteWT(WT_site, Geta_eta,PhiMat)
-      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble(WT_site)
-
-    !! trivial WT for link
-      call calc_linkWT(WT_link,Glambda_eta,Geta_lambda,Glambda_lambda,PhiMat,Umat)
-      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble(WT_link)
-
-    !! trivial WT for face
-      call calc_faceWT(WT_face,Glambda_chi,Gchi_eta,Gchi_chi,PhiMat,Umat)
-      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble(WT_face)
+!    !! trivial WT for site
+!      call calc_siteWT(WT_site, Geta_eta,PhiMat)
+!      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble(WT_site)
+!
+!    !! trivial WT for link
+!      call calc_linkWT(WT_link,Glambda_eta,Geta_lambda,Glambda_lambda,PhiMat,Umat)
+!      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble(WT_link)
+!
+!    !! trivial WT for face
+!      call calc_faceWT(WT_face,Glambda_chi,Gchi_eta,Gchi_chi,PhiMat,Umat)
+!      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble(WT_face)
 
     !! Sf_site
       call calc_Sf_site(Sf,Geta_eta,PhiMat)
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble(Sf)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble((0d0,-1d0)*Sf)
 
     !! Sf_link1
       call calc_Sf_link1(Sf,Geta_lambda,Umat,PhiMat)
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble(Sf)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble((0d0,-1d0)*Sf)
 
     !! Sf_link2
       call calc_Sf_link2(Sf, PhiMat, Umat, Glambda_lambda)
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble(Sf)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble((0d0,-1d0)*Sf)
 
     !! Sf_face1
       call calc_Sf_face1(Sf,Gchi_chi,PhiMat)
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble(Sf)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble((0d0,-1d0)*Sf)
 
     !! Sf_face2
       call calc_Sf_face2(Sf,Glambda_chi,Umat)
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble(Sf)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble((0d0,-1d0)*Sf)
       !if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble((0d0,-1d0)*Sf)
 
 
     !! mass contribution in WT_site
       call mass_contribution_site(mass_cont,Geta_eta,PhiMat)
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble(mass_cont)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble((0d0,-1d0)*mass_cont)
 
     !! mass contribution in WT_link
       call  mass_contribution_link(mass_cont,Glambda_eta,Umat,PhiMat)
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble(mass_cont)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble((0d0,-1d0)*mass_cont)
 
     !! mass contribution in WT_face
       call mass_contribution_face(mass_cont,Gchi_eta,Umat,PhiMat)
        if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble(mass_cont)
+       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble((0d0,-1d0)*mass_cont)
 
 
 

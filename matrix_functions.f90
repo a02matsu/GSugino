@@ -193,6 +193,7 @@ END SUBROUTINE MATRIX_EXP
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! norm of matrix
+!! || A || = \sqrt{ A.A^\dag }
 !subroutine matrix_norm(MAT,NMAT,NORM)
 subroutine matrix_norm(NORM,MAT)
 implicit none
@@ -209,7 +210,8 @@ do j=1,NMAT
     norm=norm+dble(MAT(i,j)*dconjg(MAT(i,j)))
   enddo
 enddo
-norm=dsqrt(norm/dble(NMAT))
+!norm=dsqrt(norm/dble(NMAT))
+norm=dsqrt(norm)
 end subroutine matrix_norm
 
 
