@@ -11,7 +11,7 @@ integer :: FaceSize
 integer, allocatable :: sites(:)
 integer k,j,i
 character(128) tmp
-double precision :: alpha
+double precision :: alpha, tmp_U1Rmass
 ! open SC_FILE 
 if(MYRANK==0) then
   open(SC_FILE, file=SC_FILE_NAME, status='old',action='READ')
@@ -27,6 +27,8 @@ if(MYRANK==0) then
   allocate( global_alpha_l(1:global_num_links) )
   allocate( global_alpha_f(1:global_num_faces) )
   allocate( global_beta_f(1:global_num_faces) )
+! U(1)_R mass on global links
+  allocate( global_U1Rmass_phys(1:global_num_links) )
 endif
 call MPI_BCAST(global_num_sites,1,MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
 call MPI_BCAST(global_num_links,1,MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
@@ -51,11 +53,12 @@ if( MYRANK==0 ) then
 endif
 
 !!!!!!!!!!!!!!!!!!!!!!!!!
-!! Set alpha_l
+!! Set alpha_l and U(1)_R mass
 do k=1,global_num_links
   if( MYRANK==0 ) then 
-    read(SC_FILE,*) l,origin,tip,alpha
+    read(SC_FILE,*) l,origin,tip,alpha,tmp_U1Rmass
     global_alpha_l(l)=alpha
+    global_U1Rmass_phys(l)=tmp_U1Rmass
   endif
   call MPI_BCAST(l,1,MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
   call MPI_BCAST(origin,1,MPI_INTEGER,0,MPI_COMM_WORLD,IERR)

@@ -38,7 +38,7 @@ integer, intent(inout) :: CGite,info
 double precision, intent(out) :: Htotal
 double precision :: Hlocal,tmp
 integer a,s,l,i,j
-double precision :: SB_S,SB_L,SB_F,SB_M, SF !,SB_T
+double precision :: SB_S,SB_L,SB_F,SB_M,SB_U1R SF !,SB_T
 
 !Hlocal=site_abs(P_PhiMat(:,:,1:num_sites))
 !if(MYRANK==0) write(*,*) "P_Phi:",Hlocal
@@ -56,50 +56,8 @@ if(pb_site==0) call bosonic_action_site(SB_S,PhiMat)
 if(pb_link==0) call bosonic_action_link(SB_L,UMAT,PhiMat)
 if(pb_face==0) call bosonic_action_face(SB_F,UMAT)
 if(pf==0) call fermionic_action(SF,CGite,info,UMAT,PhiMat,PF_eta,PF_lambda,PF_chi)
-!call bosonic_action_test(SB_T,UMAT)
-!write(*,*) MYRANK, SB_M, SB_S, SB_L, SB_F, SF
 
-Hlocal = SB_M
-Hlocal = Hlocal+SB_S
-Hlocal = Hlocal+SB_L
-Hlocal = Hlocal+SB_F
-Hlocal = Hlocal+SF 
-!Htotal=Htotal+SB_T
-!tmp=0d0
-!call MPI_REDUCE(SB_M,tmp,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,MPI_COMM_WORLD,IERR)
-!if( MYRANK==0 ) write(*,*) "SB_M=",tmp
-!tmp=0d0
-!call MPI_REDUCE(SB_S,tmp,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,MPI_COMM_WORLD,IERR)
-!if( MYRANK==0 ) write(*,*) "SB_S=",tmp
-!tmp=0d0
-!call MPI_REDUCE(SB_L,tmp,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,MPI_COMM_WORLD,IERR)
-!if( MYRANK==0 ) write(*,*) "SB_L=",tmp
-!call stop_for_test
-
-!tmp=0d0
-!call MPI_REDUCE(SB_M,tmp,1,MPI_DOUBLE_PRECISION, &
-!  MPI_SUM,0,MPI_COMM_WORLD,IERR)
-!if(MYRANK==0) write(*,'(E25.18)') tmp
-!tmp=0d0
-!call MPI_REDUCE(SB_S,tmp,1,MPI_DOUBLE_PRECISION, &
-!  MPI_SUM,0,MPI_COMM_WORLD,IERR)
-!if(MYRANK==0) write(*,'(E25.18)') tmp
-!tmp=0d0
-!call MPI_REDUCE(SB_L,tmp,1,MPI_DOUBLE_PRECISION, &
-!  MPI_SUM,0,MPI_COMM_WORLD,IERR)
-!if(MYRANK==0) write(*,'(E25.18)') tmp
-!tmp=0d0
-!call MPI_REDUCE(SB_F,tmp,1,MPI_DOUBLE_PRECISION, &
-!  MPI_SUM,0,MPI_COMM_WORLD,IERR)
-!if(MYRANK==0) write(*,'(E25.18)') tmp
-!tmp=0d0
-!call MPI_REDUCE(SF,tmp,1,MPI_DOUBLE_PRECISION, &
-!  MPI_SUM,0,MPI_COMM_WORLD,IERR)
-!if(MYRANK==0) write(*,'(E25.18)') tmp
-!call stop_for_test
-
-! over all factor
-!Htotal = Htotal 
+Hlocal = SB_M+SB_S+SB_L+SB_F+SB_U1R+SF 
 
 do s=1,num_sites
   !do a=1,dimG
@@ -259,6 +217,7 @@ do f=1,num_faces
 enddo
 SB_F=SB_F * overall_factor !*one_ov_2g2N
 end subroutine bosonic_action_face
+
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! fermionic action 

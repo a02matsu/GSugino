@@ -54,6 +54,7 @@ integer, parameter :: pb_mass=0
 integer, parameter :: pb_site=0
 integer, parameter :: pb_link=0
 integer, parameter :: pb_face=0 
+!integer, parameter :: p_U1Rmass=0
 
 integer, parameter :: pf=0 ! set 1 if you do NOT want to include fermion
 integer, parameter :: p1=0
@@ -124,6 +125,7 @@ double precision, allocatable, save :: global_alpha_s(:)
 double precision, allocatable, save :: global_alpha_l(:)
 double precision, allocatable, save :: global_alpha_f(:)
 double precision, allocatable, save :: global_beta_f(:)
+double precision, allocatable, save :: global_U1Rmass_phys(:) ! U(1)_R mass in the continuum
 
 integer, allocatable, save :: global_link_org(:) ! l番目のリンクのorigin
 integer, allocatable, save :: global_link_tip(:) ! l番目のリンクのtop
@@ -161,6 +163,7 @@ double precision, allocatable, save :: alpha_s(:)
 double precision, allocatable, save :: alpha_l(:)
 double precision, allocatable, save :: alpha_f(:)
 double precision, allocatable, save :: beta_f(:)
+double precision, allocatable, save :: U1Rmass(:)  ! U(1)_R mass on lattice 
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! data of the LOCAL simplicial complex
@@ -263,6 +266,7 @@ double precision, save :: mass_square_phi ! dimensionless mass^2 of Phi
 double precision, save :: mass_f   ! mass of fermions
 double precision, save :: LatticeSpacing ! lattice spacing
 complex(kind(0d0)), save :: e_max
+
 
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

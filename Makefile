@@ -1,4 +1,4 @@
-VER=01
+VER=02
 #VER=debug
 VER_CALCOBS=02
 #FC=ifort

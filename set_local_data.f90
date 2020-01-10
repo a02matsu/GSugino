@@ -55,6 +55,8 @@ integer :: s,l,f,i,j
 
   !! alpha と beta を割り振る
   call set_local_alpha_beta
+  !! U(1)_R mass を割り振る
+  call set_local_U1Rmass
 #else
 num_sites=global_num_sites
 num_links=global_num_links
@@ -1122,6 +1124,40 @@ call syncronize_ab(beta_f,'F')
 
 
 end subroutine set_local_alpha_beta
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! set U(1)_R mass 
+subroutine set_U1Rmass
+use parallel
+implicit none
+integer l
+integer :: local, rank,  tag
+
+allocate ( U1Rmass(1:num_necessary_links) )
+ 
+do l=1,global_num_links
+  local=local_link_of_global(l)%label_
+  rank=local_link_of_global(l)%rank_
+  tag=l+global_num_sites
+  if( MYRANK == 0 ) then
+    if( rank == 0 ) then
+      U1Rmass(local)=global_U1Rmass_phys(l)*LatticeSpacing
+    else
+      call MPI_SEND(global_U1Rmass_phys(l),1,MPI_DOUBLE_PRECISION,rank,tag,MPI_COMM_WORLD,IERR)
+    endif
+  elseif( rank == MYRANK ) then
+    call MPI_RECV(U1Rmass(local),1,MPI_DOUBLE_PRECISION, 0,tag,MPI_COMM_WORLD,ISTATUS,IERR)
+    U1Rmass(local)=U1Rmass(local)*LatticeSpacing
+  endif
+enddo
+call syncronize_ab(U1Rmass,'L')
+
+
+end subroutine set_U1Rmass
+
+
+
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! alpha, betaを通信するsubroutine
