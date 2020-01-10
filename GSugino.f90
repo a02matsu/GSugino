@@ -165,6 +165,8 @@ if( check_sub_sc == 1 ) then
 #endif
 endif
 
+write(*,*) MYRANK, cdabs(U1Rfactor)
+
 !write(*,*) MYRANK, num_sites,num_links,num_faces,num_necessary_sites,num_necessary_links, num_necessary_faces
 ! initialize the size of the variables
   allocate( UMAT(1:NMAT,1:NMAT,1:num_necessary_links) )

@@ -74,43 +74,44 @@ end subroutine BoxMuller2
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! Compute forward covariant difference of Phi
 !!  DMAT = U_l Phi_tip(l) U_l^\dagger - Phi_org(l)
-subroutine Make_diff_Phi(Dphi, l,UMAT,Phi)
-use SUN_generators, only : Make_traceless_matrix_from_modes
-implicit none
-
-complex(kind(0d0)), intent(out) :: Dphi(1:NMAT,1:NMAT)
-integer, intent(in) :: l
-complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_necessary_links)
-complex(kind(0d0)), intent(in) :: Phi(1:dimG,1:num_sites)
-integer :: i,j
-complex(kind(0d0)) :: Phi_tip(1:NMAT,1:NMAT)
-!complex(kind(0d0)) :: Phi_org(1:NMAT,1:NMAT)
-complex(kind(0d0)) :: tmpmat1(1:NMAT,1:NMAT)
-
-call Make_traceless_matrix_from_modes(Phi_tip,NMAT,Phi(:,link_tip(l)))
-!call Make_traceless_matrix_from_modes(Phi_org,NMAT,Phi(:,link_org(l)))
-call Make_traceless_matrix_from_modes(Dphi,NMAT,Phi(:,link_org(l)))
-
-! U_l.Phi_tip
-call ZGEMM('N','N',NMAT,NMAT,NMAT,(1d0,0d0), &
-    UMAT(:,:,l), NMAT, &
-    Phi_tip, NMAT, &
-    (0d0,0d0), tmpmat1, NMAT)
-! U_l.Phi_tip.U_l^\dagger
-call ZGEMM('N','C',NMAT,NMAT,NMAT,(1d0,0d0), &
-    tmpmat1, NMAT, &
-    UMAT(:,:,l), NMAT, &
-    (-1d0,0d0), Dphi, NMAT)
-! U_l.Phi_tip.U_l^\dagger - Phi_org
-!Dphi = Dphi - Phi_org
-
-end subroutine Make_diff_Phi
+!subroutine Make_diff_Phi(Dphi, l,UMAT,Phi)
+!use SUN_generators, only : Make_traceless_matrix_from_modes
+!implicit none
+!
+!complex(kind(0d0)), intent(out) :: Dphi(1:NMAT,1:NMAT)
+!integer, intent(in) :: l
+!complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_necessary_links)
+!complex(kind(0d0)), intent(in) :: Phi(1:dimG,1:num_sites)
+!integer :: i,j
+!complex(kind(0d0)) :: Phi_tip(1:NMAT,1:NMAT)
+!!complex(kind(0d0)) :: Phi_org(1:NMAT,1:NMAT)
+!complex(kind(0d0)) :: tmpmat1(1:NMAT,1:NMAT)
+!
+!call Make_traceless_matrix_from_modes(Phi_tip,NMAT,Phi(:,link_tip(l)))
+!!call Make_traceless_matrix_from_modes(Phi_org,NMAT,Phi(:,link_org(l)))
+!call Make_traceless_matrix_from_modes(Dphi,NMAT,Phi(:,link_org(l)))
+!
+!! U_l.Phi_tip
+!call ZGEMM('N','N',NMAT,NMAT,NMAT,(1d0,0d0), &
+!    UMAT(:,:,l), NMAT, &
+!    Phi_tip, NMAT, &
+!    (0d0,0d0), tmpmat1, NMAT)
+!! U_l.Phi_tip.U_l^\dagger
+!call ZGEMM('N','C',NMAT,NMAT,NMAT,(1d0,0d0), &
+!    tmpmat1, NMAT, &
+!    UMAT(:,:,l), NMAT, &
+!    (-1d0,0d0), Dphi, NMAT)
+!! U_l.Phi_tip.U_l^\dagger - Phi_org
+!!Dphi = Dphi - Phi_org
+!
+!end subroutine Make_diff_Phi
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! Compute forward covariant difference of Phi
-!!  DMAT = U_l Phi_tip(l) U_l^\dagger - Phi_org(l)
+!!  (2020/1/10) U1Rfactor is introduced
+!!  DMAT = e^{2i\omega_\l) U_l Phi_tip(l) U_l^\dagger - Phi_org(l)
+!! 
 subroutine Make_diff_PhiMat(Dphi, l,UMAT,PhiMat)
-use SUN_generators, only : Make_traceless_matrix_from_modes
 implicit none
 
 complex(kind(0d0)), intent(out) :: Dphi(1:NMAT,1:NMAT)
@@ -118,8 +119,6 @@ integer, intent(in) :: l
 complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_necessary_links)
 complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_necessary_sites)
 integer :: i,j
-!complex(kind(0d0)) :: Phi_tip(1:NMAT,1:NMAT)
-!complex(kind(0d0)) :: Phi_org(1:NMAT,1:NMAT)
 complex(kind(0d0)) :: tmpmat1(1:NMAT,1:NMAT)
 
 Dphi=PhiMat(:,:,link_org(l))
@@ -130,7 +129,7 @@ call ZGEMM('N','N',NMAT,NMAT,NMAT,(1d0,0d0), &
     PhiMat(:,:,link_tip(l)), NMAT, &
     (0d0,0d0), tmpmat1, NMAT)
 ! U_l.Phi_tip.U_l^\dagger
-call ZGEMM('N','C',NMAT,NMAT,NMAT,(1d0,0d0), &
+call ZGEMM('N','C',NMAT,NMAT,NMAT,U1Rfactor(l)*U1Rfactor(l), &
     tmpmat1, NMAT, &
     UMAT(:,:,l), NMAT, &
     (-1d0,0d0), Dphi, NMAT)

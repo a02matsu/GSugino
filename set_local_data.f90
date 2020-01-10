@@ -1128,35 +1128,47 @@ end subroutine set_local_alpha_beta
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! set U(1)_R mass 
-subroutine set_U1Rmass
+subroutine set_local_U1Rmass
 use parallel
 implicit none
 integer l
 integer :: local, rank,  tag
+double precision :: tmp
+double precision :: tmpr(1:num_necessary_links)
+double precision :: tmpi(1:num_necessary_links)
 
-allocate ( U1Rmass(1:num_necessary_links) )
+allocate ( U1Rfactor(1:num_necessary_links) )
  
+tmpr=0d0
+tmpi=0d0
 do l=1,global_num_links
   local=local_link_of_global(l)%label_
   rank=local_link_of_global(l)%rank_
   tag=l+global_num_sites
   if( MYRANK == 0 ) then
     if( rank == 0 ) then
-      U1Rmass(local)=global_U1Rmass_phys(l)*LatticeSpacing
+      tmp=global_U1Rmass_phys(l)*LatticeSpacing
+      tmpr(local)=dcos(tmp)
+      tmpi(local)=dsin(tmp)
+      !U1Rfactor(local)=dcmplx(dcos(tmp))+(0d0,-1d0)*dcmplx(dsin(tmp))
     else
       call MPI_SEND(global_U1Rmass_phys(l),1,MPI_DOUBLE_PRECISION,rank,tag,MPI_COMM_WORLD,IERR)
     endif
   elseif( rank == MYRANK ) then
-    call MPI_RECV(U1Rmass(local),1,MPI_DOUBLE_PRECISION, 0,tag,MPI_COMM_WORLD,ISTATUS,IERR)
-    U1Rmass(local)=U1Rmass(local)*LatticeSpacing
+    call MPI_RECV(tmp,1,MPI_DOUBLE_PRECISION, 0,tag,MPI_COMM_WORLD,ISTATUS,IERR)
+    tmp=tmp*LatticeSpacing
+    tmpr(local)=dcos(tmp)
+    tmpi(local)=dsin(tmp)
+    !U1Rfactor(local)=dcmplx(dcos(tmp))+(0d0,-1d0)*dcmplx(dsin(tmp))
   endif
 enddo
-call syncronize_ab(U1Rmass,'L')
+call syncronize_ab(tmpr,'L')
+call syncronize_ab(tmpi,'L')
+
+U1Rfactor=dcmplx( tmpr ) + (0d0,1d0)*tmpi
 
 
-end subroutine set_U1Rmass
-
-
+end subroutine set_local_U1Rmass
 
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

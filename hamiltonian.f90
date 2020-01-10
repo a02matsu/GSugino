@@ -38,7 +38,7 @@ integer, intent(inout) :: CGite,info
 double precision, intent(out) :: Htotal
 double precision :: Hlocal,tmp
 integer a,s,l,i,j
-double precision :: SB_S,SB_L,SB_F,SB_M,SB_U1R SF !,SB_T
+double precision :: SB_S,SB_L,SB_F,SB_M, SF !,SB_T
 
 !Hlocal=site_abs(P_PhiMat(:,:,1:num_sites))
 !if(MYRANK==0) write(*,*) "P_Phi:",Hlocal
@@ -57,7 +57,7 @@ if(pb_link==0) call bosonic_action_link(SB_L,UMAT,PhiMat)
 if(pb_face==0) call bosonic_action_face(SB_F,UMAT)
 if(pf==0) call fermionic_action(SF,CGite,info,UMAT,PhiMat,PF_eta,PF_lambda,PF_chi)
 
-Hlocal = SB_M+SB_S+SB_L+SB_F+SB_U1R+SF 
+Hlocal = SB_M+SB_S+SB_L+SB_F+SF 
 
 do s=1,num_sites
   !do a=1,dimG
@@ -162,8 +162,10 @@ complex(kind(0d0)) :: dPhi(1:NMAT,1:NMAT)
 SB_L=0d0
 do l=1,num_links
   !write(*,*) l,link_org(l),link_tip(l)
-  dPhi=-PhiMat(:,:,link_org(l))
-  call matrix_3_product(dPhi,Umat(:,:,l),PhiMat(:,:,link_tip(l)),Umat(:,:,l),'N','N','C',(1d0,0d0),'ADD')
+  !call matrix_3_product(dPhi,Umat(:,:,l),PhiMat(:,:,link_tip(l)),Umat(:,:,l),'N','N','C',(1d0,0d0),'ADD')
+  call matrix_3_product(dPhi,Umat(:,:,l),PhiMat(:,:,link_tip(l)),Umat(:,:,l),'N','N','C')
+  dPhi=dPhi*U1Rfactor(l)*U1Rfactor(l)
+  dPhi=dPhi-PhiMat(:,:,link_org(l))
 
   tmp=0d0
   do i=1,NMAT
