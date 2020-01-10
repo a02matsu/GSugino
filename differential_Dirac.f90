@@ -124,11 +124,15 @@ if ( p2==0 ) then
   do r=1,N_Remez4
     call matrix_3_product(tmpmat2,Umat(:,:,ll),Deta(:,:,s,r),Umat(:,:,ll),'N','C','C')
     call matrix_commutator(tmpmat1,tmpmat2,lambda(:,:,ll,r))
-    tmp_force= tmp_force + dcmplx( (-Remez_alpha4(r))*alpha_l(ll) ) * tmpmat1
+    tmp_force= tmp_force &
+    + dcmplx( (-Remez_alpha4(r))*alpha_l(ll) ) * tmpmat1 &
+      * dconjg(U1Rfactor(ll))
     !!
     call matrix_3_product(tmpmat2,Umat(:,:,ll),eta(:,:,s,r),Umat(:,:,ll),'N','N','C')
     call matrix_commutator(tmpmat1,Dlambda(:,:,ll,r),tmpmat2,'C','N')
-    tmp_force=tmp_force + dcmplx( (-Remez_alpha4(r))*alpha_l(ll) ) * tmpmat1
+    tmp_force=tmp_force &
+      + dcmplx( (-Remez_alpha4(r))*alpha_l(ll) ) * tmpmat1 &
+      * dconjg(U1Rfactor(ll))
   enddo
 endif
 

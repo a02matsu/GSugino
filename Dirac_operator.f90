@@ -448,7 +448,7 @@ do s=1,num_sites
   do k=1,linkorg_to_s(s)%num_
     l=linkorg_to_s(s)%labels_(k)
     call matrix_3_product(tmpmat2,Umat(:,:,l),lambda_mat(:,:,l),Umat(:,:,l),&
-      'C','N','N',(0d0,-1d0)*dcmplx(alpha_l(l)),'ADD')
+      'C','N','N',(0d0,-1d0)*dcmplx(alpha_l(l))*dconjg(U1Rfactor(l)),'ADD')
   enddo
   do k=1,linktip_from_s(s)%num_
     l=linktip_from_s(s)%labels_(k)
@@ -462,9 +462,9 @@ do l=1,num_links
   !tmpmat2=i alpha_l U_l \lambda_l U_l^{-1}
   tmpmat2=(0d0,-1d0)*eta_mat(:,:,link_org(l))
   call matrix_3_product(tmpmat2,Umat(:,:,l),eta_mat(:,:,link_tip(l)),Umat(:,:,l),&
-    'N','N','C',(0d0,1d0),'ADD')
+    'N','N','C',(0d0,1d0)*dconjg(U1Rfactor(l)),'ADD')
   DF_lambda(:,:,l) = DF_lambda(:,:,l) &
-      + dcmplx(alpha_l(l) * overall_factor) * tmpmat2
+      + dcmplx(alpha_l(l) * overall_factor) * tmpmat2 
 enddo
 endif
 
