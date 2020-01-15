@@ -272,7 +272,7 @@ do l=1,num_links
   Qlambda(:,:,l)=(0d0,-1d0)*PhiMat(:,:,link_org(l))
   call matrix_3_product(Qlambda(:,:,l),&
     Umat(:,:,l),PhiMat(:,:,link_tip(l)),Umat(:,:,l),&
-    'N','N','C',(0d0,1d0),'ADD')
+    'N','N','C',(0d0,1d0)*U1Rfactor(l),'ADD')
 enddo
 
 do f=1,num_faces

@@ -52,6 +52,7 @@ if( p3 == 0 ) then
       l=linkorg_to_s(ss)%labels_(k)
       call matrix_commutator(tmpmat1,Dlambda(:,:,l,r),lambda(:,:,l,r),'N','C')
       call matrix_3_product(tmpmat2,Umat(:,:,l),tmpmat1,Umat(:,:,l),'C','N','N')
+      tmpmat2 = tmpmat2 * U1Rfactor(l)*U1Rfactor(l)
       force = force - dcmplx(Remez_alpha4(r)*alpha_l(l))*tmpmat2
     enddo
     !!
@@ -141,6 +142,7 @@ if ( p3==0 ) then
 !! (3) Dirac from link 2
   s=link_tip(ll)
   call matrix_3_product(tmpmat2,Umat(:,:,ll),PhiMat(:,:,s),Umat(:,:,ll),'N','C','C')
+  tmpmat2 = tmpmat2 * dconjg(U1Rfactor(ll)*U1Rfactor(ll))
   do r=1,N_Remez4
     call matrix_commutator(tmpmat3,lambda(:,:,ll,r),Dlambda(:,:,ll,r),'N','C')
     call matrix_commutator(tmpmat4,tmpmat2,tmpmat3)

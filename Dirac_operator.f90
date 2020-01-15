@@ -474,7 +474,8 @@ if(p3==0) then
 do l=1,num_links
   tmpmat1=bPhiMat(:,:,link_org(l))
   call matrix_3_product(tmpmat1,Umat(:,:,l),PhiMat(:,:,link_tip(l)),Umat(:,:,l),&
-    'N','C','C',(1d0,0d0),'ADD')
+    'N','C','C',dconjg(U1Rfactor(l)*U1Rfactor(l)),'ADD')
+    !'N','C','C',(1d0,0d0),'ADD')
   call matrix_commutator(tmpmat2,tmpmat1,lambda_mat(:,:,l))
   DF_lambda(:,:,l)=DF_lambda(:,:,l) &
       + dcmplx( alpha_l(l) * overall_factor ) * tmpmat2
@@ -580,7 +581,6 @@ complex(kind(0d0)), intent(in) :: chi_mat(1:NMAT,1:NMAT,1:num_faces)
 complex(kind(0d0)), intent(out) :: DF_lambda(1:NMAT,1:NMAT,1:num_links)
 complex(kind(0d0)), intent(out) :: DF_chi(1:NMAT,1:NMAT,1:num_faces)
 
-
 complex(kind(0d0)) :: Ufm(1:NMAT,1:NMAT)
 complex(kind(0d0)) :: Uf(1:NMAT,1:NMAT)
 complex(kind(0d0)) :: Uf0tom(1:NMAT,1:NMAT,0:m_omega-1)
@@ -595,7 +595,6 @@ complex(kind(0d0)) :: tmpmat3(1:NMAT,1:NMAT)
 integer :: i,j,k,l,f,a, l_place
 complex(kind(0d0)) :: dir_factor
 complex(kind(0d0)) :: im_over_2
-
 
 do f=1,num_necessary_faces
 !! preparation( Cos^{-1} and Omega )
