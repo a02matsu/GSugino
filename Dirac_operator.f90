@@ -596,6 +596,10 @@ integer :: i,j,k,l,f,a, l_place
 complex(kind(0d0)) :: dir_factor
 complex(kind(0d0)) :: im_over_2
 
+integer :: ll,last_place
+complex(kind(0d0)) :: U1Rfactor_fl
+
+
 do f=1,num_necessary_faces
 !! preparation( Cos^{-1} and Omega )
   call Make_face_variable(Uf(:,:),f,UMAT) 
@@ -625,10 +629,15 @@ do f=1,num_necessary_faces
 
   do l_place=1,links_in_f(f)%num_
     l=links_in_f(f)%link_labels_(l_place)
+    !! U1Rfacor
+    call calc_U1Rfactor_fl(U1Rfactor_fl,f,l_place)
+
     dir_factor=&
       (0d0,-2d0)/dcmplx(m_omega)*overall_factor &
       *dcmplx(links_in_f(f)%link_dirs_(l_place))&
-      *dcmplx(alpha_f(f)*beta_f(f))
+      *dcmplx(alpha_f(f)*beta_f(f)) &
+      *U1Rfactor_fl
+
 
     if( f<=num_faces .or. l<=num_links ) then 
 
@@ -663,7 +672,7 @@ do f=1,num_necessary_faces
   
           call matrix_product(tmpmat1,Cosinv,tmpmat3)
 
-          DF_chi(:,:,f)=DF_chi(:,:,f) +  dir_factor * tmpmat1
+          DF_chi(:,:,f)=DF_chi(:,:,f) +  dir_factor * tmpmat1 
         endif
   
         !!!!  DF_lambda

@@ -30,7 +30,8 @@ do ll=1,num_links
     enddo
   enddo
   call matrix_3_product(MMat,Umat(:,:,ll),PhiMat(:,:,link_tip(ll)),Umat(:,:,ll),&
-    'N','C','C',(1d0,0d0),'ADD')
+    'N','C','C',dconjg(U1Rfactor(ll)*U1Rfactor(ll)),'ADD')
+    !'N','C','C',(1d0,0d0),'ADD')
   MMat= MMat * dcmplx(-alpha_l(ll))
   !!!!
   trace=(0d0,0d0)

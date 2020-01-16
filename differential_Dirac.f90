@@ -244,6 +244,8 @@ integer :: l,f
 integer :: a,b,i,j,k,r,kk
 integer :: info
 
+complex(kind(0d0)) :: U1Rfactor_fl
+
 
 pre_force=(0d0,0d0)
 do a=1,face_in_l(ll)%num_
@@ -286,11 +288,17 @@ do a=1,face_in_l(ll)%num_
 
   do l_place=1,links_in_f(f)%num_
     l=links_in_f(f)%link_labels_(l_place)
+
+    !! U1Rfactor
+    call calc_U1Rfactor_fl(U1Rfactor_fl,f,l_place)
+
     dir_factor=&
       ll_dir_factor &
       * dcmplx(links_in_f(f)%link_dirs_(l_place)) &
       * (0d0,-2d0)/dcmplx(m_omega) & 
-      * dcmplx(alpha_f(f) * beta_f(f))
+      * dcmplx(alpha_f(f) * beta_f(f)) &
+      * U1Rfactor_fl
+
 
     !! Xmat and Ymat for l_place
     call calc_XYmat(Xmat,Ymat,f,l_place,UMAT)

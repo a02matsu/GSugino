@@ -99,8 +99,13 @@ complex(kind(0d0)) :: tmp
 integer :: gl
 integer :: i,j,r
 
+complex(kind(0d0)) :: U1Rfactor_fl
+
 !! 
 gl = global_link_of_local( links_in_f(lf)%link_labels_(l_place) )
+
+!! U1Rfacor
+call calc_U1Rfactor_fl(U1Rfactor_fl,lf,l_place)
 
 !! Ufm
 call make_face_variable(Uf(:,:),lf,Umat)
@@ -151,7 +156,7 @@ do r=0,m_omega-1
   call update_Lff(Lff, Glambda_chi, gl, lf, Mat1, Mat2)
 enddo
 
-Lff = Lff * (0d0,2d0)/dcmplx(m_omega)
+Lff = Lff * (0d0,2d0)/dcmplx(m_omega) * U1Rfactor_fl
 
 
 end subroutine fermionic_face_lagrangian

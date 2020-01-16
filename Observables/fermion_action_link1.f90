@@ -26,7 +26,8 @@ do ll=1,num_links
       do j=1,NMAT
         do i=1,NMAT
           tmp=tmp&
-            - Geta_lambda(i,j,k,l,gs,ll)*dconjg(Umat(k,j,ll))*Umat(l,i,ll)
+            - Geta_lambda(i,j,k,l,gs,ll)*dconjg(Umat(k,j,ll))*Umat(l,i,ll)&
+               * dconjg(U1Rfactor(ll))
         enddo
       enddo
     enddo

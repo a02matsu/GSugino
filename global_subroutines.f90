@@ -1868,7 +1868,32 @@ enddo
 end subroutine calc_Bval
 
 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! calculate U1Rfactor in \chi_f-\lambda_l term in the face part
+subroutine calc_U1Rfactor_fl(U1Rfactor_fl,f,l_place)
+implicit none
 
+complex(kind(0d0)), intent(out) :: U1Rfactor_fl
+integer, intent(in)  :: f, l_place
+
+integer :: last_place, i, ll
+
+U1Rfactor_fl=(1d0,0d0)
+if( links_in_f(f)%link_dirs_(l_place)==1 ) then
+  last_place = l_place-1
+else
+  last_place = l_place
+endif
+do i=1, last_place
+  ll=links_in_f(f)%link_labels_(i)
+  if( links_in_f(f)%link_dirs_(i)==1 ) then
+    U1Rfactor_fl=U1Rfactor_fl*U1Rfactor(ll)
+  else
+    U1Rfactor_fl=U1Rfactor_fl*dconjg(U1Rfactor(ll))
+  endif
+enddo
+
+end subroutine calc_U1Rfactor_fl
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! calculate 
