@@ -29,6 +29,8 @@ if(MYRANK==0) then
   allocate( global_beta_f(1:global_num_faces) )
 ! U(1)_R mass on global links
   allocate( global_U1Rmass_phys(1:global_num_links) )
+! U(1)_R mass on global sites
+  allocate( global_U1Rfactor(1:global_num_links) )
 endif
 call MPI_BCAST(global_num_sites,1,MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
 call MPI_BCAST(global_num_links,1,MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
@@ -59,6 +61,9 @@ do k=1,global_num_links
     read(SC_FILE,*) l,origin,tip,alpha,tmp_U1Rmass
     global_alpha_l(l)=alpha
     global_U1Rmass_phys(l)=tmp_U1Rmass
+    global_U1Rfactor(l)=&
+      dcmplx(dcos(tmp_U1Rmass*LatticeSpacing))&
+      +(0d0,1d0)*dcmplx(dsin(tmp_U1Rmass*LatticeSpacing))
   endif
   call MPI_BCAST(l,1,MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
   call MPI_BCAST(origin,1,MPI_INTEGER,0,MPI_COMM_WORLD,IERR)

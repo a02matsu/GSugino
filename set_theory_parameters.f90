@@ -142,7 +142,7 @@ dimG=NMAT*NMAT-1
 if (NMAT<=4) then
   maximal_dist = 2d0*dsqrt(2d0)
 else
-  maximal_dist = 2d0*sqrt(dble(NMAT))*sin(3.1415926535898d0/dble(NMAT))
+  maximal_dist = 2d0*sqrt(dble(NMAT))*dsin(3.1415926535898d0/dble(NMAT))
 endif
 !!!!!!!!!!!!!!
 if( NMAT <= 4 ) then 
