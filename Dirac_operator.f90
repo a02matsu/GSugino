@@ -474,7 +474,7 @@ if(p3==0) then
 do l=1,num_links
   tmpmat1=bPhiMat(:,:,link_org(l))
   call matrix_3_product(tmpmat1,Umat(:,:,l),PhiMat(:,:,link_tip(l)),Umat(:,:,l),&
-    'N','C','C',dconjg(U1Rfactor(l)*U1Rfactor(l)),'ADD')
+    'N','C','C',dconjg(U1Rfactor(l)**2),'ADD')
     !'N','C','C',(1d0,0d0),'ADD')
   call matrix_commutator(tmpmat2,tmpmat1,lambda_mat(:,:,l))
   DF_lambda(:,:,l)=DF_lambda(:,:,l) &
@@ -630,7 +630,7 @@ do f=1,num_necessary_faces
   do l_place=1,links_in_f(f)%num_
     l=links_in_f(f)%link_labels_(l_place)
     !! U1Rfacor
-    call calc_U1Rfactor_fl(U1Rfactor_fl,f,l_place)
+    call calc_U1Rfactor_fl(U1Rfactor_fl,f,l)
 
     dir_factor=&
       (0d0,-2d0)/dcmplx(m_omega)*overall_factor &

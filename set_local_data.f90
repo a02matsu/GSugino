@@ -1133,40 +1133,45 @@ subroutine set_local_U1Rmass
 use parallel
 implicit none
 integer l
-integer :: local, rank,  tag
-double precision :: tmp
-double precision :: tmpr(1:num_necessary_links)
-double precision :: tmpi(1:num_necessary_links)
+!integer :: local, rank,  tag
+!double precision :: tmp
+!double precision :: tmpr(1:num_necessary_links)
+!double precision :: tmpi(1:num_necessary_links)
 
 allocate ( U1Rfactor(1:num_necessary_links) )
- 
-tmpr=0d0
-tmpi=0d0
-do l=1,global_num_links
-  local=local_link_of_global(l)%label_
-  rank=local_link_of_global(l)%rank_
-  tag=l+global_num_sites
-  if( MYRANK == 0 ) then
-    if( rank == 0 ) then
-      tmp=global_U1Rmass_phys(l)*LatticeSpacing
-      tmpr(local)=dcos(tmp)
-      tmpi(local)=dsin(tmp)
-      !U1Rfactor(local)=dcmplx(dcos(tmp))+(0d0,-1d0)*dcmplx(dsin(tmp))
-    else
-      call MPI_SEND(global_U1Rmass_phys(l),1,MPI_DOUBLE_PRECISION,rank,tag,MPI_COMM_WORLD,IERR)
-    endif
-  elseif( rank == MYRANK ) then
-    call MPI_RECV(tmp,1,MPI_DOUBLE_PRECISION, 0,tag,MPI_COMM_WORLD,ISTATUS,IERR)
-    tmp=tmp*LatticeSpacing
-    tmpr(local)=dcos(tmp)
-    tmpi(local)=dsin(tmp)
-    !U1Rfactor(local)=dcmplx(dcos(tmp))+(0d0,-1d0)*dcmplx(dsin(tmp))
-  endif
-enddo
-call syncronize_ab(tmpr,'L')
-call syncronize_ab(tmpi,'L')
 
-U1Rfactor=dcmplx( tmpr ) + (0d0,1d0)*tmpi
+do l=1,num_necessary_links
+  U1Rfactor(l)=global_U1Rfactor( global_link_of_local(l) )
+enddo
+
+ 
+!tmpr=0d0
+!tmpi=0d0
+!do l=1,global_num_links
+!  local=local_link_of_global(l)%label_
+!  rank=local_link_of_global(l)%rank_
+!  tag=l+global_num_sites
+!  if( MYRANK == 0 ) then
+!    if( rank == 0 ) then
+!      tmp=global_U1Rmass_phys(l)*LatticeSpacing
+!      tmpr(local)=dcos(tmp)
+!      tmpi(local)=dsin(tmp)
+!      !U1Rfactor(local)=dcmplx(dcos(tmp))+(0d0,-1d0)*dcmplx(dsin(tmp))
+!    else
+!      call MPI_SEND(global_U1Rmass_phys(l),1,MPI_DOUBLE_PRECISION,rank,tag,MPI_COMM_WORLD,IERR)
+!    endif
+!  elseif( rank == MYRANK ) then
+!    call MPI_RECV(tmp,1,MPI_DOUBLE_PRECISION, 0,tag,MPI_COMM_WORLD,ISTATUS,IERR)
+!    tmp=tmp*LatticeSpacing
+!    tmpr(local)=dcos(tmp)
+!    tmpi(local)=dsin(tmp)
+!    !U1Rfactor(local)=dcmplx(dcos(tmp))+(0d0,-1d0)*dcmplx(dsin(tmp))
+!  endif
+!enddo
+!call syncronize_ab(tmpr,'L')
+!call syncronize_ab(tmpi,'L')
+!
+!U1Rfactor=dcmplx( tmpr ) + (0d0,1d0)*tmpi
 
 
 end subroutine set_local_U1Rmass
@@ -1259,13 +1264,14 @@ integer :: i,j,k
 integer :: numS,numT,numU
 integer :: info
 
+double precision :: tmp
+
 allocate( global_site_U1Rfactor(1:global_num_sites) )
 allocate( site_U1Rfactor(1:num_necessary_sites) )
 global_site_U1Rfactor=(1d0,0d0)
 site_U1Rfactor=(1d0,0d0)
 
 !! set global_site_U1Rfactor in all ranks
-if( MYRANK==0 ) then
 !!!!!!!!!!!
 groupS=0
 numS=0
@@ -1296,6 +1302,12 @@ do while (numS < global_num_sites)
           exit
         endif
       enddo
+      do k=1,numU
+        if( t==groupU(k) ) then
+          info=0
+          exit
+        endif
+      enddo
       if( info==1 ) then
         numU=numU+1
         global_site_U1Rfactor(t)=global_site_U1Rfactor(s)*global_U1Rfactor(l)
@@ -1307,7 +1319,7 @@ do while (numS < global_num_sites)
   groupS(numS+1:numS+numT)=groupT(1:numT)
   numS=numS+numT
   !!
-  write(*,*) numS
+  !write(*,*) numS
   !! update groupT
   groupT=groupU
   numT=numU
@@ -1316,21 +1328,22 @@ do while (numS < global_num_sites)
   numU=0
   !! 
 enddo
-endif
-
-
-
-
-if( MYRANK==0 ) then
-do s=1,global_num_sites
-  write(*,*) s, global_site_U1Rfactor(s), &
-    dble((0d0,-1d0)*cdlog(global_site_U1Rfactor(s)))/LatticeSpacing
-enddo
-endif
 
 do ls=1,num_necessary_sites
   site_U1Rfactor(ls)=global_site_U1Rfactor(global_site_of_local(ls))
 enddo
+
+!do s=1,num_necessary_sites
+!  tmp=dble((0d0,-1d0)*cdlog(site_U1Rfactor(s)))/LatticeSpacing
+!  if( tmp < 0 ) then 
+!    write(*,*) global_site_of_local(s), site_U1Rfactor(s), tmp+dacos(-1d0)
+!  else
+!    write(*,*) global_site_of_local(s), site_U1Rfactor(s), tmp
+!  endif
+!  !write(*,*) global_site_of_local(s), site_U1Rfactor(s), &
+!    !dble((0d0,-1d0)*cdlog(site_U1Rfactor(s)))/LatticeSpacing
+!enddo
+
 
 end subroutine set_U1Rfactor_on_sites
 

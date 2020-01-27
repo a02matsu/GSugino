@@ -20,6 +20,7 @@ integer :: i,j
 do s=1,num_sites
   call matrix_commutator(tmpmat,PhiMat(:,:,s),Phimat(:,:,s),'N','C')
   Xi_eta(:,:,s)=dcmplx(alpha_s(s)*0.25d0*overall_factor)*tmpmat
+  Xi_eta(:,:,s)=Xi_eta(:,:,s)*dconjg( site_U1Rfactor(s) )
 enddo
 
 do l=1,num_links
@@ -30,8 +31,9 @@ do l=1,num_links
   enddo
   call matrix_3_product(tmpmat,&
     Umat(:,:,l),PhiMat(:,:,link_tip(l)),Umat(:,:,l),&
-    'N','C','C',(1d0,0d0),'ADD') 
+    'N','C','C',dconjg( U1Rfactor(l)**2 ),'ADD') 
   Xi_lambda(:,:,l)=(0d0,-1d0)*dcmplx(alpha_l(l)*overall_factor)*tmpmat
+  Xi_lambda(:,:,l)=Xi_lambda(:,:,l)*dconjg( site_U1Rfactor(link_org(l)) )
 enddo
 
 do f=1,num_faces
@@ -39,6 +41,7 @@ do f=1,num_faces
   if(m_omega==0) call make_moment_map0(tmpmat,Uf)
   if(m_omega==-1) call make_moment_map_adm(tmpmat,Uf)
   Xi_chi(:,:,f)=(0d0,-0.5d0)*dcmplx(alpha_f(f)*beta_f(f)*overall_factor)*tmpmat
+  Xi_chi(:,:,f)=Xi_chi(:,:,f)*dconjg( site_U1Rfactor(sites_in_f(f)%label_(1)) )
 enddo
 
   call syncronize_sites(Xi_eta)
@@ -63,6 +66,7 @@ integer :: s
 do s=1,num_sites
   call matrix_commutator(tmpmat,PhiMat(:,:,s),Phimat(:,:,s),'N','C')
   Xi_eta(:,:,s)=dcmplx(alpha_s(s)*0.25d0*overall_factor)*tmpmat
+  Xi_eta(:,:,s)=Xi_eta(:,:,s)*dconjg( site_U1Rfactor(s) )
 enddo
 call syncronize_sites(Xi_eta)
 
@@ -92,7 +96,8 @@ do l=1,num_links
   enddo
   call matrix_3_product(tmpmat,&
     Umat(:,:,l),PhiMat(:,:,link_tip(l)),Umat(:,:,l),&
-    'N','C','C',(1d0,0d0),'ADD') 
+    'N','C','C',dconjg( U1Rfactor(l)**2 ),'ADD') 
+    !'N','C','C',(1d0,0d0),'ADD') 
   Xi_lambda(:,:,l)=(0d0,-1d0)*dcmplx(alpha_l(l)*overall_factor)*tmpmat
   !tmpmat=-PhiMat(:,:,link_org(l))
   !call matrix_3_product(tmpmat,&
@@ -135,6 +140,7 @@ do f=1,num_faces
     call make_moment_map(tmpmat,Ufm)
   endif
   Xi_chi(:,:,f)=(0d0,-0.5d0)*dcmplx(alpha_f(f)*beta_f(f)*overall_factor)*tmpmat
+  Xi_chi(:,:,f)=Xi_chi(:,:,f)*dconjg( site_U1Rfactor(sites_in_f(f)%label_(1)) )
 enddo
 
   call syncronize_faces(Xi_chi)

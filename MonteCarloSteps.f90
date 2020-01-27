@@ -170,43 +170,47 @@ complex(kind(0d0)) :: Qeta(1:NMAT,1:NMAT,1:num_necessary_sites)
 complex(kind(0d0)) :: Qlambda(1:NMAT,1:NMAT,1:num_necessary_links)
 complex(kind(0d0)) :: Qchi(1:NMAT,1:NMAT,1:num_necessary_faces)
 
-complex(kind(0d0)) :: tmp_eta(1:NMAT,1:NMAT,1:num_sites)
-complex(kind(0d0)) :: tmp_lambda(1:NMAT,1:NMAT,1:num_links)
-complex(kind(0d0)) :: tmp_chi(1:NMAT,1:NMAT,1:num_faces)
+complex(kind(0d0)) :: DQeta(1:NMAT,1:NMAT,1:num_sites)
+complex(kind(0d0)) :: DQlambda(1:NMAT,1:NMAT,1:num_links)
+complex(kind(0d0)) :: DQchi(1:NMAT,1:NMAT,1:num_faces)
 complex(kind(0d0)) :: Omega(1:NMAT,1:NMAT,1:num_faces)
 
 complex(kind(0d0)) :: Bforce_s(1:NMAT,1:NMAT,1:num_sites)
 complex(kind(0d0)) :: Bforce_l(1:NMAT,1:NMAT,1:num_links)
-!complex(kind(0d0)) :: Fforce_s(1:NMAT,1:NMAT,1:num_sites)
-!complex(kind(0d0)) :: Fforce_l(1:NMAT,1:NMAT,1:num_links)
 
-complex(kind(0d0)) :: tmpmat(1:NMAT,1:NMAT)
+complex(kind(0d0)) :: ctmp
 double precision :: tmp,QS
 integer :: info,s,l,f,i,j,triger
 
+!! fermion part
 call make_Qfermion(Qeta,Qlambda,Qchi,Omega,Umat,PhiMat)
+call Prod_Dirac(DQeta,DQlambda,DQchi,Qeta,Qlambda,Qchi,UMAT,Phimat)
+
+!! boson part
 call make_bosonic_force_nomass(Bforce_s,Bforce_l,Umat,PhiMat)
 
-call Prod_Dirac(tmp_eta,tmp_lambda,tmp_chi,Qeta,Qlambda,Qchi,UMAT,Phimat)
 ! Q^2 \Omega を care する
 !do f=1,num_faces
 !  call matrix_commutator(tmpmat,PhiMat(:,:,sites_in_f(f)%label_(1)),Omega(:,:,f))
-!  tmp_chi(:,:,f)=tmp_chi(:,:,f)+(0d0,1d0)*dcmplx(beta_f(f))*tmpmat
+!  DQchi(:,:,f)=DQchi(:,:,f)+(0d0,1d0)*dcmplx(beta_f(f))*tmpmat
 !enddo
 
 if(MYRANK==0) write(*,*) "# QS = 0 ?"
-!write(*,*) tmp_chi
+!write(*,*) DQchi
 QS=0d0
 tmp=0d0
 do s=1,num_sites
   !tmp=0d0
   do i=1,NMAT
     do j=1,NMAT
-      tmp_eta(i,j,s)=-tmp_eta(i,j,s)+dconjg(Bforce_s(j,i,s))
-      tmp=tmp+dble( tmp_eta(i,j,s)*dconjg(tmp_eta(i,j,s)) )
+      ctmp=&
+        - DQeta(i,j,s) &
+        + dconjg(Bforce_s(j,i,s))*site_U1Rfactor(s)
+      tmp=tmp+dble( ctmp*dconjg(ctmp) )
     enddo
   enddo
-  !write(*,*) "# site",global_site_of_local(s),tmp
+  write(*,*) global_site_of_local(s), cdabs(ctmp), &
+    dble(cdlog(site_U1Rfactor(s))/LatticeSpacing*(0d0,-1d0))
 enddo
 call MPI_REDUCE(tmp,QS,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,MPI_COMM_WORLD,IERR)
 if(MYRANK==0) write(*,*) "#   site:",QS
@@ -214,14 +218,16 @@ if(MYRANK==0) write(*,*) "#   site:",QS
 QS=0d0
 tmp=0d0
 do l=1,num_links
-  !tmp=0d0
   do i=1,NMAT
     do j=1,NMAT
-      tmp_lambda(i,j,l) = -tmp_lambda(i,j,l)+Bforce_l(i,j,l)
-      tmp=tmp+dble( tmp_lambda(i,j,l)*dconjg(tmp_lambda(i,j,l)) )
+      !tmpmat(i,j) = &
+      ctmp = &
+        - DQlambda(i,j,l) & !*site_U1Rfactor(link_org(l))&
+        + Bforce_l(i,j,l)*site_U1Rfactor(link_org(l))
+      tmp=tmp+dble( ctmp*dconjg(ctmp) )
     enddo
   enddo
-  !write(*,*) "# link",global_link_of_local(l),tmp
+  write(*,*) "(L)",global_link_of_local(l), cdabs(ctmp)
 enddo
 call MPI_REDUCE(tmp,QS,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,MPI_COMM_WORLD,IERR)
 if(MYRANK==0) write(*,*) "#   link:",QS
@@ -232,11 +238,11 @@ do f=1,num_faces
   !tmp=0d0
   do i=1,NMAT
     do j=1,NMAT
-      tmp_chi(i,j,f)=-tmp_chi(j,i,f)
-      tmp=tmp+dble( tmp_chi(i,j,f)*dconjg(tmp_chi(i,j,f)) )
+      ctmp=-DQchi(j,i,f) !*site_U1Rfactor(sites_in_f(f)%label_(1))
+      tmp=tmp+dble( ctmp*dconjg(ctmp) )
     enddo
   enddo
-  !write(*,*) "# face",global_face_of_local(f),tmp
+  write(*,*) "(F)",global_face_of_local(f), cdabs(ctmp)
 enddo
 call MPI_REDUCE(tmp,QS,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,MPI_COMM_WORLD,IERR)
 if(MYRANK==0) write(*,*) "#   face:",QS
@@ -264,17 +270,22 @@ integer :: s,l,f,i,j
 complex(kind(0d0)) :: Uf(1:NMAT,1:NMAT)
 complex(kind(0d0)) :: Ufm(1:NMAT,1:NMAT)
 
+Qeta=(0d0,0d0)
 do s=1,num_sites
   call matrix_commutator(Qeta(:,:,s),PhiMat(:,:,s),PhiMat(:,:,s),'N','C')
+  Qeta(:,:,s)=Qeta(:,:,s)*site_U1Rfactor(s)
 enddo
 
+Qlambda=(0d0,0d0)
 do l=1,num_links
   Qlambda(:,:,l)=(0d0,-1d0)*PhiMat(:,:,link_org(l))
   call matrix_3_product(Qlambda(:,:,l),&
     Umat(:,:,l),PhiMat(:,:,link_tip(l)),Umat(:,:,l),&
-    'N','N','C',(0d0,1d0)*U1Rfactor(l),'ADD')
+    'N','N','C',(0d0,1d0)*U1Rfactor(l)**2,'ADD')
+  Qlambda(:,:,l)=Qlambda(:,:,l)*site_U1Rfactor( link_org(l) )
 enddo
 
+Qchi=(0d0,0d0)
 do f=1,num_faces
   call Make_face_variable(Uf,f,UMAT)
   if(m_omega == 0) then 
@@ -286,6 +297,7 @@ do f=1,num_faces
     call Make_moment_map(Omega(:,:,f),Ufm)
   endif
   Qchi(:,:,f)=(0d0,-0.5d0)*dcmplx(beta_f(f))*Omega(:,:,f)
+  Qchi(:,:,f)=Qchi(:,:,f)*site_U1Rfactor(sites_in_f(f)%label_(1))
 enddo
 
 #ifdef PARALLEL

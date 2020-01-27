@@ -82,7 +82,8 @@ do gs=1,global_num_sites
   do ls=1,num_sites
     do k=1,NMAT
       do l=1,NMAT
-        tmpmat=tmpmat+Geta_eta(:,:,l,k,gs,ls)*Xi_eta(k,l,ls)
+        tmpmat=tmpmat+Geta_eta(:,:,l,k,gs,ls)*Xi_eta(k,l,ls)&
+          *site_U1Rfactor(ls)
       enddo
     enddo
   enddo
@@ -90,7 +91,8 @@ do gs=1,global_num_sites
   do ll=1,num_links
     do k=1,NMAT
       do l=1,NMAT
-        tmpmat=tmpmat+Geta_lambda(:,:,l,k,gs,ll)*Xi_lambda(k,l,ll)
+        tmpmat=tmpmat+Geta_lambda(:,:,l,k,gs,ll)*Xi_lambda(k,l,ll) &
+          *site_U1Rfactor(link_org(ls))
       enddo
     enddo
   enddo
@@ -98,7 +100,8 @@ do gs=1,global_num_sites
   do lf=1,num_faces
     do k=1,NMAT
       do l=1,NMAT
-        tmpmat=tmpmat+Geta_chi(:,:,l,k,gs,lf)*Xi_chi(k,l,lf)
+        tmpmat=tmpmat+Geta_chi(:,:,l,k,gs,lf)*Xi_chi(k,l,lf) &
+          *site_U1Rfactor(sites_in_f(lf)%label_(1))
       enddo
     enddo
   enddo
