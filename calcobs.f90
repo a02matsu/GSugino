@@ -1,3 +1,11 @@
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! Measurement 
+!! % a.out [MEDFILE]
+!! 
+!! [MEDFILE] must be the name 
+!!   "MEDCONF/medconfig_..."
+!! If there is not Dinv_... in the same directory, this code create it. 
+!! Otherwize, this code read it. 
 module global_calcobs
 implicit none
 
@@ -93,6 +101,10 @@ FMT1 = tmp // trim(FMT0) // ")"
 write(*,*) FMT1
 end subroutine make_format
 
+#include "Measurement/FermionCorrelation_from_Dinv.f90"
+#include "Measurement/construct_Dirac.f90"
+
+
 end module global_calcobs
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -102,10 +114,11 @@ use global_calcobs
 use initialization_calcobs
 use simulation
 use parallel
+use matrix_functions, only : matrix_inverse
 implicit none
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-integer :: l,ll,s,ls,tag,rank,i,j, ite
+integer :: l,ll,s,ls,tag,rank,i,j, ite, ite2
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 integer :: iarg
 character(128) :: config_file
@@ -119,19 +132,37 @@ integer :: pos_operator
 complex(kind(0d0)) tmpobs1, tmpobs2
 complex(kind(0d0)) XiPhiEta
 
+integer :: access !! check the existence of file
+integer :: exist_dinv
+
+complex(kind(0d0)), allocatable :: Dinv(:,:)
+double precision :: rtmp,ctmp
+complex(kind(0d0)), allocatable :: Dirac(:,:)
+complex(kind(0d0)) :: tmp
+integer :: k
+
 iarg=iargc()
-if( iarg <=1 ) then
-  if (MYRANK==0) write(*,*) "use as a.out [MEDFILE] [DinvFILE]"
+if( iarg ==0 ) then
+  !if (MYRANK==0) write(*,*) "use as a.out [MEDFILE] [DinvFILE]"
+  if (MYRANK==0) write(*,*) "use as a.out [MEDFILE]"
   stop
 endif
 call getarg(1,MEDFILE)
-call getarg(2,DinvFILE)
+!call getarg(2,DinvFILE)
+DinvFILE=trim("MEDCONF/Dinv"//MEDFILE(18:))
 INPUT_FILE_NAME="inputfile"
   
 call initialization 
 num_fermion=(global_num_sites+global_num_links+global_num_faces)*(NMAT*NMAT-1)
 num_sitelink=(global_num_sites+global_num_links)*(NMAT*NMAT-1)
 
+
+allocate( Dinv(1:num_fermion, 1:num_fermion) )
+allocate( Dirac(1:num_fermion, 1:num_fermion) )
+
+! check DinvFile
+exist_dinv=access( trim(adjustl(DinvFILE)), ' ' )
+!exist_dinv=1
 
 ! write contents
 if( MYRANK == 0 ) then
@@ -143,15 +174,64 @@ if( MYRANK == 0 ) then
   !!!!!!!!
   write(*,*) "##", trim(MEDFILE)
   open(N_MEDFILE, file=MEDFILE, status='OLD',action='READ',form='unformatted')
-  open(N_DinvFILE, file=DinvFILE, status='OLD',action='READ')
+  if( exist_dinv==0 ) then 
+    open(N_DinvFILE, file=DinvFILE, status='OLD',action='READ')
+  else
+    open(N_DinvFILE, file=DinvFILE, status='REPLACE')
+  endif
 endif 
+
       
 do    
   call read_config_from_medfile(Umat,PhiMat,ite,N_MEDFILE,control)
-  call read_Dinv(ite, Geta_eta, Glambda_eta, Gchi_eta, &
-         Geta_lambda, Glambda_lambda, Gchi_lambda, &
-         Geta_chi, Glambda_chi, Gchi_chi, &
-         N_DinvFILE)
+
+  if( exist_dinv==0 ) then 
+    read(N_DinvFILE,'(I10,2X)',advance='no') ite2
+    do j=1,num_fermion
+      do i=1,num_fermion
+        read(N_DinvFILE,'(E23.15,2X,E23.15,2X)',advance='no') &
+          rtmp,ctmp
+          Dinv(i,j)=rtmp+(0d0,1d0)*ctmp
+      enddo
+    enddo
+    read(N_DinvFILE,*) 
+    call MPI_BCAST(ite,1,MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
+    call MPI_BCAST(ite2,1,MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
+    if( ite .ne. ite2 ) then 
+      write(*,*) "MEDFILE and Dinv do not match."
+      call stop_for_test
+    endif
+  else
+    call construct_Dirac(Dirac,Umat,PhiMat) !correct!
+    Dinv=Dirac
+    if( MYRANK==0 ) call matrix_inverse(Dinv)
+
+    write(N_DinvFILE,'(I10,2X)',advance='no') ite
+    do j=1,num_fermion
+      do i=1,num_fermion
+        write(N_DinvFILE,'(E23.15,2X,E23.15,2X)',advance='no') &
+          dble(Dinv(i,j)), dble(Dinv(i,j)*(0d0,-1d0))
+      enddo
+    enddo
+    write(N_DinvFILE,*) 
+  endif
+
+  call make_fermion_correlation_from_Dinv(&
+    Geta_eta, Glambda_eta, Gchi_eta, &
+    Geta_lambda, Glambda_lambda, Gchi_lambda, &
+    Geta_chi, Glambda_chi, Gchi_chi, &
+    Dinv)
+
+  !!!!!!!!!!!!!!!!!!!!!!!
+  !!! CHECK ROUTINES !!!!
+  ! call check_DinvPF(&
+  !  Geta_eta, Glambda_eta, Gchi_eta, &
+  !  Geta_lambda, Glambda_lambda, Gchi_lambda, &
+  !  Geta_chi, Glambda_chi, Gchi_chi, &
+  !  Umat,PhiMat,1)
+  !!!!!!!!!!!!!!!!!!!!!!!
+
+
   if( control == 0 ) then 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !! calculate observables

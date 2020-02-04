@@ -40,6 +40,7 @@ PROG_OBS=calcobs.exe
 ##
 SRC_OBSCOMM=initialization_calcobs.f90
 OBJ_OBSCOMM=$(SRC_OBSCOMM:.f90=.o)
+MESUREMENT_OBS=Measurement
 #########################
 SRC_Dirac=writeDirac.f90  
 OBJ_Dirac=writeDirac.o
@@ -216,7 +217,9 @@ $(OBJ_OBSMAIN): \
   global_parameters.o \
   differential_Dirac.o \
   simulation.o \
-  initialization_calcobs.o 
+  initialization_calcobs.o \
+  $(MESUREMENT_OBS)/FermionCorrelation_from_Dinv.f90 \
+  $(MESUREMENT_OBS)/construct_Dirac.f90
 $(OBJ_TRPHI2): \
   global_parameters.o \
   global_subroutines.o \

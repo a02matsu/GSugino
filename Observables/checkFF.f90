@@ -5,7 +5,7 @@ subroutine check_DinvPF(&
     Geta_eta, Glambda_eta, Gchi_eta, &
     Geta_lambda, Glambda_lambda, Gchi_lambda, &
     Geta_chi, Glambda_chi, Gchi_chi, &
-    Umat,PhiMat)
+    Umat,PhiMat,writemode)
 use parallel
 use SUN_generators, only : make_SUN_generators
 use Dirac_operator, only : Prod_Dirac
@@ -26,6 +26,7 @@ complex(kind(0d0)) , intent(in) :: Gchi_chi(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global
 
 complex(kind(0d0)), intent(in) :: Umat(1:NMAT,1:NMAT,1:num_necessary_links)
 complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_necessary_sites)
+integer, optional :: writemode
 
 complex(kind(0d0)) :: eta(1:NMAT,1:NMAT,1:num_necessary_sites)
 complex(kind(0d0)) :: lambda(1:NMAT,1:NMAT,1:num_necessary_links)
@@ -50,6 +51,14 @@ integer :: i,j
 integer :: rank
 integer :: order
 integer :: switch
+integer :: info
+
+info=0
+if( present(writemode)) then 
+  writemode=writemode
+else
+  writemode=0
+endif
 
 ! SU(N) generators
 call make_SUN_generators(T,NMAT)
@@ -124,9 +133,10 @@ do order=0,NPROCS-1
       do i=1,NMAT
         do j=1,NMAT
           if( cdabs( DDeta(i,j,ls)-eta(i,j,ls) ) > 1d-3 ) then
-            write(*,*) global_site_of_local(ls), i,j
-            write(*,*) DDeta(i,j,ls)
-            write(*,*) eta(i,j,ls)
+            if(writemode==0) write(*,*) global_site_of_local(ls), i,j
+            if(writemode==0) write(*,*) DDeta(i,j,ls)
+            if(writemode==0) write(*,*) eta(i,j,ls)
+            info=1
           endif
         enddo
       enddo
@@ -140,9 +150,10 @@ do order=0,NPROCS-1
       do i=1,NMAT
         do j=1,NMAT
           if( cdabs( DDlambda(i,j,ll)-lambda(i,j,ll) ) > 1d-3 ) then
-            write(*,*) global_link_of_local(ll), i,j
-            write(*,*) DDlambda(i,j,ll)
-            write(*,*) lambda(i,j,ll)
+            if(writemode==0) write(*,*) global_link_of_local(ll), i,j
+            if(writemode==0) write(*,*) DDlambda(i,j,ll)
+            if(writemode==0) write(*,*) lambda(i,j,ll)
+            info=1
           endif
         enddo
       enddo
@@ -156,9 +167,10 @@ do order=0,NPROCS-1
       do i=1,NMAT
         do j=1,NMAT
           if( cdabs( DDchi(i,j,lf)-chi(i,j,lf) ) > 1d-3 ) then
-            write(*,*) global_link_of_local(lf), i,j
-            write(*,*) DDchi(i,j,lf)
-            write(*,*) chi(i,j,lf)
+            if(writemode==0) write(*,*) global_link_of_local(lf), i,j
+            if(writemode==0) write(*,*) DDchi(i,j,lf)
+            if(writemode==0) write(*,*) chi(i,j,lf)
+            info=1
           endif
         enddo
       enddo
@@ -167,27 +179,32 @@ do order=0,NPROCS-1
   endif
 enddo
 
-stop
-
-
-call DinvPF_direct( &
-    DinvPF_eta2(:,:,1:num_sites), &
-    DinvPF_lambda2(:,:,1:num_links), &
-    DinvPF_chi2(:,:,1:num_faces), &
-    eta,lambda,chi,&
-    Geta_eta, Glambda_eta, Gchi_eta, &
-    Geta_lambda, Glambda_lambda, Gchi_lambda, &
-    Geta_chi, Glambda_chi, Gchi_chi, &
-    Umat,PhiMat)
-
-do order=0,NPROCS-1
-  if( MYRANK==order ) then
-    do ls=1,num_sites
-      write(*,*) global_site_of_local(ls), DinvPF_eta1(:,:,ls)-DinvPF_eta2(:,:,ls)
-    enddo
-    call MPI_BARRIER(MPI_COMM_WORLD,IERR)
+if(writemode==0) then
+  stop
+else
+  if( info==1 ) then
+    if( MYRANK==0 ) write(*,*) "CAUTION: Dinv is not the inverse of Dirac"
   endif
-enddo
+endif
+
+!call DinvPF_direct( &
+!    DinvPF_eta2(:,:,1:num_sites), &
+!    DinvPF_lambda2(:,:,1:num_links), &
+!    DinvPF_chi2(:,:,1:num_faces), &
+!    eta,lambda,chi,&
+!    Geta_eta, Glambda_eta, Gchi_eta, &
+!    Geta_lambda, Glambda_lambda, Gchi_lambda, &
+!    Geta_chi, Glambda_chi, Gchi_chi, &
+!    Umat,PhiMat)
+!
+!do order=0,NPROCS-1
+!  if( MYRANK==order ) then
+!    do ls=1,num_sites
+!      write(*,*) global_site_of_local(ls), DinvPF_eta1(:,:,ls)-DinvPF_eta2(:,:,ls)
+!    enddo
+!    call MPI_BARRIER(MPI_COMM_WORLD,IERR)
+!  endif
+!enddo
 
 
 end subroutine check_DinvPF

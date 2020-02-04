@@ -12,335 +12,6 @@ implicit none
 
 contains
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!! make Dirac matrix
-subroutine make_Dirac(Dirac,UMAT,PhiMat)
-use SUN_generators, only : trace_MTa
-implicit none
-
-complex(kind(0d0)), intent(inout) :: Dirac(:,:)
-complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_necessary_links)
-complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_necessary_sites)
-!complex(kind(0d0)) :: Phi(1:dimG,1:num_sites)
-
-complex(kind(0d0)) :: DF_eta(1:NMAT,1:NMAT,1:num_sites)
-complex(kind(0d0)) :: DF_lambda(1:NMAT,1:NMAT,1:num_links)
-complex(kind(0d0)) :: DF_chi(1:NMAT,1:NMAT,1:num_faces)
-complex(kind(0d0)) :: eta_mat(1:NMAT,1:NMAT,1:num_necessary_sites)
-complex(kind(0d0)) :: lambda_mat(1:NMAT,1:NMAT,1:num_necessary_links)
-complex(kind(0d0)) :: chi_mat(1:NMAT,1:NMAT,1:num_necessary_faces)
-
-complex(kind(0d0)), allocatable :: unitvec(:)
-integer i,j
-integer s,a
-integer :: sizeD
-
-#ifdef PARALLEL
-sizeD=(NMAT*NMAT-1)*(global_num_sites+global_num_links+global_num_faces)
-#else
-sizeD=(NMAT*NMAT-1)*(num_sites+num_links+num_faces)
-#endif
-
-
-if( size(Dirac,1) /= sizeD ) then
-  write(*,*) "size of Dirac is not ",sizeD,"but",size(Dirac,1)
-  call stop_for_test
-endif
-
-allocate( unitvec(1:sizeD) )
-
-do i=1,sizeD
-  unitvec=(0d0,0d0)
-  unitvec(i)=(1d0,0d0)
-  !write(*,*) MYRANK,"===========",i,"========="
-  !call prod_Dirac_vec(Dirac(:,i),unitvec,sizeD,UMAT,PhiMat)
-
-#ifdef PARALLEL
-  call globalvec_to_localmat(eta_mat,lambda_mat,chi_mat,unitvec)
-#else
-  call vec_to_mat(eta_mat,lambda_mat,chi_mat,unitvec)
-#ENDIF
-
-  call Prod_Dirac(&
-    DF_eta, DF_lambda, DF_chi, &
-    eta_mat,lambda_mat,chi_mat, &
-    UMAT,Phimat)
-
-#ifdef PARALLEL
-  ! only Rank0 possesses Dirac
-  call localmat_to_globalvec(Dirac(:,i),DF_eta,DF_lambda,DF_chi)
-#else
-  call mat_to_vec(Dirac(:,i),DF_eta,DF_lambda,DF_chi)
-#endif
-
-enddo
-!call MPI_FINALIZE(IERR)
-!stop
-!do i=1,sizeD
-!  do j=1,sizeD
-!    if (abs(Dirac(i,j)) > 1d-5) then
-!      write(*,*) MYRANK,i,j,abs(Dirac(i,j))
-!    endif
-!  enddo
-!enddo
-
-
-end subroutine make_Dirac
-
-
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!! make D^\dagger D matrix
-subroutine make_DdagD(DdagD,UMAT,PhiMat)
-implicit none
-
-!complex(kind(0d0)), intent(inout) :: DdagD(1:sizeD,1:sizeD)
-complex(kind(0d0)), intent(inout) :: DdagD(:,:)
-complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_necessary_links)
-complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_necessary_sites)
-
-complex(kind(0d0)) :: DF_eta(1:NMAT,1:NMAT,1:num_sites)
-complex(kind(0d0)) :: DF_lambda(1:NMAT,1:NMAT,1:num_links)
-complex(kind(0d0)) :: DF_chi(1:NMAT,1:NMAT,1:num_faces)
-complex(kind(0d0)) :: eta_mat(1:NMAT,1:NMAT,1:num_necessary_sites)
-complex(kind(0d0)) :: lambda_mat(1:NMAT,1:NMAT,1:num_necessary_links)
-complex(kind(0d0)) :: chi_mat(1:NMAT,1:NMAT,1:num_necessary_faces)
-
-!complex(kind(0d0)) :: unitvec(1:sizeD),dirac_vec(1:sizeD)
-complex(kind(0d0)), allocatable :: unitvec(:)
-integer i,j,sizeD
-
-
-
-#ifdef PARALLEL
-sizeD=(NMAT*NMAT-1)*(global_num_sites+global_num_links+global_num_faces)
-#else
-sizeD=(NMAT*NMAT-1)*(num_sites+num_links+num_faces)
-#endif
-
-if( size(DdagD,1) /= sizeD ) then
-  write(*,*) "size of DdagD is not ",sizeD,"but",size(DdagD,1)
-  call stop_for_test
-endif
-
-allocate( unitvec(1:sizeD) )
-
-do i=1,sizeD
-  unitvec=(0d0,0d0)
-  unitvec(i)=(1d0,0d0)
-  !call prod_DdagD_vec(DdagD(:,i),unitvec,sizeD,UMAT,Phimat)
-
-  !write(*,*) i
-#ifdef PARALLEL
-  call globalvec_to_localmat(eta_mat,lambda_mat,chi_mat,unitvec)
-#else
-  call vec_to_mat(eta_mat,lambda_mat,chi_mat,unitvec)
-#ENDIF
-
-  call Prod_DdagD(&
-    DF_eta, DF_lambda, DF_chi, &
-    eta_mat,lambda_mat,chi_mat, &
-    UMAT,Phimat)
-
-#ifdef PARALLEL
-  ! only Rank0 possesses Dirac
-  call localmat_to_globalvec(DdagD(:,i),DF_eta,DF_lambda,DF_chi)
-#else
-
-  call mat_to_vec(DdagD(:,i),DF_eta,DF_lambda,DF_chi)
-#endif
-
-enddo
-end subroutine make_DdagD
-
-
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!! compute D^dagger.D.vec
-!!   1) D_{ij}=-D_{ji}
-!!   2) D^\dag)_{ij} = (D^*)_{ji} = - D^*_{ij}
-!! ==>
-!!   [D^\dagger D v]_i 
-!!     = conjg(D_{ji}) D_{jk} v_k 
-!!     = -conjg(D_{ij}) D_{jk} v_k                 
-!! w=Dv => D^\dagger w = -( D.conjg(w) )^\dagger 
-!!                     = -conjg[ D.conjg( D v ) ]
-!subroutine Prod_DdagD(DdagD_vec, vec, Vsize,UMAT,Phimat)
-subroutine Prod_DdagD(&
-    DF_eta, DF_lambda, DF_chi, &
-    eta_mat,lambda_mat,chi_mat, &
-    UMAT,Phimat)
-implicit none
-
-!integer, intent(in) :: Vsize !! vecsize must be sizeD
-complex(kind(0d0)), intent(out) :: DF_eta(:,:,:)!(1:NMAT,1:NMAT,1:num_sites)
-complex(kind(0d0)), intent(out) :: DF_lambda(:,:,:)!(1:NMAT,1:NMAT,1:num_links)
-complex(kind(0d0)), intent(out) :: DF_chi(:,:,:)!(1:NMAT,1:NMAT,1:num_faces)
-complex(kind(0d0)),intent(in) :: eta_mat(:,:,:)!(1:NMAT,1:NMAT,1:num_necessary_sites)
-complex(kind(0d0)),intent(in) :: lambda_mat(:,:,:)!(1:NMAT,1:NMAT,1:num_necessary_links)
-complex(kind(0d0)),intent(in) :: chi_mat(:,:,:)!(1:NMAT,1:NMAT,1:num_necessary_faces)
-complex(kind(0d0)),intent(in) :: UMAT(:,:,:)!(1:NMAT,1:NMAT,1:num_necessary_links)
-complex(kind(0d0)),intent(in) :: PhiMat(:,:,:)!(1:NMAT,1:NMAT,1:num_necessary_sites)
-!complex(kind(0d0)),intent(in) :: vec(:)
-!complex(kind(0d0)),intent(out) :: DdagD_vec(:)
-
-complex(kind(0d0)) :: tmp_eta(1:NMAT,1:NMAT,1:num_sites)
-complex(kind(0d0)) :: tmp_lambda(1:NMAT,1:NMAT,1:num_links)
-complex(kind(0d0)) :: tmp_chi(1:NMAT,1:NMAT,1:num_faces)
-complex(kind(0d0)) :: tmp2_eta(1:NMAT,1:NMAT,1:num_necessary_sites)
-complex(kind(0d0)) :: tmp2_lambda(1:NMAT,1:NMAT,1:num_necessary_links)
-complex(kind(0d0)) :: tmp2_chi(1:NMAT,1:NMAT,1:num_necessary_faces)
-
-integer :: i,j,s,l,f
-double precision :: rtmp
-
-call Prod_Dirac(&
-    tmp_eta, tmp_lambda, tmp_chi, &
-    eta_mat,lambda_mat,chi_mat, &
-    UMAT,PhiMat)
-
-do s=1,num_sites
-  do j=1,NMAT
-    do i=1,NMAT
-      tmp2_eta(i,j,s) = -dconjg( tmp_eta(j,i,s) )
-    enddo
-  enddo
-enddo
-do l=1,num_links
-  do j=1,NMAT
-    do i=1,NMAT
-      tmp2_lambda(i,j,l) = -dconjg( tmp_lambda(j,i,l) )
-    enddo
-  enddo
-enddo
-do f=1,num_faces
-  do j=1,NMAT
-    do i=1,NMAT
-      tmp2_chi(i,j,f) = -dconjg( tmp_chi(j,i,f) )
-    enddo
-  enddo
-enddo
-#ifdef PARALLEL
-call syncronize_sites(tmp2_eta)
-!write(*,*) MYRANK,"testS"
-call syncronize_faces(tmp2_chi)
-!write(*,*) MYRANK,"testF"
-call syncronize_links(tmp2_lambda)
-!write(*,*) MYRANK,"testL"
-#endif
-
-call Prod_Dirac(&
-    tmp_eta, tmp_lambda, tmp_chi, &
-    tmp2_eta,tmp2_lambda,tmp2_chi, &
-    UMAT,PhiMat)
-
-do s=1,num_sites
-  do j=1,NMAT
-    do i=1,NMAT
-      DF_eta(i,j,s) = dconjg( tmp_eta(j,i,s) )
-    enddo
-  enddo
-enddo
-do l=1,num_links
-  do j=1,NMAT
-    do i=1,NMAT
-      DF_lambda(i,j,l) = dconjg( tmp_lambda(j,i,l) )
-    enddo
-  enddo
-enddo
-do f=1,num_faces
-  do j=1,NMAT
-    do i=1,NMAT
-      DF_chi(i,j,f) = dconjg( tmp_chi(j,i,f) )
-    enddo
-  enddo
-enddo
-
-end subroutine Prod_DdagD
-
-
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!
-subroutine Prod_DiracDag(&
-    DF_eta, DF_lambda, DF_chi, &
-    eta_mat,lambda_mat,chi_mat, &
-    UMAT,Phimat)
-implicit none
-
-!integer, intent(in) :: Vsize !! vecsize must be sizeD
-complex(kind(0d0)), intent(out) :: DF_eta(:,:,:)!(1:NMAT,1:NMAT,1:num_sites)
-complex(kind(0d0)), intent(out) :: DF_lambda(:,:,:)!(1:NMAT,1:NMAT,1:num_links)
-complex(kind(0d0)), intent(out) :: DF_chi(:,:,:)!(1:NMAT,1:NMAT,1:num_faces)
-complex(kind(0d0)),intent(in) :: eta_mat(:,:,:)!(1:NMAT,1:NMAT,1:num_necessary_sites)
-complex(kind(0d0)),intent(in) :: lambda_mat(:,:,:)!(1:NMAT,1:NMAT,1:num_necessary_links)
-complex(kind(0d0)),intent(in) :: chi_mat(:,:,:)!(1:NMAT,1:NMAT,1:num_necessary_faces)
-complex(kind(0d0)),intent(in) :: UMAT(:,:,:)!(1:NMAT,1:NMAT,1:num_necessary_links)
-complex(kind(0d0)),intent(in) :: PhiMat(:,:,:)!(1:NMAT,1:NMAT,1:num_necessary_sites)
-!complex(kind(0d0)),intent(in) :: vec(:)
-!complex(kind(0d0)),intent(out) :: DdagD_vec(:)
-
-complex(kind(0d0)) :: tmp_eta(1:NMAT,1:NMAT,1:num_sites)
-complex(kind(0d0)) :: tmp_lambda(1:NMAT,1:NMAT,1:num_links)
-complex(kind(0d0)) :: tmp_chi(1:NMAT,1:NMAT,1:num_faces)
-complex(kind(0d0)) :: tmp2_eta(1:NMAT,1:NMAT,1:num_necessary_sites)
-complex(kind(0d0)) :: tmp2_lambda(1:NMAT,1:NMAT,1:num_necessary_links)
-complex(kind(0d0)) :: tmp2_chi(1:NMAT,1:NMAT,1:num_necessary_faces)
-
-integer :: i,j,s,l,f
-double precision :: rtmp
-
-
-do s=1,num_necessary_sites
-  do j=1,NMAT
-    do i=1,NMAT
-      tmp2_eta(i,j,s) = dconjg( eta_mat(j,i,s) )
-    enddo
-  enddo
-enddo
-do l=1,num_necessary_links
-  do j=1,NMAT
-    do i=1,NMAT
-      tmp2_lambda(i,j,l) = dconjg( lambda_mat(j,i,l) )
-    enddo
-  enddo
-enddo
-do f=1,num_necessary_faces
-  do j=1,NMAT
-    do i=1,NMAT
-      tmp2_chi(i,j,f) = dconjg( chi_mat(j,i,f) )
-    enddo
-  enddo
-enddo
-
-call Prod_Dirac(&
-    tmp_eta, tmp_lambda, tmp_chi, &
-    tmp2_eta,tmp2_lambda,tmp2_chi, &
-    UMAT,PhiMat)
-
-do s=1,num_sites
-  do j=1,NMAT
-    do i=1,NMAT
-      DF_eta(i,j,s) = -dconjg( tmp_eta(j,i,s) )
-    enddo
-  enddo
-enddo
-do l=1,num_links
-  do j=1,NMAT
-    do i=1,NMAT
-      DF_lambda(i,j,l) = -dconjg( tmp_lambda(j,i,l) )
-    enddo
-  enddo
-enddo
-do f=1,num_faces
-  do j=1,NMAT
-    do i=1,NMAT
-      DF_chi(i,j,f) = -dconjg( tmp_chi(j,i,f) )
-    enddo
-  enddo
-enddo
-end subroutine Prod_DiracDag
-
-
-
-
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! compute D.vec
 !!  S_f = 1/2 \Psi^T D \Psi
@@ -1379,6 +1050,335 @@ endif
 #endif
 
 end subroutine check_Dirac
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! make Dirac matrix
+subroutine make_Dirac(Dirac,UMAT,PhiMat)
+use SUN_generators, only : trace_MTa
+implicit none
+
+complex(kind(0d0)), intent(inout) :: Dirac(:,:)
+complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_necessary_links)
+complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_necessary_sites)
+!complex(kind(0d0)) :: Phi(1:dimG,1:num_sites)
+
+complex(kind(0d0)) :: DF_eta(1:NMAT,1:NMAT,1:num_sites)
+complex(kind(0d0)) :: DF_lambda(1:NMAT,1:NMAT,1:num_links)
+complex(kind(0d0)) :: DF_chi(1:NMAT,1:NMAT,1:num_faces)
+complex(kind(0d0)) :: eta_mat(1:NMAT,1:NMAT,1:num_necessary_sites)
+complex(kind(0d0)) :: lambda_mat(1:NMAT,1:NMAT,1:num_necessary_links)
+complex(kind(0d0)) :: chi_mat(1:NMAT,1:NMAT,1:num_necessary_faces)
+
+complex(kind(0d0)), allocatable :: unitvec(:)
+integer i,j
+integer s,a
+integer :: sizeD
+
+#ifdef PARALLEL
+sizeD=(NMAT*NMAT-1)*(global_num_sites+global_num_links+global_num_faces)
+#else
+sizeD=(NMAT*NMAT-1)*(num_sites+num_links+num_faces)
+#endif
+
+
+if( size(Dirac,1) /= sizeD ) then
+  write(*,*) "size of Dirac is not ",sizeD,"but",size(Dirac,1)
+  call stop_for_test
+endif
+
+allocate( unitvec(1:sizeD) )
+
+do i=1,sizeD
+  unitvec=(0d0,0d0)
+  unitvec(i)=(1d0,0d0)
+  !write(*,*) MYRANK,"===========",i,"========="
+  !call prod_Dirac_vec(Dirac(:,i),unitvec,sizeD,UMAT,PhiMat)
+
+#ifdef PARALLEL
+  call globalvec_to_localmat(eta_mat,lambda_mat,chi_mat,unitvec)
+#else
+  call vec_to_mat(eta_mat,lambda_mat,chi_mat,unitvec)
+#ENDIF
+
+  call Prod_Dirac(&
+    DF_eta, DF_lambda, DF_chi, &
+    eta_mat,lambda_mat,chi_mat, &
+    UMAT,Phimat)
+
+#ifdef PARALLEL
+  ! only Rank0 possesses Dirac
+  call localmat_to_globalvec(Dirac(:,i),DF_eta,DF_lambda,DF_chi)
+#else
+  call mat_to_vec(Dirac(:,i),DF_eta,DF_lambda,DF_chi)
+#endif
+
+enddo
+!call MPI_FINALIZE(IERR)
+!stop
+!do i=1,sizeD
+!  do j=1,sizeD
+!    if (abs(Dirac(i,j)) > 1d-5) then
+!      write(*,*) MYRANK,i,j,abs(Dirac(i,j))
+!    endif
+!  enddo
+!enddo
+
+
+end subroutine make_Dirac
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! make D^\dagger D matrix
+subroutine make_DdagD(DdagD,UMAT,PhiMat)
+implicit none
+
+!complex(kind(0d0)), intent(inout) :: DdagD(1:sizeD,1:sizeD)
+complex(kind(0d0)), intent(inout) :: DdagD(:,:)
+complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_necessary_links)
+complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_necessary_sites)
+
+complex(kind(0d0)) :: DF_eta(1:NMAT,1:NMAT,1:num_sites)
+complex(kind(0d0)) :: DF_lambda(1:NMAT,1:NMAT,1:num_links)
+complex(kind(0d0)) :: DF_chi(1:NMAT,1:NMAT,1:num_faces)
+complex(kind(0d0)) :: eta_mat(1:NMAT,1:NMAT,1:num_necessary_sites)
+complex(kind(0d0)) :: lambda_mat(1:NMAT,1:NMAT,1:num_necessary_links)
+complex(kind(0d0)) :: chi_mat(1:NMAT,1:NMAT,1:num_necessary_faces)
+
+!complex(kind(0d0)) :: unitvec(1:sizeD),dirac_vec(1:sizeD)
+complex(kind(0d0)), allocatable :: unitvec(:)
+integer i,j,sizeD
+
+
+
+#ifdef PARALLEL
+sizeD=(NMAT*NMAT-1)*(global_num_sites+global_num_links+global_num_faces)
+#else
+sizeD=(NMAT*NMAT-1)*(num_sites+num_links+num_faces)
+#endif
+
+if( size(DdagD,1) /= sizeD ) then
+  write(*,*) "size of DdagD is not ",sizeD,"but",size(DdagD,1)
+  call stop_for_test
+endif
+
+allocate( unitvec(1:sizeD) )
+
+do i=1,sizeD
+  unitvec=(0d0,0d0)
+  unitvec(i)=(1d0,0d0)
+  !call prod_DdagD_vec(DdagD(:,i),unitvec,sizeD,UMAT,Phimat)
+
+  !write(*,*) i
+#ifdef PARALLEL
+  call globalvec_to_localmat(eta_mat,lambda_mat,chi_mat,unitvec)
+#else
+  call vec_to_mat(eta_mat,lambda_mat,chi_mat,unitvec)
+#ENDIF
+
+  call Prod_DdagD(&
+    DF_eta, DF_lambda, DF_chi, &
+    eta_mat,lambda_mat,chi_mat, &
+    UMAT,Phimat)
+
+#ifdef PARALLEL
+  ! only Rank0 possesses Dirac
+  call localmat_to_globalvec(DdagD(:,i),DF_eta,DF_lambda,DF_chi)
+#else
+
+  call mat_to_vec(DdagD(:,i),DF_eta,DF_lambda,DF_chi)
+#endif
+
+enddo
+end subroutine make_DdagD
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! compute D^dagger.D.vec
+!!   1) D_{ij}=-D_{ji}
+!!   2) D^\dag)_{ij} = (D^*)_{ji} = - D^*_{ij}
+!! ==>
+!!   [D^\dagger D v]_i 
+!!     = conjg(D_{ji}) D_{jk} v_k 
+!!     = -conjg(D_{ij}) D_{jk} v_k                 
+!! w=Dv => D^\dagger w = -( D.conjg(w) )^\dagger 
+!!                     = -conjg[ D.conjg( D v ) ]
+!subroutine Prod_DdagD(DdagD_vec, vec, Vsize,UMAT,Phimat)
+subroutine Prod_DdagD(&
+    DF_eta, DF_lambda, DF_chi, &
+    eta_mat,lambda_mat,chi_mat, &
+    UMAT,Phimat)
+implicit none
+
+!integer, intent(in) :: Vsize !! vecsize must be sizeD
+complex(kind(0d0)), intent(out) :: DF_eta(:,:,:)!(1:NMAT,1:NMAT,1:num_sites)
+complex(kind(0d0)), intent(out) :: DF_lambda(:,:,:)!(1:NMAT,1:NMAT,1:num_links)
+complex(kind(0d0)), intent(out) :: DF_chi(:,:,:)!(1:NMAT,1:NMAT,1:num_faces)
+complex(kind(0d0)),intent(in) :: eta_mat(:,:,:)!(1:NMAT,1:NMAT,1:num_necessary_sites)
+complex(kind(0d0)),intent(in) :: lambda_mat(:,:,:)!(1:NMAT,1:NMAT,1:num_necessary_links)
+complex(kind(0d0)),intent(in) :: chi_mat(:,:,:)!(1:NMAT,1:NMAT,1:num_necessary_faces)
+complex(kind(0d0)),intent(in) :: UMAT(:,:,:)!(1:NMAT,1:NMAT,1:num_necessary_links)
+complex(kind(0d0)),intent(in) :: PhiMat(:,:,:)!(1:NMAT,1:NMAT,1:num_necessary_sites)
+!complex(kind(0d0)),intent(in) :: vec(:)
+!complex(kind(0d0)),intent(out) :: DdagD_vec(:)
+
+complex(kind(0d0)) :: tmp_eta(1:NMAT,1:NMAT,1:num_sites)
+complex(kind(0d0)) :: tmp_lambda(1:NMAT,1:NMAT,1:num_links)
+complex(kind(0d0)) :: tmp_chi(1:NMAT,1:NMAT,1:num_faces)
+complex(kind(0d0)) :: tmp2_eta(1:NMAT,1:NMAT,1:num_necessary_sites)
+complex(kind(0d0)) :: tmp2_lambda(1:NMAT,1:NMAT,1:num_necessary_links)
+complex(kind(0d0)) :: tmp2_chi(1:NMAT,1:NMAT,1:num_necessary_faces)
+
+integer :: i,j,s,l,f
+double precision :: rtmp
+
+call Prod_Dirac(&
+    tmp_eta, tmp_lambda, tmp_chi, &
+    eta_mat,lambda_mat,chi_mat, &
+    UMAT,PhiMat)
+
+do s=1,num_sites
+  do j=1,NMAT
+    do i=1,NMAT
+      tmp2_eta(i,j,s) = -dconjg( tmp_eta(j,i,s) )
+    enddo
+  enddo
+enddo
+do l=1,num_links
+  do j=1,NMAT
+    do i=1,NMAT
+      tmp2_lambda(i,j,l) = -dconjg( tmp_lambda(j,i,l) )
+    enddo
+  enddo
+enddo
+do f=1,num_faces
+  do j=1,NMAT
+    do i=1,NMAT
+      tmp2_chi(i,j,f) = -dconjg( tmp_chi(j,i,f) )
+    enddo
+  enddo
+enddo
+#ifdef PARALLEL
+call syncronize_sites(tmp2_eta)
+!write(*,*) MYRANK,"testS"
+call syncronize_faces(tmp2_chi)
+!write(*,*) MYRANK,"testF"
+call syncronize_links(tmp2_lambda)
+!write(*,*) MYRANK,"testL"
+#endif
+
+call Prod_Dirac(&
+    tmp_eta, tmp_lambda, tmp_chi, &
+    tmp2_eta,tmp2_lambda,tmp2_chi, &
+    UMAT,PhiMat)
+
+do s=1,num_sites
+  do j=1,NMAT
+    do i=1,NMAT
+      DF_eta(i,j,s) = dconjg( tmp_eta(j,i,s) )
+    enddo
+  enddo
+enddo
+do l=1,num_links
+  do j=1,NMAT
+    do i=1,NMAT
+      DF_lambda(i,j,l) = dconjg( tmp_lambda(j,i,l) )
+    enddo
+  enddo
+enddo
+do f=1,num_faces
+  do j=1,NMAT
+    do i=1,NMAT
+      DF_chi(i,j,f) = dconjg( tmp_chi(j,i,f) )
+    enddo
+  enddo
+enddo
+
+end subroutine Prod_DdagD
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!
+subroutine Prod_DiracDag(&
+    DF_eta, DF_lambda, DF_chi, &
+    eta_mat,lambda_mat,chi_mat, &
+    UMAT,Phimat)
+implicit none
+
+!integer, intent(in) :: Vsize !! vecsize must be sizeD
+complex(kind(0d0)), intent(out) :: DF_eta(:,:,:)!(1:NMAT,1:NMAT,1:num_sites)
+complex(kind(0d0)), intent(out) :: DF_lambda(:,:,:)!(1:NMAT,1:NMAT,1:num_links)
+complex(kind(0d0)), intent(out) :: DF_chi(:,:,:)!(1:NMAT,1:NMAT,1:num_faces)
+complex(kind(0d0)),intent(in) :: eta_mat(:,:,:)!(1:NMAT,1:NMAT,1:num_necessary_sites)
+complex(kind(0d0)),intent(in) :: lambda_mat(:,:,:)!(1:NMAT,1:NMAT,1:num_necessary_links)
+complex(kind(0d0)),intent(in) :: chi_mat(:,:,:)!(1:NMAT,1:NMAT,1:num_necessary_faces)
+complex(kind(0d0)),intent(in) :: UMAT(:,:,:)!(1:NMAT,1:NMAT,1:num_necessary_links)
+complex(kind(0d0)),intent(in) :: PhiMat(:,:,:)!(1:NMAT,1:NMAT,1:num_necessary_sites)
+!complex(kind(0d0)),intent(in) :: vec(:)
+!complex(kind(0d0)),intent(out) :: DdagD_vec(:)
+
+complex(kind(0d0)) :: tmp_eta(1:NMAT,1:NMAT,1:num_sites)
+complex(kind(0d0)) :: tmp_lambda(1:NMAT,1:NMAT,1:num_links)
+complex(kind(0d0)) :: tmp_chi(1:NMAT,1:NMAT,1:num_faces)
+complex(kind(0d0)) :: tmp2_eta(1:NMAT,1:NMAT,1:num_necessary_sites)
+complex(kind(0d0)) :: tmp2_lambda(1:NMAT,1:NMAT,1:num_necessary_links)
+complex(kind(0d0)) :: tmp2_chi(1:NMAT,1:NMAT,1:num_necessary_faces)
+
+integer :: i,j,s,l,f
+double precision :: rtmp
+
+
+do s=1,num_necessary_sites
+  do j=1,NMAT
+    do i=1,NMAT
+      tmp2_eta(i,j,s) = dconjg( eta_mat(j,i,s) )
+    enddo
+  enddo
+enddo
+do l=1,num_necessary_links
+  do j=1,NMAT
+    do i=1,NMAT
+      tmp2_lambda(i,j,l) = dconjg( lambda_mat(j,i,l) )
+    enddo
+  enddo
+enddo
+do f=1,num_necessary_faces
+  do j=1,NMAT
+    do i=1,NMAT
+      tmp2_chi(i,j,f) = dconjg( chi_mat(j,i,f) )
+    enddo
+  enddo
+enddo
+
+call Prod_Dirac(&
+    tmp_eta, tmp_lambda, tmp_chi, &
+    tmp2_eta,tmp2_lambda,tmp2_chi, &
+    UMAT,PhiMat)
+
+do s=1,num_sites
+  do j=1,NMAT
+    do i=1,NMAT
+      DF_eta(i,j,s) = -dconjg( tmp_eta(j,i,s) )
+    enddo
+  enddo
+enddo
+do l=1,num_links
+  do j=1,NMAT
+    do i=1,NMAT
+      DF_lambda(i,j,l) = -dconjg( tmp_lambda(j,i,l) )
+    enddo
+  enddo
+enddo
+do f=1,num_faces
+  do j=1,NMAT
+    do i=1,NMAT
+      DF_chi(i,j,f) = -dconjg( tmp_chi(j,i,f) )
+    enddo
+  enddo
+enddo
+end subroutine Prod_DiracDag
+
+
 
 
 
