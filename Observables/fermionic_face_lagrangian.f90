@@ -105,7 +105,8 @@ complex(kind(0d0)) :: U1Rfactor_fl
 gl = global_link_of_local( links_in_f(lf)%link_labels_(l_place) )
 
 !! U1Rfacor
-call calc_U1Rfactor_fl(U1Rfactor_fl,lf,l_place)
+!call calc_U1Rfactor_fl(U1Rfactor_fl,lf,l_place)
+call calc_U1Rfactor_fl(U1Rfactor_fl,lf,links_in_f(lf)%link_labels_(l_place) )
 
 !! Ufm
 call make_face_variable(Uf(:,:),lf,Umat)

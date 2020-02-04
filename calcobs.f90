@@ -140,6 +140,7 @@ double precision :: rtmp,ctmp
 complex(kind(0d0)), allocatable :: Dirac(:,:)
 complex(kind(0d0)) :: tmp
 integer :: k
+integer :: ios
 
 iarg=iargc()
 if( iarg ==0 ) then
@@ -186,7 +187,8 @@ do
   call read_config_from_medfile(Umat,PhiMat,ite,N_MEDFILE,control)
 
   if( exist_dinv==0 ) then 
-    read(N_DinvFILE,'(I10,2X)',advance='no') ite2
+    read(N_DinvFILE,'(I10,2X)',advance='no',iostat=ios) ite2
+    if( ios == -1) exit
     do j=1,num_fermion
       do i=1,num_fermion
         read(N_DinvFILE,'(E23.15,2X,E23.15,2X)',advance='no') &
@@ -224,11 +226,11 @@ do
 
   !!!!!!!!!!!!!!!!!!!!!!!
   !!! CHECK ROUTINES !!!!
-  ! call check_DinvPF(&
-  !  Geta_eta, Glambda_eta, Gchi_eta, &
-  !  Geta_lambda, Glambda_lambda, Gchi_lambda, &
-  !  Geta_chi, Glambda_chi, Gchi_chi, &
-  !  Umat,PhiMat,1)
+   call check_DinvPF(&
+    Geta_eta, Glambda_eta, Gchi_eta, &
+    Geta_lambda, Glambda_lambda, Gchi_lambda, &
+    Geta_chi, Glambda_chi, Gchi_chi, &
+    Umat,PhiMat,1)
   !!!!!!!!!!!!!!!!!!!!!!!
 
 
@@ -364,6 +366,7 @@ if( MYRANK == 0 ) then
   close(N_MEDFILE)
   close(N_DinvFILE)
 endif
+stop
 end program main
 
 
