@@ -61,6 +61,7 @@ do k=1,global_num_links
   if( MYRANK==0 ) then 
     read(SC_FILE,*) l,origin,tip,alpha
     global_alpha_l(l)=alpha
+    global_U1Rfactor_link(l)=global_U1Rfactor_site(tip)/global_U1Rfactor_site(origin)
   endif
   call MPI_BCAST(l,1,MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
   call MPI_BCAST(origin,1,MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
@@ -71,6 +72,7 @@ do k=1,global_num_links
   !global_U1Rmass_phys(l)=tmp_U1Rmass
   !global_U1Rfactor(l) = cdexp( (0d0,1d0)*tmp_U1Rmass*LatticeSpacing) 
 enddo
+call MPI_BCAST(global_U1Rfactor_link,global_num_links,MPI_DOUBLE_COMPLEX,0,MPI_COMM_WORLD,IERR)
 if( MYRANK==0 ) then 
   read(SC_FILE,'()') ! skip 1 line
 endif
