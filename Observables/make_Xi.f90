@@ -31,7 +31,7 @@ do l=1,num_links
   enddo
   call matrix_3_product(tmpmat,&
     Umat(:,:,l),PhiMat(:,:,link_tip(l)),Umat(:,:,l),&
-    'N','C','C',dconjg( U1Rfactor(l)**2 ),'ADD') 
+    'N','C','C',dconjg( U1Rfactor_link(l)**2 ),'ADD') 
   Xi_lambda(:,:,l)=(0d0,-1d0)*dcmplx(alpha_l(l)*overall_factor)*tmpmat
   !Xi_lambda(:,:,l)=Xi_lambda(:,:,l)*dconjg( site_U1Rfactor(link_org(l)) )
 enddo
@@ -96,7 +96,7 @@ do l=1,num_links
   enddo
   call matrix_3_product(tmpmat,&
     Umat(:,:,l),PhiMat(:,:,link_tip(l)),Umat(:,:,l),&
-    'N','C','C',dconjg( U1Rfactor(l)**2 ),'ADD') 
+    'N','C','C',dconjg( U1Rfactor_link(l)**2 ),'ADD') 
     !'N','C','C',(1d0,0d0),'ADD') 
   Xi_lambda(:,:,l)=(0d0,-1d0)*dcmplx(alpha_l(l)*overall_factor)*tmpmat
   !tmpmat=-PhiMat(:,:,link_org(l))

@@ -201,6 +201,13 @@ call Prod_Dirac(DQeta,DQlambda,DQchi,Qeta,Qlambda,Qchi,UMAT,Phimat)
 
 !! boson part
 call make_bosonic_force_nomass(Bforce_s,Bforce_l,Umat,PhiMat)
+do s=1,num_sites
+  Bforce_s(:,:,s)=Bforce_s(:,:,s)*dconjg(U1Rfactor_site(s))
+enddo
+do l=1,num_links
+  Bforce_l(:,:,l)=Bforce_l(:,:,l)*U1Rfactor_site(link_org(l))
+enddo
+
 
 ! Q^2 \Omega を care する
 !do f=1,num_faces
@@ -219,7 +226,7 @@ do s=1,num_sites
     do j=1,NMAT
       ctmp=&
         - DQeta(i,j,s) &
-        + dconjg(Bforce_s(j,i,s))!*site_U1Rfactor(s)
+        + dconjg(Bforce_s(j,i,s))!*U1Rfactor_site(s)
       tmp=tmp+dble( ctmp*dconjg(ctmp) )
     enddo
     !write(*,*) global_site_of_local(s), cdabs(ctmp), &
@@ -287,7 +294,7 @@ complex(kind(0d0)) :: Ufm(1:NMAT,1:NMAT)
 Qeta=(0d0,0d0)
 do s=1,num_sites
   call matrix_commutator(Qeta(:,:,s),PhiMat(:,:,s),PhiMat(:,:,s),'N','C')
-  !Qeta(:,:,s)=Qeta(:,:,s)*site_U1Rfactor(s)
+  Qeta(:,:,s)=Qeta(:,:,s)*U1Rfactor_site(s)
 enddo
 
 Qlambda=(0d0,0d0)
@@ -295,8 +302,8 @@ do l=1,num_links
   Qlambda(:,:,l)=(0d0,-1d0)*PhiMat(:,:,link_org(l))
   call matrix_3_product(Qlambda(:,:,l),&
     Umat(:,:,l),PhiMat(:,:,link_tip(l)),Umat(:,:,l),&
-    'N','N','C',(0d0,1d0)*U1Rfactor(l)**2,'ADD')
-  !Qlambda(:,:,l)=Qlambda(:,:,l)*site_U1Rfactor( link_org(l) )
+    'N','N','C',(0d0,1d0)*U1Rfactor_link(l)**2,'ADD')
+  Qlambda(:,:,l)=Qlambda(:,:,l)*U1Rfactor_site( link_org(l) )
 enddo
 
 Qchi=(0d0,0d0)
@@ -311,7 +318,7 @@ do f=1,num_faces
     call Make_moment_map(Omega(:,:,f),Ufm)
   endif
   Qchi(:,:,f)=(0d0,-0.5d0)*dcmplx(beta_f(f))*Omega(:,:,f)
-  !Qchi(:,:,f)=Qchi(:,:,f)*site_U1Rfactor(sites_in_f(f)%label_(1))
+  Qchi(:,:,f)=Qchi(:,:,f)*U1Rfactor_site(sites_in_f(f)%label_(1))
 enddo
 
 #ifdef PARALLEL

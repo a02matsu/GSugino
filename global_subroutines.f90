@@ -129,7 +129,7 @@ call ZGEMM('N','N',NMAT,NMAT,NMAT,(1d0,0d0), &
     PhiMat(:,:,link_tip(l)), NMAT, &
     (0d0,0d0), tmpmat1, NMAT)
 ! U_l.Phi_tip.U_l^\dagger
-call ZGEMM('N','C',NMAT,NMAT,NMAT,U1Rfactor(l)*U1Rfactor(l), &
+call ZGEMM('N','C',NMAT,NMAT,NMAT,U1Rfactor_link(l)*U1Rfactor_link(l), &
     tmpmat1, NMAT, &
     UMAT(:,:,l), NMAT, &
     (-1d0,0d0), Dphi, NMAT)
@@ -1903,9 +1903,9 @@ do k=1,last
   ll=links_in_f(f)%link_labels_(k)
   dir=links_in_f(f)%link_dirs_(k)
   if( dir==1 ) then
-    U1Rfactor_fl = U1Rfactor_fl * U1Rfactor(ll)
+    U1Rfactor_fl = U1Rfactor_fl * U1Rfactor_link(ll)
   else
-    U1Rfactor_fl = U1Rfactor_fl * dconjg(U1Rfactor(ll))
+    U1Rfactor_fl = U1Rfactor_fl * dconjg(U1Rfactor_link(ll))
   endif
 enddo
 
