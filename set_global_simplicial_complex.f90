@@ -32,10 +32,10 @@ call MPI_BCAST(LatticeSpacing,1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERR)
   allocate( global_alpha_l(1:global_num_links) )
   allocate( global_alpha_f(1:global_num_faces) )
   allocate( global_beta_f(1:global_num_faces) )
-! U(1)_R mass on global links
-  allocate( global_U1Rmass_phys(1:global_num_links) )
-! U(1)_R mass on global sites
-  allocate( global_U1Rfactor(1:global_num_links) )
+! U(1)_R factor on global links
+  allocate( global_U1Rfactor_link(1:global_num_links) )
+! U(1)_R factor on global sites
+  allocate( global_U1Rfactor_site(1:global_num_sites) )
 ! initialize the simplicial complex
 call init_smpcom(SC,global_num_sites,global_num_links,global_num_faces)
 
@@ -47,30 +47,29 @@ call init_smpcom(SC,global_num_sites,global_num_links,global_num_faces)
 !! Set alpha_s
 if( MYRANK==0 ) then
   do k=1,global_num_sites
-    read(SC_FILE,*) s,alpha
+    read(SC_FILE,*) s,alpha,tmp_U1Rmass
     global_alpha_s(s)=alpha
-    !write(*,*) s, alpha_s(s)
+    global_U1Rfactor_site(s)=cdexp( (0d0,2d0)*dacos(-1d0)*tmp_U1Rmass )
   enddo
   read(SC_FILE,'()') ! skip 1 line
 endif
+call MPI_BCAST(global_U1Rfactor_site,global_num_sites,MPI_DOUBLE_COMPLEX,0,MPI_COMM_WORLD,IERR)
 
 !!!!!!!!!!!!!!!!!!!!!!!!!
 !! Set alpha_l and U(1)_R mass
 do k=1,global_num_links
   if( MYRANK==0 ) then 
-    read(SC_FILE,*) l,origin,tip,alpha,tmp_U1Rmass
+    read(SC_FILE,*) l,origin,tip,alpha
     global_alpha_l(l)=alpha
   endif
   call MPI_BCAST(l,1,MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
   call MPI_BCAST(origin,1,MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
   call MPI_BCAST(tip,1,MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
-  !write(*,*) MYRANK,l,origin,tip
-  !if (MYRANK==0) write(*,*) l,origin,tip,alpha_l
   call put_link_sc(SC,l,origin,tip)
   !!  
-  call MPI_BCAST(tmp_U1Rmass,1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERR)
+  !call MPI_BCAST(tmp_U1Rmass,1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERR)
   !global_U1Rmass_phys(l)=tmp_U1Rmass
-  global_U1Rfactor(l) = cdexp( (0d0,1d0)*tmp_U1Rmass*LatticeSpacing) 
+  !global_U1Rfactor(l) = cdexp( (0d0,1d0)*tmp_U1Rmass*LatticeSpacing) 
 enddo
 if( MYRANK==0 ) then 
   read(SC_FILE,'()') ! skip 1 line
