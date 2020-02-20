@@ -290,7 +290,7 @@ do a=1,face_in_l(ll)%num_
     l=links_in_f(f)%link_labels_(l_place)
 
     !! U1Rfactor
-    call calc_U1Rfactor_fl(U1Rfactor_fl,f,l)
+    call calc_U1Rfactor_fl_by_route(U1Rfactor_fl,f,l_place)
 
 
     dir_factor=&

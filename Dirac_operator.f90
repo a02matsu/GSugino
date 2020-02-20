@@ -301,7 +301,8 @@ do f=1,num_necessary_faces
   do l_place=1,links_in_f(f)%num_
     l=links_in_f(f)%link_labels_(l_place)
     !! U1Rfacor
-    call calc_U1Rfactor_fl(U1Rfactor_fl,f,l)
+    !call calc_U1Rfactor_fl(U1Rfactor_fl,f,l)
+    call calc_U1Rfactor_fl_by_route(U1Rfactor_fl,f,l_place)
 
     dir_factor=&
       (0d0,-2d0)/dcmplx(m_omega)*overall_factor &

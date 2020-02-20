@@ -166,7 +166,7 @@ double precision, allocatable, save :: alpha_l(:)
 double precision, allocatable, save :: alpha_f(:)
 double precision, allocatable, save :: beta_f(:)
 complex(kind(0d0)), allocatable, save :: U1Rfactor(:)  ! U(1)_R mass factor on lattice 
-complex(kind(0d0)), allocatable, save :: site_U1Rfactor(:)  ! U(1)_R facotor on site
+!complex(kind(0d0)), allocatable, save :: site_U1Rfactor(:)  ! U(1)_R facotor on site
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! data of the LOCAL simplicial complex

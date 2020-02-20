@@ -57,7 +57,7 @@ integer :: s,l,f,i,j
   call set_local_alpha_beta
   !! U(1)_R mass を割り振る
   call set_local_U1Rmass
-  call set_U1Rfactor_on_sites
+  !call set_U1Rfactor_on_sites
 #else
 num_sites=global_num_sites
 num_links=global_num_links
@@ -1251,101 +1251,101 @@ deallocate(ISEND, IRECV)
 end subroutine syncronize_ab
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-subroutine set_U1Rfactor_on_sites
-implicit none
-
-!integer :: U1Rfactor_site(1:global_num_sites)
-integer :: groupS(1:global_num_sites)
-integer :: groupT(1:global_num_sites)
-integer :: groupU(1:global_num_sites)
-
-integer :: s,t,l,ls
-integer :: i,j,k
-integer :: numS,numT,numU
-integer :: info
-
-double precision :: tmp
-
-allocate( global_site_U1Rfactor(1:global_num_sites) )
-allocate( site_U1Rfactor(1:num_necessary_sites) )
-global_site_U1Rfactor=(1d0,0d0)
-site_U1Rfactor=(1d0,0d0)
-
-!! set global_site_U1Rfactor in all ranks
-!!!!!!!!!!!
-groupS=0
-numS=0
-!!!!!!!!!!!
-groupT=0
-numT=1
-groupT(1)=1
-!!!!!!!!!!!
-groupU=0
-numU=0
-do while (numS < global_num_sites) 
-  do i=1,numT
-    s=groupT(i)
-    do j=1,global_linktip_from_s(s)%num_
-      t=global_linktip_from_s(s)%sites_(j)
-      l=global_linktip_from_s(s)%labels_(j)
-
-      info=1
-      do k=1,numS
-        if( t==groupS(k) ) then
-          info=0
-          exit
-        endif
-      enddo
-      do k=1,numT
-        if( t==groupT(k) ) then
-          info=0
-          exit
-        endif
-      enddo
-      do k=1,numU
-        if( t==groupU(k) ) then
-          info=0
-          exit
-        endif
-      enddo
-      if( info==1 ) then
-        numU=numU+1
-        global_site_U1Rfactor(t)=global_site_U1Rfactor(s)*global_U1Rfactor(l)
-        groupU(numU)=t
-      endif
-    enddo
-  enddo
-  !! update groupS
-  groupS(numS+1:numS+numT)=groupT(1:numT)
-  numS=numS+numT
-  !!
-  !write(*,*) numS
-  !! update groupT
-  groupT=groupU
-  numT=numU
-  !! initialize groupU
-  groupU=0
-  numU=0
-  !! 
-enddo
-
-do ls=1,num_necessary_sites
-  site_U1Rfactor(ls)=global_site_U1Rfactor(global_site_of_local(ls))
-enddo
-
-!do s=1,num_necessary_sites
-!  tmp=dble((0d0,-1d0)*cdlog(site_U1Rfactor(s)))/LatticeSpacing
-!  if( tmp < 0 ) then 
-!    write(*,*) global_site_of_local(s), site_U1Rfactor(s), tmp+dacos(-1d0)
-!  else
-!    write(*,*) global_site_of_local(s), site_U1Rfactor(s), tmp
-!  endif
-!  !write(*,*) global_site_of_local(s), site_U1Rfactor(s), &
-!    !dble((0d0,-1d0)*cdlog(site_U1Rfactor(s)))/LatticeSpacing
+!subroutine set_U1Rfactor_on_sites
+!implicit none
+!
+!!integer :: U1Rfactor_site(1:global_num_sites)
+!integer :: groupS(1:global_num_sites)
+!integer :: groupT(1:global_num_sites)
+!integer :: groupU(1:global_num_sites)
+!
+!integer :: s,t,l,ls
+!integer :: i,j,k
+!integer :: numS,numT,numU
+!integer :: info
+!
+!double precision :: tmp
+!
+!allocate( global_site_U1Rfactor(1:global_num_sites) )
+!allocate( site_U1Rfactor(1:num_necessary_sites) )
+!global_site_U1Rfactor=(1d0,0d0)
+!site_U1Rfactor=(1d0,0d0)
+!
+!!! set global_site_U1Rfactor in all ranks
+!!!!!!!!!!!!
+!groupS=0
+!numS=0
+!!!!!!!!!!!!
+!groupT=0
+!numT=1
+!groupT(1)=1
+!!!!!!!!!!!!
+!groupU=0
+!numU=0
+!do while (numS < global_num_sites) 
+!  do i=1,numT
+!    s=groupT(i)
+!    do j=1,global_linktip_from_s(s)%num_
+!      t=global_linktip_from_s(s)%sites_(j)
+!      l=global_linktip_from_s(s)%labels_(j)
+!
+!      info=1
+!      do k=1,numS
+!        if( t==groupS(k) ) then
+!          info=0
+!          exit
+!        endif
+!      enddo
+!      do k=1,numT
+!        if( t==groupT(k) ) then
+!          info=0
+!          exit
+!        endif
+!      enddo
+!      do k=1,numU
+!        if( t==groupU(k) ) then
+!          info=0
+!          exit
+!        endif
+!      enddo
+!      if( info==1 ) then
+!        numU=numU+1
+!        global_site_U1Rfactor(t)=global_site_U1Rfactor(s)*global_U1Rfactor(l)
+!        groupU(numU)=t
+!      endif
+!    enddo
+!  enddo
+!  !! update groupS
+!  groupS(numS+1:numS+numT)=groupT(1:numT)
+!  numS=numS+numT
+!  !!
+!  !write(*,*) numS
+!  !! update groupT
+!  groupT=groupU
+!  numT=numU
+!  !! initialize groupU
+!  groupU=0
+!  numU=0
+!  !! 
 !enddo
-
-
-end subroutine set_U1Rfactor_on_sites
+!
+!do ls=1,num_necessary_sites
+!  site_U1Rfactor(ls)=global_site_U1Rfactor(global_site_of_local(ls))
+!enddo
+!
+!!do s=1,num_necessary_sites
+!!  tmp=dble((0d0,-1d0)*cdlog(site_U1Rfactor(s)))/LatticeSpacing
+!!  if( tmp < 0 ) then 
+!!    write(*,*) global_site_of_local(s), site_U1Rfactor(s), tmp+dacos(-1d0)
+!!  else
+!!    write(*,*) global_site_of_local(s), site_U1Rfactor(s), tmp
+!!  endif
+!!  !write(*,*) global_site_of_local(s), site_U1Rfactor(s), &
+!!    !dble((0d0,-1d0)*cdlog(site_U1Rfactor(s)))/LatticeSpacing
+!!enddo
+!
+!
+!end subroutine set_U1Rfactor_on_sites
 
 
 #endif

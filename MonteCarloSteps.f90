@@ -25,6 +25,7 @@ type(genrand_srepr) :: srepr
 
 integer :: t_start, t_end, t_rate, t_max
 double precision :: diff,ratio
+integer gl,s1,s2,ll,rank
 
 !complex(kind(0d0)) :: QS
 
@@ -61,12 +62,24 @@ PhiMat_BAK=PhiMat
 UMAT_BAK=UMAT
 
 
+
 call check_Dirac(Umat,Phimat)
 call check_distance(info,ratio,Umat)
 if(info .ne.0) then 
   write(*,*) "Umat is out of range.",ratio
   call stop_for_test
 endif
+!do gl=1,global_num_links
+!  ll=local_link_of_global(gl)%label_
+!  rank=local_link_of_global(gl)%rank_
+!  if( MYRANK==rank ) then
+!    s1=link_org(ll)
+!    s2=link_tip(ll)
+!    write(*,*) gl, &
+!      cdabs(site_U1Rfactor(s2)/site_U1Rfactor(s1)-U1Rfactor(ll))
+!  endif
+!enddo
+
 call check_QS(Umat,PhiMat)
 
 call genrand_init( get=state )
@@ -199,18 +212,19 @@ if(MYRANK==0) write(*,*) "# QS = 0 ?"
 !write(*,*) DQchi
 QS=0d0
 tmp=0d0
+!call make_bosonic_force_phi_site(Bforce_s,PhiMat)
 do s=1,num_sites
-  !tmp=0d0
+  tmp=0d0
   do i=1,NMAT
     do j=1,NMAT
       ctmp=&
         - DQeta(i,j,s) &
-        + dconjg(Bforce_s(j,i,s))*site_U1Rfactor(s)
+        + dconjg(Bforce_s(j,i,s))!*site_U1Rfactor(s)
       tmp=tmp+dble( ctmp*dconjg(ctmp) )
     enddo
+    !write(*,*) global_site_of_local(s), cdabs(ctmp), &
+    !  dble(cdlog(site_U1Rfactor(s))/LatticeSpacing*(0d0,-1d0))
   enddo
-  write(*,*) global_site_of_local(s), cdabs(ctmp), &
-    dble(cdlog(site_U1Rfactor(s))/LatticeSpacing*(0d0,-1d0))
 enddo
 call MPI_REDUCE(tmp,QS,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,MPI_COMM_WORLD,IERR)
 if(MYRANK==0) write(*,*) "#   site:",QS
@@ -223,11 +237,11 @@ do l=1,num_links
       !tmpmat(i,j) = &
       ctmp = &
         - DQlambda(i,j,l) & !*site_U1Rfactor(link_org(l))&
-        + Bforce_l(i,j,l)*site_U1Rfactor(link_org(l))
+        + Bforce_l(i,j,l) !*site_U1Rfactor(link_org(l))
       tmp=tmp+dble( ctmp*dconjg(ctmp) )
     enddo
   enddo
-  write(*,*) "(L)",global_link_of_local(l), cdabs(ctmp)
+  !write(*,*) "(L)",global_link_of_local(l), cdabs(ctmp)
 enddo
 call MPI_REDUCE(tmp,QS,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,MPI_COMM_WORLD,IERR)
 if(MYRANK==0) write(*,*) "#   link:",QS
@@ -242,7 +256,7 @@ do f=1,num_faces
       tmp=tmp+dble( ctmp*dconjg(ctmp) )
     enddo
   enddo
-  write(*,*) "(F)",global_face_of_local(f), cdabs(ctmp)
+  !write(*,*) "(F)",global_face_of_local(f), cdabs(ctmp)
 enddo
 call MPI_REDUCE(tmp,QS,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,MPI_COMM_WORLD,IERR)
 if(MYRANK==0) write(*,*) "#   face:",QS
@@ -273,7 +287,7 @@ complex(kind(0d0)) :: Ufm(1:NMAT,1:NMAT)
 Qeta=(0d0,0d0)
 do s=1,num_sites
   call matrix_commutator(Qeta(:,:,s),PhiMat(:,:,s),PhiMat(:,:,s),'N','C')
-  Qeta(:,:,s)=Qeta(:,:,s)*site_U1Rfactor(s)
+  !Qeta(:,:,s)=Qeta(:,:,s)*site_U1Rfactor(s)
 enddo
 
 Qlambda=(0d0,0d0)
@@ -282,7 +296,7 @@ do l=1,num_links
   call matrix_3_product(Qlambda(:,:,l),&
     Umat(:,:,l),PhiMat(:,:,link_tip(l)),Umat(:,:,l),&
     'N','N','C',(0d0,1d0)*U1Rfactor(l)**2,'ADD')
-  Qlambda(:,:,l)=Qlambda(:,:,l)*site_U1Rfactor( link_org(l) )
+  !Qlambda(:,:,l)=Qlambda(:,:,l)*site_U1Rfactor( link_org(l) )
 enddo
 
 Qchi=(0d0,0d0)
@@ -297,7 +311,7 @@ do f=1,num_faces
     call Make_moment_map(Omega(:,:,f),Ufm)
   endif
   Qchi(:,:,f)=(0d0,-0.5d0)*dcmplx(beta_f(f))*Omega(:,:,f)
-  Qchi(:,:,f)=Qchi(:,:,f)*site_U1Rfactor(sites_in_f(f)%label_(1))
+  !Qchi(:,:,f)=Qchi(:,:,f)*site_U1Rfactor(sites_in_f(f)%label_(1))
 enddo
 
 #ifdef PARALLEL

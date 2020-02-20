@@ -1870,17 +1870,46 @@ end subroutine calc_Bval
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! calculate U1Rfactor in \chi_f-\lambda_l term in the face part
-subroutine calc_U1Rfactor_fl(U1Rfactor_fl,f,l)
+!subroutine calc_U1Rfactor_fl(U1Rfactor_fl,f,l)
+!implicit none
+!
+!complex(kind(0d0)), intent(out) :: U1Rfactor_fl
+!integer, intent(in)  :: f, l
+!
+!U1Rfactor_fl = &
+!  dconjg( site_U1Rfactor(sites_in_f(f)%label_(1)) ) &
+!  * site_U1Rfactor( link_org(l) )
+!
+!
+!end subroutine calc_U1Rfactor_fl
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! calculate U1Rfactor in \chi_f-\lambda_l term in the face part
+subroutine calc_U1Rfactor_fl_by_route(U1Rfactor_fl,f,l_place)
 implicit none
 
 complex(kind(0d0)), intent(out) :: U1Rfactor_fl
-integer, intent(in)  :: f, l
+integer, intent(in)  :: f, l_place
+integer :: k,ll,dir,last
 
-U1Rfactor_fl = &
-  dconjg( site_U1Rfactor(sites_in_f(f)%label_(1)) ) &
-  * site_U1Rfactor( link_org(l) )
+if( links_in_f(f)%link_dirs_(l_place) == 1 ) then
+  last=l_place-1
+else
+  last=l_place
+endif
 
-end subroutine calc_U1Rfactor_fl
+U1Rfactor_fl = (1d0,0d0)
+do k=1,last
+  ll=links_in_f(f)%link_labels_(k)
+  dir=links_in_f(f)%link_dirs_(k)
+  if( dir==1 ) then
+    U1Rfactor_fl = U1Rfactor_fl * U1Rfactor(ll)
+  else
+    U1Rfactor_fl = U1Rfactor_fl * dconjg(U1Rfactor(ll))
+  endif
+enddo
+
+end subroutine calc_U1Rfactor_fl_by_route
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! calculate 
