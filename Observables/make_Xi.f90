@@ -63,6 +63,7 @@ complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_necessary_sites)
 complex(kind(0d0)) :: tmpmat(1:NMAT,1:NMAT)
 integer :: s
 
+Xi_eta=(0d0,0d0)
 do s=1,num_sites
   call matrix_commutator(tmpmat,PhiMat(:,:,s),Phimat(:,:,s),'N','C')
   Xi_eta(:,:,s)=dcmplx(alpha_s(s)*0.25d0*overall_factor)*tmpmat
@@ -131,6 +132,7 @@ complex(kind(0d0)) :: Uf(1:NMAT,1:NMAT),Ufm(1:NMAT,1:NMAT)
 integer :: s,l,f
 integer :: i,j
 
+Xi_chi=(0d0,0d0)
 do f=1,num_faces
   call make_face_variable(Uf,f,Umat)
   if(m_omega==0) then 
