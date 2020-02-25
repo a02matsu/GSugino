@@ -200,9 +200,9 @@ simulation.o: \
   $(DIR_OBS)/eigenvalues_of_Dirac.f90 \
   $(DIR_OBS)/exact_U1R.f90 \
   $(DIR_OBS)/mass_reweighting.f90 \
-  $(DIR_OBS)/siteWT.f90 \
-  $(DIR_OBS)/linkWT.f90 \
-  $(DIR_OBS)/faceWT.f90 \
+  $(DIR_OBS)/WT_mass_contribution_site.f90 \
+  $(DIR_OBS)/WT_mass_contribution_link.f90 \
+  $(DIR_OBS)/WT_mass_contribution_face.f90 \
   $(DIR_OBS)/make_Xi.f90 
 check_routines.o: \
   global_parameters.o \

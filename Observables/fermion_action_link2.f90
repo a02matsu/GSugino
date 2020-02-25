@@ -14,8 +14,6 @@ complex(kind(0d0)), intent(in) :: Glambda_lambda(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:g
 
 
 complex(kind(0d0)) :: MMAT(1:NMAT,1:NMAT),tmpmat(1:NMAT,1:NMAT)
-!complex(kind(0d0)) :: DP(1:NMAT,1:NMAT,1:NMAT,1:NMAT)
-!complex(kind(0d0)) :: modes(1:dimG,1:dimG)
 complex(kind(0d0)) :: trace, tmpSfL2, tmp
 integer :: gl,ll
 integer :: a,b,i,j,k

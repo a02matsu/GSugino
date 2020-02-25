@@ -29,9 +29,9 @@
 #include "Observables/eigenvalues_of_Dirac.f90"
 #include "Observables/exact_U1R.f90"
 #include "Observables/mass_reweighting.f90"
-#include "Observables/siteWT.f90"
-#include "Observables/linkWT.f90"
-#include "Observables/faceWT.f90"
+#include "Observables/WT_mass_contribution_site.f90"
+#include "Observables/WT_mass_contribution_link.f90"
+#include "Observables/WT_mass_contribution_face.f90"
 #include "Observables/make_Xi.f90"
 
 
