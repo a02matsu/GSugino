@@ -1870,18 +1870,18 @@ end subroutine calc_Bval
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! calculate U1Rfactor in \chi_f-\lambda_l term in the face part
-!subroutine calc_U1Rfactor_fl(U1Rfactor_fl,f,l)
-!implicit none
-!
-!complex(kind(0d0)), intent(out) :: U1Rfactor_fl
-!integer, intent(in)  :: f, l
-!
-!U1Rfactor_fl = &
-!  dconjg( site_U1Rfactor(sites_in_f(f)%label_(1)) ) &
-!  * site_U1Rfactor( link_org(l) )
-!
-!
-!end subroutine calc_U1Rfactor_fl
+subroutine calc_U1Rfactor_fl(U1Rfactor_fl,f,l)
+implicit none
+
+complex(kind(0d0)), intent(out) :: U1Rfactor_fl
+integer, intent(in)  :: f, l
+
+U1Rfactor_fl = &
+  dconjg( U1Rfactor_site(sites_in_f(f)%label_(1)) ) &
+  * U1Rfactor_site( link_org(l) )
+
+
+end subroutine calc_U1Rfactor_fl
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! calculate U1Rfactor in \chi_f-\lambda_l term in the face part
