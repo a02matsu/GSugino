@@ -128,6 +128,7 @@ double precision, allocatable, save :: global_beta_f(:)
 !double precision, allocatable, save :: global_U1Rmass_phys(:) ! U(1)_R mass in the continuum ( \omega_l. )
 complex(kind(0d0)), allocatable, save :: global_U1Rfactor_link(:) ! U(1)_R mass in the continuum ( \omega_l. )
 complex(kind(0d0)), allocatable, save :: global_U1Rfactor_site(:) ! U(1)_R factor on site: exp(i \gamma_s)
+complex(kind(0d0)), allocatable, save :: global_U1R_ratio(:) ! q(t)/q(s)q(l)
 
 integer, allocatable, save :: global_link_org(:) ! l番目のリンクのorigin
 integer, allocatable, save :: global_link_tip(:) ! l番目のリンクのtop
@@ -167,6 +168,7 @@ double precision, allocatable, save :: alpha_f(:)
 double precision, allocatable, save :: beta_f(:)
 complex(kind(0d0)), allocatable, save :: U1Rfactor_link(:)  ! U(1)_R mass factor on lattice 
 complex(kind(0d0)), allocatable, save :: U1Rfactor_site(:)  ! U(1)_R facotor on site
+complex(kind(0d0)), allocatable, save :: U1R_ratio(:)  ! U(1)_R facotor on site
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! data of the LOCAL simplicial complex

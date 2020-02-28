@@ -34,6 +34,7 @@ call MPI_BCAST(LatticeSpacing,1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERR)
   allocate( global_beta_f(1:global_num_faces) )
 ! U(1)_R factor on global links
   allocate( global_U1Rfactor_link(1:global_num_links) )
+  allocate( global_U1R_ratio(1:global_num_links) )
 ! U(1)_R factor on global sites
   allocate( global_U1Rfactor_site(1:global_num_sites) )
 ! initialize the simplicial complex
@@ -47,19 +48,17 @@ call init_smpcom(SC,global_num_sites,global_num_links,global_num_faces)
 !! Set alpha_s
 if( MYRANK==0 ) then
   do k=1,global_num_sites
-    read(SC_FILE,*) s,alpha,tmp_U1Rmass
+    read(SC_FILE,*) s,alpha!,tmp_U1Rmass
     global_alpha_s(s)=alpha
-    global_U1Rfactor_site(s)=cdexp( (0d0,2d0)*dacos(-1d0)*tmp_U1Rmass )
   enddo
   read(SC_FILE,'()') ! skip 1 line
 endif
-call MPI_BCAST(global_U1Rfactor_site,global_num_sites,MPI_DOUBLE_COMPLEX,0,MPI_COMM_WORLD,IERR)
 
 !!!!!!!!!!!!!!!!!!!!!!!!!
 !! Set alpha_l and U(1)_R mass
 do k=1,global_num_links
   if( MYRANK==0 ) then 
-    read(SC_FILE,*) l,origin,tip,alpha
+    read(SC_FILE,*) l,origin,tip,alpha,tmp_U1Rmass
     global_alpha_l(l)=alpha
     global_U1Rfactor_link(l)=global_U1Rfactor_site(tip)/global_U1Rfactor_site(origin)
   endif
@@ -67,10 +66,7 @@ do k=1,global_num_links
   call MPI_BCAST(origin,1,MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
   call MPI_BCAST(tip,1,MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
   call put_link_sc(SC,l,origin,tip)
-  !!  
-  !call MPI_BCAST(tmp_U1Rmass,1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERR)
-  !global_U1Rmass_phys(l)=tmp_U1Rmass
-  !global_U1Rfactor(l) = cdexp( (0d0,1d0)*tmp_U1Rmass*LatticeSpacing) 
+  global_U1Rfactor_link(l)=cdexp( (0d0,2d0)*dacos(-1d0)*tmp_U1Rmass )
 enddo
 call MPI_BCAST(global_U1Rfactor_link,global_num_links,MPI_DOUBLE_COMPLEX,0,MPI_COMM_WORLD,IERR)
 if( MYRANK==0 ) then 
@@ -185,6 +181,103 @@ do f=1,global_num_faces
     global_face_in_s(s)%label_( global_face_in_s(s)%num_ ) = f
   enddo
 enddo
+
+!! set global_U1Rfactor_site from global_U1Rfactor_link
+call set_global_U1Rfactor_site
+!! set global_U1R_ratio
+call set_global_U1R_ratio
+
+contains
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! make global_U1Rfactor_site from global_U1Rfacor_link in all ranks
+subroutine set_global_U1Rfactor_site
+implicit none
+
+!integer :: U1Rfactor_site(1:global_num_sites)
+integer :: groupS(1:global_num_sites)
+integer :: groupT(1:global_num_sites)
+integer :: groupU(1:global_num_sites)
+
+integer :: s,t,l,ls
+integer :: i,j,k
+integer :: numS,numT,numU
+integer :: info
+
+double precision :: tmp
+
+global_U1Rfactor_site=(1d0,0d0)
+!!!!!!!!!!!
+groupS=0
+numS=0
+!!!!!!!!!!!
+groupT=0
+numT=1
+groupT(1)=1
+!!!!!!!!!!!
+groupU=0
+numU=0
+do while (numS < global_num_sites) 
+  do i=1,numT
+    s=groupT(i)
+    do j=1,global_linktip_from_s(s)%num_
+      t=global_linktip_from_s(s)%sites_(j)
+      l=global_linktip_from_s(s)%labels_(j)
+
+      info=1
+      do k=1,numS
+        if( t==groupS(k) ) then
+          info=0
+          exit
+        endif
+      enddo
+      do k=1,numT
+        if( t==groupT(k) ) then
+          info=0
+          exit
+        endif
+      enddo
+      do k=1,numU
+        if( t==groupU(k) ) then
+          info=0
+          exit
+        endif
+      enddo
+      if( info==1 ) then
+        numU=numU+1
+        global_U1Rfactor_site(t)=global_U1Rfactor_site(s)*global_U1Rfactor_link(l)
+        groupU(numU)=t
+      endif
+    enddo
+  enddo
+  !! update groupS
+  groupS(numS+1:numS+numT)=groupT(1:numT)
+  numS=numS+numT
+  !!
+  !write(*,*) numS
+  !! update groupT
+  groupT=groupU
+  numT=numU
+  !! initialize groupU
+  groupU=0
+  numU=0
+  !! 
+enddo
+end subroutine set_global_U1Rfactor_site
+
+subroutine set_global_U1R_ratio
+implicit none
+
+integer :: l,s,t
+
+do l=1,global_num_links
+  s=global_link_org(l)
+  t=global_link_tip(l)
+  global_U1R_ratio(l)=&
+    global_U1Rfactor_site(t)/global_U1Rfactor_site(s)/global_U1Rfactor_link(l)
+enddo
+
+end subroutine set_global_U1R_ratio
+
 
 
 end subroutine set_global_simplicial_complex

@@ -1140,6 +1140,7 @@ integer s,l
 
 allocate ( U1Rfactor_link(1:num_necessary_links) )
 allocate ( U1Rfactor_site(1:num_necessary_sites) )
+allocate ( U1R_ratio(1:num_necessary_links) )
 
 do s=1,num_necessary_sites
   U1Rfactor_site(s)=global_U1Rfactor_site( global_site_of_local(s) )
@@ -1147,6 +1148,7 @@ enddo
 
 do l=1,num_necessary_links
   U1Rfactor_link(l)=global_U1Rfactor_link( global_link_of_local(l) )
+  U1R_ratio(l)=global_U1R_ratio( global_link_of_local(l) )
 enddo
 
  

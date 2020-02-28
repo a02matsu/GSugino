@@ -69,16 +69,12 @@ if(info .ne.0) then
   write(*,*) "Umat is out of range.",ratio
   call stop_for_test
 endif
+!if( MYRANK==0 ) then
 !do gl=1,global_num_links
-!  ll=local_link_of_global(gl)%label_
-!  rank=local_link_of_global(gl)%rank_
-!  if( MYRANK==rank ) then
-!    s1=link_org(ll)
-!    s2=link_tip(ll)
-!    write(*,*) gl, &
-!      cdabs(site_U1Rfactor(s2)/site_U1Rfactor(s1)-U1Rfactor(ll))
-!  endif
+!  write(*,*) gl, global_U1R_ratio(gl)
 !enddo
+!endif
+!call stop_for_test
 
 call check_QS(Umat,PhiMat)
 
@@ -302,7 +298,7 @@ do l=1,num_links
   Qlambda(:,:,l)=(0d0,-1d0)*PhiMat(:,:,link_org(l))
   call matrix_3_product(Qlambda(:,:,l),&
     Umat(:,:,l),PhiMat(:,:,link_tip(l)),Umat(:,:,l),&
-    'N','N','C',(0d0,1d0)*U1Rfactor_link(l)**2,'ADD')
+    'N','N','C',(0d0,1d0)*U1Rfactor_link(l)**2d0*U1R_ratio(l)**2d0,'ADD')
   Qlambda(:,:,l)=Qlambda(:,:,l)*U1Rfactor_site( link_org(l) )
 enddo
 

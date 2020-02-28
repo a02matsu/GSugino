@@ -119,7 +119,8 @@ do s=1,num_sites
   do k=1,linkorg_to_s(s)%num_
     l=linkorg_to_s(s)%labels_(k)
     call matrix_3_product(tmpmat2,Umat(:,:,l),lambda_mat(:,:,l),Umat(:,:,l),&
-      'C','N','N',(0d0,-1d0)*dcmplx(alpha_l(l))*dconjg(U1Rfactor_link(l)),'ADD')
+      'C','N','N',&
+      (0d0,-1d0)*dcmplx(alpha_l(l))*dconjg(U1Rfactor_link(l)*U1R_ratio(l)),'ADD')
   enddo
   do k=1,linktip_from_s(s)%num_
     l=linktip_from_s(s)%labels_(k)
@@ -133,7 +134,7 @@ do l=1,num_links
   !tmpmat2=i alpha_l U_l \lambda_l U_l^{-1}
   tmpmat2=(0d0,-1d0)*eta_mat(:,:,link_org(l))
   call matrix_3_product(tmpmat2,Umat(:,:,l),eta_mat(:,:,link_tip(l)),Umat(:,:,l),&
-    'N','N','C',(0d0,1d0)*dconjg(U1Rfactor_link(l)),'ADD')
+    'N','N','C',(0d0,1d0)*dconjg(U1Rfactor_link(l)*U1R_ratio(l)),'ADD')
   DF_lambda(:,:,l) = DF_lambda(:,:,l) &
       + dcmplx(alpha_l(l) * overall_factor) * tmpmat2 
 enddo
@@ -145,7 +146,7 @@ if(p3==0) then
 do l=1,num_links
   tmpmat1=bPhiMat(:,:,link_org(l))
   call matrix_3_product(tmpmat1,Umat(:,:,l),PhiMat(:,:,link_tip(l)),Umat(:,:,l),&
-    'N','C','C',dconjg(U1Rfactor_link(l)**2),'ADD')
+    'N','C','C',dconjg(U1Rfactor_link(l)**2d0 * U1R_ratio(l)**2d0),'ADD')
     !'N','C','C',(1d0,0d0),'ADD')
   call matrix_commutator(tmpmat2,tmpmat1,lambda_mat(:,:,l))
   DF_lambda(:,:,l)=DF_lambda(:,:,l) &
