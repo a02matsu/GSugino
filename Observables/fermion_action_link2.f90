@@ -28,7 +28,7 @@ do ll=1,num_links
     enddo
   enddo
   call matrix_3_product(MMat,Umat(:,:,ll),PhiMat(:,:,link_tip(ll)),Umat(:,:,ll),&
-    'N','C','C',dconjg(U1Rfactor_link(ll)*U1Rfactor_link(ll)),'ADD')
+    'N','C','C',dconjg(U1Rfactor_link(ll)**2d0*U1R_ratio(ll)**2d0),'ADD')
     !'N','C','C',(1d0,0d0),'ADD')
   MMat= MMat * dcmplx(-alpha_l(ll))
   !!!!
