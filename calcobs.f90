@@ -372,7 +372,6 @@ if( MYRANK == 0 ) then
   close(N_MEDFILE)
   close(N_DinvFILE)
 endif
-stop
 end program main
 
 
