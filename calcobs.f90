@@ -12,7 +12,7 @@ implicit none
 character(128), parameter :: PARAFILE="parameters_calcobs.dat"
 character(128) :: MEDFILE
 character(128) :: DinvFILE
-integer, parameter :: num_calcobs=27 ! 考えているobservableの数
+integer, parameter :: num_calcobs=28 ! 考えているobservableの数
 character(128) :: name_obs(1:num_calcobs) = (/ &
   "|Atr|", &
   "|Aface|", &
@@ -47,7 +47,8 @@ character(128) :: name_obs(1:num_calcobs) = (/ &
   "Re(WTmass_link)", &
   "Im(WTmass_link)", &
   "Re(WTmass_face)", &
-  "Im(WTmass_face)" &
+  "Im(WTmass_face)", &
+  "Tr|phi^2|" &
   /)
 !integer :: trig_obs(1:num_calcobs)
 integer :: sizeM,sizeN
@@ -70,6 +71,7 @@ complex(kind(0d0)) :: Sf1, Sf2, Sf3, Sf4, Sf5
 !complex(kind(0d0)), allocatable :: WT1(:)
 !complex(kind(0d0)), allocatable :: WT2(:)
 complex(kind(0d0)) :: WT1, WT2
+double precision :: trphi2
 integer :: num_fermion ! total fermion number
 integer :: num_sitelink ! total fermion number
 
@@ -354,6 +356,9 @@ do
        if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble(mass_cont)
        if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble((0d0,-1d0)*mass_cont)
 
+    !"tr|\phi^2|", &
+      call calc_trphi2(trphi2,PhiMat)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') cdabs(Acomp_tr)
 
 
     if(MYRANK==0) write(*,*)

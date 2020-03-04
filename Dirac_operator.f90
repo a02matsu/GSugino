@@ -245,6 +245,7 @@ end subroutine Prod_Dirac
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!111
 subroutine Dirac_Omega(DF_chi,DF_lambda,Umat,lambda_mat,chi_mat)
+use matrix_functions, only : make_matrix_traceless
 implicit none
 
 complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_necessary_links)
@@ -291,6 +292,7 @@ do f=1,num_necessary_faces
 
   !! Omega = Cosinv . Sinmat
   call matrix_product(Omega,Cosinv,Sinmat)
+  !call make_matrix_traceless(Omega)
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !! for development
