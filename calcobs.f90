@@ -50,6 +50,7 @@ character(128) :: name_obs(1:num_calcobs) = (/ &
   "Im(WTmass_face)", &
   "Tr|phi^2|" &
   /)
+
 !integer :: trig_obs(1:num_calcobs)
 integer :: sizeM,sizeN
 
@@ -358,7 +359,7 @@ do
 
     !"tr|\phi^2|", &
       call calc_trphi2(trphi2,PhiMat)
-      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') cdabs(Acomp_tr)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') trphi2
 
 
     if(MYRANK==0) write(*,*)
