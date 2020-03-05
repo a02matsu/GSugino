@@ -873,6 +873,7 @@ complex(kind(0d0)) :: XY_Mae(1:NMAT,1:NMAT)
 complex(kind(0d0)) :: XY_Ushiro(1:NMAT,1:NMAT)
 complex(kind(0d0)) :: XY_factor
 complex(kind(0d0)) :: dir_factor
+complex(kind(0d0)) :: U1Rfactor_fl
 integer :: k,l,f,l_place,ll_place,X_last,r!,kk
 
 pre_force=(0d0,0d0)
@@ -887,9 +888,17 @@ do k=1,face_in_l(ll)%num_
   
   do l_place=1,links_in_f(f)%num_
     l=links_in_f(f)%link_labels_(l_place)
-    dir_factor=(0d0,1d0)*dcmplx( &
-      dble( links_in_f(f)%link_dirs_(l_place) ) * alpha_f(f) * beta_f(f) )
+    !dir_factor=(0d0,1d0)*dcmplx( &
+      !dble( links_in_f(f)%link_dirs_(l_place) ) * alpha_f(f) * beta_f(f) )
 
+    call calc_U1Rfactor_fl(U1Rfactor_fl,f,l)
+    !call calc_U1Rfactor_fl_by_route(U1Rfactor_fl,f,l_place)
+
+    dir_factor=&
+      (0d0,-1d0)& !*overall_factor &
+      *dcmplx(links_in_f(f)%link_dirs_(l_place))&
+      *dcmplx(alpha_f(f)*beta_f(f)) &
+      *U1Rfactor_fl
     !!!!!!!!!!!!!!!!!!
     !! Xmat and Ymat
     call calc_XYmat(Xmat,Ymat,f,l_place,UMAT)
@@ -902,7 +911,6 @@ do k=1,face_in_l(ll)%num_
     else
       X_last = l_place
     endif
-
 
     do r=1,N_Remez4
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

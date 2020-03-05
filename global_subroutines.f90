@@ -151,7 +151,7 @@ integer :: i,j
 
 do i=1,NMAT
   do j=1,NMAT
-    Omega(i,j)=-im_unit*( Uf(i,j) - dconjg( Uf(j,i) ) )
+    Omega(i,j)=(0d0,-1d0)*( Uf(i,j) - dconjg( Uf(j,i) ) )
   enddo
 enddo
 
