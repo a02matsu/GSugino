@@ -27,7 +27,7 @@ do ll=1,num_links
         do i=1,NMAT
           tmp=tmp&
             - Geta_lambda(i,j,k,l,gs,ll)*dconjg(Umat(k,j,ll))*Umat(l,i,ll)&
-               * dconjg(U1Rfactor_link(ll)*U1R_ratio(ll))
+               * dconjg(U1Rfactor_link(ll))!*U1R_ratio(ll))
         enddo
       enddo
     enddo

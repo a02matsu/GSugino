@@ -52,7 +52,8 @@ if( p3 == 0 ) then
       l=linkorg_to_s(ss)%labels_(k)
       call matrix_commutator(tmpmat1,Dlambda(:,:,l,r),lambda(:,:,l,r),'N','C')
       call matrix_3_product(tmpmat2,Umat(:,:,l),tmpmat1,Umat(:,:,l),'C','N','N')
-      tmpmat2 = tmpmat2 * U1Rfactor_link(l)**2d0 * U1R_ratio(l)**2d0
+      tmpmat2 = tmpmat2 * U1Rfactor_link(l)**2d0 
+      !tmpmat2 = tmpmat2 * U1Rfactor_link(l)**2d0 * U1R_ratio(l)**2d0
       force = force - dcmplx(Remez_alpha4(r)*alpha_l(l))*tmpmat2
     enddo
     !!
@@ -127,13 +128,15 @@ if ( p2==0 ) then
     call matrix_commutator(tmpmat1,tmpmat2,lambda(:,:,ll,r))
     tmp_force= tmp_force &
     + dcmplx( (-Remez_alpha4(r))*alpha_l(ll) ) * tmpmat1 &
-      * dconjg(U1Rfactor_link(ll)*U1R_ratio(ll))
+      * dconjg(U1Rfactor_link(ll))
+      !* dconjg(U1Rfactor_link(ll)*U1R_ratio(ll))
     !!
     call matrix_3_product(tmpmat2,Umat(:,:,ll),eta(:,:,s,r),Umat(:,:,ll),'N','N','C')
     call matrix_commutator(tmpmat1,Dlambda(:,:,ll,r),tmpmat2,'C','N')
     tmp_force=tmp_force &
       + dcmplx( (-Remez_alpha4(r))*alpha_l(ll) ) * tmpmat1 &
-      * dconjg(U1Rfactor_link(ll)*U1R_ratio(ll))
+      * dconjg(U1Rfactor_link(ll))
+      !* dconjg(U1Rfactor_link(ll)*U1R_ratio(ll))
   enddo
 endif
 
@@ -142,7 +145,8 @@ if ( p3==0 ) then
 !! (3) Dirac from link 2
   s=link_tip(ll)
   call matrix_3_product(tmpmat2,Umat(:,:,ll),PhiMat(:,:,s),Umat(:,:,ll),'N','C','C')
-  tmpmat2 = tmpmat2 * dconjg(U1Rfactor_link(ll)**2d0 * U1R_ratio(ll)**2d0)
+  tmpmat2 = tmpmat2 * dconjg(U1Rfactor_link(ll)**2d0)
+  !tmpmat2 = tmpmat2 * dconjg(U1Rfactor_link(ll)**2d0 * U1R_ratio(ll)**2d0)
   do r=1,N_Remez4
     call matrix_commutator(tmpmat3,lambda(:,:,ll,r),Dlambda(:,:,ll,r),'N','C')
     call matrix_commutator(tmpmat4,tmpmat2,tmpmat3)
