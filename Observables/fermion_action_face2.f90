@@ -21,6 +21,8 @@ do lf=1,num_faces
   do l_place=1,links_in_f(lf)%num_
     if( m_omega==-1 ) then 
       call fermionic_face_lagrangian_adm(Lff,lf,l_place,Glambda_chi,Umat)
+    elseif( m_omega==0 ) then
+      call fermionic_face_lagrangian_m0(Lff,lf,l_place,Glambda_chi,Umat)
     else
       call fermionic_face_lagrangian(Lff,lf,l_place,Glambda_chi,Umat)
     endif
