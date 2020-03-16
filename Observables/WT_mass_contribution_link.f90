@@ -11,6 +11,7 @@ complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_necessary_sites)
 
 complex(kind(0d0)):: Xi_lambda(1:NMAT,1:NMAT,1:num_necessary_links)
 complex(kind(0d0)) tmpmat(1:NMAT,1:NMAT)
+complex(kind(0d0)) rcvmat(1:NMAT,1:NMAT)
 complex(kind(0d0)) DinvPhi(1:NMAT,1:NMAT,1:num_links)
 complex(kind(0d0)) trace
 integer gl,ll, rank
@@ -35,8 +36,10 @@ do gl=1,global_num_links
       enddo
     enddo
   enddo
-  call MPI_REDUCE(tmpmat,DinvPhi(:,:,ll),NMAT*NMAT,MPI_DOUBLE_COMPLEX, &
+  rcvmat=(0d0,0d0)
+  call MPI_REDUCE(tmpmat,rcvmat,NMAT*NMAT,MPI_DOUBLE_COMPLEX, &
     MPI_SUM,rank,MPI_COMM_WORLD,IERR)
+  if( MYRANK==rank ) DinvPhi(:,:,ll)=rcvmat
 enddo
 trace=(0d0,0d0)
 do ll=1,num_links

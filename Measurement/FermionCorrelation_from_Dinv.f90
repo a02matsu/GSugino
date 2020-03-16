@@ -109,21 +109,27 @@ do gs=1,global_num_sites
       do b=1,dimG
         DL1=DL1+1
         tag=tag+1
-        call set_mode(mode_Geta_eta(b,a,gs2,ls),Dinv(DL1,DL2),rank,tag)
+        !call set_mode(mode_Geta_eta(b,a,gs2,ls),Dinv(DL1,DL2),rank,tag)
+        call set_mode(tmp,Dinv(DL1,DL2),rank,tag)
+        if( MYRANK==rank ) mode_Geta_eta(b,a,gs2,ls)=tmp
       enddo
     enddo
     do gl2=1,global_num_links
       do b=1,dimG
         DL1=DL1+1
         tag=tag+1
-        call set_mode(mode_Glambda_eta(b,a,gl2,ls),Dinv(DL1,DL2),rank,tag)
+        !call set_mode(mode_Glambda_eta(b,a,gl2,ls),Dinv(DL1,DL2),rank,tag)
+        call set_mode(tmp,Dinv(DL1,DL2),rank,tag)
+        if( MYRANK==rank ) mode_Glambda_eta(b,a,gl2,ls)=tmp
       enddo
     enddo
     do gf2=1,global_num_faces
       do b=1,dimG
         DL1=DL1+1
         tag=tag+1
-        call set_mode(mode_Gchi_eta(b,a,gf2,ls),Dinv(DL1,DL2),rank,tag)
+        !call set_mode(mode_Gchi_eta(b,a,gf2,ls),Dinv(DL1,DL2),rank,tag)
+        call set_mode(tmp,Dinv(DL1,DL2),rank,tag)
+        if( MYRANK==rank ) mode_Gchi_eta(b,a,gf2,ls)=tmp
       enddo
     enddo
   enddo
@@ -139,21 +145,27 @@ do gl=1,global_num_links
       do b=1,dimG
         DL1=DL1+1
         tag=tag+1
-        call set_mode(mode_Geta_lambda(b,a,gs2,ll),Dinv(DL1,DL2),rank,tag)
+        !call set_mode(mode_Geta_lambda(b,a,gs2,ll),Dinv(DL1,DL2),rank,tag)
+        call set_mode(tmp,Dinv(DL1,DL2),rank,tag)
+        if( MYRANK==rank ) mode_Geta_lambda(b,a,gs2,ll)=tmp
       enddo
     enddo
     do gl2=1,global_num_links
       do b=1,dimG
         DL1=DL1+1
         tag=tag+1
-        call set_mode(mode_Glambda_lambda(b,a,gl2,ll),Dinv(DL1,DL2),rank,tag)
+        !call set_mode(mode_Glambda_lambda(b,a,gl2,ll),Dinv(DL1,DL2),rank,tag)
+        call set_mode(tmp,Dinv(DL1,DL2),rank,tag)
+        if(MYRANK==rank) mode_Glambda_lambda(b,a,gl2,ll)=tmp
       enddo
     enddo
     do gf2=1,global_num_faces
       do b=1,dimG
         DL1=DL1+1
         tag=tag+1
-        call set_mode(mode_Gchi_lambda(b,a,gf2,ll),Dinv(DL1,DL2),rank,tag)
+        !call set_mode(mode_Gchi_lambda(b,a,gf2,ll),Dinv(DL1,DL2),rank,tag)
+        call set_mode(tmp,Dinv(DL1,DL2),rank,tag)
+        if( MYRANK==rank ) mode_Gchi_lambda(b,a,gf2,ll)=tmp
       enddo
     enddo
   enddo
@@ -169,21 +181,27 @@ do gf=1,global_num_faces
       do b=1,dimG
         DL1=DL1+1
         tag=tag+1
-        call set_mode(mode_Geta_chi(b,a,gs2,lf),Dinv(DL1,DL2),rank,tag)
+        !call set_mode(mode_Geta_chi(b,a,gs2,lf),Dinv(DL1,DL2),rank,tag)
+        call set_mode(tmp,Dinv(DL1,DL2),rank,tag)
+        if( MYRANK==rank ) mode_Geta_chi(b,a,gs2,lf)=tmp
       enddo
     enddo
     do gl2=1,global_num_links
       do b=1,dimG
         DL1=DL1+1
         tag=tag+1
-        call set_mode(mode_Glambda_chi(b,a,gl2,lf),Dinv(DL1,DL2),rank,tag)
+        !call set_mode(mode_Glambda_chi(b,a,gl2,lf),Dinv(DL1,DL2),rank,tag)
+        call set_mode(tmp,Dinv(DL1,DL2),rank,tag)
+        if( MYRANK==rank ) mode_Glambda_chi(b,a,gl2,lf)=tmp
       enddo
     enddo
     do gf2=1,global_num_faces
       do b=1,dimG
         DL1=DL1+1
         tag=tag+1
-        call set_mode(mode_Gchi_chi(b,a,gf2,lf),Dinv(DL1,DL2),rank,tag)
+        !call set_mode(mode_Gchi_chi(b,a,gf2,lf),Dinv(DL1,DL2),rank,tag)
+        call set_mode(tmp,Dinv(DL1,DL2),rank,tag)
+        if( MYRANK==rank ) mode_Gchi_chi(b,a,gf2,lf)=tmp
       enddo
     enddo
   enddo
