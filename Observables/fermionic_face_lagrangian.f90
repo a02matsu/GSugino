@@ -162,7 +162,9 @@ Lff = Lff * (0d0,2d0)/dcmplx(m_omega) * U1Rfactor_fl
 
 end subroutine fermionic_face_lagrangian
 
+
 !!!!!!!!!!!!
+!! Lff  = Lff + Tr( lambda.Mat1.chi.Mat2 )
 subroutine update_Lff(Lff, Glambda_chi, gl, lf, Mat1, Mat2)
 use global_parameters
 implicit none
@@ -186,6 +188,58 @@ enddo
 
 end subroutine update_Lff
 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! SF^f = 1/2g^2 \sum_f \sum_{l\in Lf} \alpha_f\beta_f \epsilon_{l,f) Lff(f,l)
+subroutine fermionic_face_lagrangian_m0(Lff,lf,l_place,Glambda_chi,Umat)
+use global_parameters
+use matrix_functions, only : matrix_product,Hermitian_conjugate,matrix_power,matrix_inverse
+implicit none
+
+complex(kind(0d0)), intent(out) :: Lff
+integer, intent(in) :: lf      ! local face
+integer, intent(in) :: l_place ! place of the link in lf
+complex(kind(0d0)), intent(in) :: Glambda_chi(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_links,1:num_faces) 
+complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_necessary_links)
+
+complex(kind(0d0)) :: tmpmat(1:NMAT,1:NMAT)
+complex(kind(0d0)) :: Uf(1:NMAT,1:NMAT)
+complex(kind(0d0)) :: Xmat(1:NMAT,1:NMAT)
+complex(kind(0d0)) :: Ymat(1:NMAT,1:NMAT)
+complex(kind(0d0)) :: Mat1(1:NMAT,1:NMAT), Mat2(1:NMAT,1:NMAT)
+complex(kind(0d0)) :: tmp
+integer :: gl
+integer :: i,j,r
+
+complex(kind(0d0)) :: U1Rfactor_fl
+
+!! 
+gl = global_link_of_local( links_in_f(lf)%link_labels_(l_place) )
+
+!! U1Rfacor
+call calc_U1Rfactor_fl_by_route(U1Rfactor_fl,lf,l_place)
+!call calc_U1Rfactor_fl(U1Rfactor_fl,lf,links_in_f(lf)%link_labels_(l_place) )
+
+!! Ufm
+call make_face_variable(Uf(:,:),lf,Umat)
+
+!!
+call calc_XYmat(Xmat,Ymat,lf,l_place,UMAT)
+
+Lff=(0d0,0d0)
+  !! term 1
+  Mat1=Ymat
+  Mat2=Xmat
+  call update_Lff(Lff, Glambda_chi, gl, lf, Mat1, Mat2)
+
+  !! term 2
+  call Hermitian_conjugate(Mat1, Xmat)
+  call Hermitian_conjugate(Mat2, Ymat)
+  call update_Lff(Lff, Glambda_chi, gl, lf, Mat1, Mat2)
+
+Lff = Lff * (0d0,-1d0) * U1Rfactor_fl
+
+
+end subroutine fermionic_face_lagrangian_m0
 
 
 

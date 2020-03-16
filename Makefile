@@ -70,6 +70,10 @@ SRC_U1R=calc_exact_U1R.f90
 OBJ_U1R=calc_exact_U1R.o
 PROG_U1R=calc_exact_U1R.exe
 #########################
+SRC_WriteConf=writeconfig.f90  
+OBJ_WriteConf=writeconfig.o
+PROG_WriteConf=writeconfig.exe
+#########################
 
 
 #.SUFFIXES : .o .f90 # .oを作るときは必ず.f90から作るよ
@@ -113,6 +117,12 @@ U1R:$(PROG_U1R)
 
 $(PROG_U1R): $(OBJ_U1R) $(OBJ_OBSCOMM) $(OBJS) 
 	$(FC) $(FLAGS_CLUSTER) -o $@ $(OBJS) $(OBJ_OBS) $(OBJ_OBSCOMM) $(OBJ_U1R) $(LIB)
+
+#########################################
+writeconf:$(PROG_WriteConf)
+
+$(PROG_WriteConf): $(OBJ_WriteConf) $(OBJ_WriteConf) $(OBJS) 
+	$(FC) $(FLAGS_CLUSTER) -o $@ $(OBJS) $(OBJ_OBS) $(OBJ_OBSCOMM) $(OBJ_WriteConf) $(LIB)
 
 
 
@@ -244,6 +254,11 @@ $(OBJ_divJ_U1V): \
 $(OBJ_U1R): \
   global_parameters.o \
   global_subroutines.o \
+  simulation.o \
+  initialization_calcobs.o \
+  parallel.o 
+$(OBJ_WriteConf): \
+  global_parameters.o \
   simulation.o \
   initialization_calcobs.o \
   parallel.o 
