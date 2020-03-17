@@ -12,10 +12,92 @@ implicit none
 
 contains
 
+#include "Dirac/prod_Dirac_site.f90"
+#include "Dirac/prod_Dirac_link1.f90"
+#include "Dirac/prod_Dirac_link2.f90"
+#include "Dirac/prod_Dirac_face1.f90"
+#include "Dirac/prod_Dirac_Omega.f90"
+#include "Dirac/prod_Dirac_Omega_m0.f90"
+#include "Dirac/prod_Dirac_Omega_adm.f90"
+#include "Dirac/prod_Dirac_mass.f90"
+
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! compute D.vec
 !!  S_f = 1/2 \Psi^T D \Psi
 subroutine Prod_Dirac(&
+    DF_eta, DF_lambda, DF_chi, &
+    eta_mat,lambda_mat,chi_mat, &
+    UMAT,PhiMat)
+use matrix_functions, only : matrix_3_product
+#ifdef PARALLEL
+use parallel
+#endif
+implicit none
+
+complex(kind(0d0)),intent(in) :: eta_mat(1:NMAT,1:NMAT,1:num_necessary_sites)
+complex(kind(0d0)),intent(in) :: lambda_mat(1:NMAT,1:NMAT,1:num_necessary_links)
+complex(kind(0d0)),intent(in) :: chi_mat(1:NMAT,1:NMAT,1:num_necessary_faces)
+complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_necessary_links)
+complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_necessary_sites)
+
+complex(kind(0d0)), intent(out) :: DF_eta(1:NMAT,1:NMAT,1:num_sites)
+complex(kind(0d0)), intent(out) :: DF_lambda(1:NMAT,1:NMAT,1:num_links)
+complex(kind(0d0)), intent(out) :: DF_chi(1:NMAT,1:NMAT,1:num_faces)
+
+integer :: s,l,f
+
+DF_eta=(0d0,0d0)
+DF_lambda=(0d0,0d0)
+DF_chi=(0d0,0d0)
+
+!! (1) site action 
+if ( p1 == 0 ) then 
+  call prod_Dirac_site(DF_eta,PhiMat,eta_mat)
+endif
+!! (2) link action 1
+if (p2==0) then
+  call prod_Dirac_link1(DF_eta,DF_lambda,PhiMat,Umat,eta_mat,lambda_mat)
+endif
+!! (3) link action 2 
+if(p3==0) then
+  call prod_Dirac_link2(DF_lambda,PhiMat,Umat,lambda_mat)
+endif
+!! (4) face action 1
+if(p4==0) then
+  call prod_Dirac_face1(DF_chi,PhiMat,chi_mat)
+endif
+!! (5) face action 2
+if( p5==0 ) then
+  if( m_omega == 0 ) then
+    call Dirac_Omega_m0(DF_chi,DF_lambda,Umat,lambda_mat,chi_mat)
+  elseif( m_omega == -1 ) then
+    call Dirac_Omega_adm(DF_chi,DF_lambda,Umat,lambda_mat,chi_mat)
+  else
+    call Dirac_Omega(DF_chi,DF_lambda,Umat,lambda_mat,chi_mat)
+  endif
+endif
+!! (mass) fermion mass term
+if( p_mass == 0 ) then
+  call prod_Dirac_mass(DF_chi,DF_lambda,DF_eta,eta_mat,lambda_mat,chi_mat)
+endif
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! make DF traceless
+do s=1,num_sites
+  call make_matrix_traceless(DF_eta(:,:,s))
+enddo
+do l=1,num_links
+  call make_matrix_traceless(DF_lambda(:,:,l))
+enddo
+do f=1,num_faces
+  call make_matrix_traceless(DF_chi(:,:,f))
+enddo
+end subroutine Prod_Dirac
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! compute D.vec
+!!  S_f = 1/2 \Psi^T D \Psi
+subroutine Prod_Dirac_org(&
     DF_eta, DF_lambda, DF_chi, &
     eta_mat,lambda_mat,chi_mat, &
     UMAT,PhiMat)
@@ -244,297 +326,8 @@ do s=1,num_sites
     DF_eta(j,j,s)=DF_eta(j,j,s)-trace/dcmplx(dble(NMAT))
   enddo
 enddo
-end subroutine Prod_Dirac
+end subroutine Prod_Dirac_org
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!111
-subroutine Dirac_Omega(DF_chi,DF_lambda,Umat,lambda_mat,chi_mat)
-use matrix_functions, only : make_matrix_traceless
-implicit none
-
-complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_necessary_links)
-complex(kind(0d0)), intent(in) :: lambda_mat(1:NMAT,1:NMAT,1:num_links)
-complex(kind(0d0)), intent(in) :: chi_mat(1:NMAT,1:NMAT,1:num_faces)
-complex(kind(0d0)), intent(out) :: DF_lambda(1:NMAT,1:NMAT,1:num_links)
-complex(kind(0d0)), intent(out) :: DF_chi(1:NMAT,1:NMAT,1:num_faces)
-
-complex(kind(0d0)) :: Ufm(1:NMAT,1:NMAT)
-complex(kind(0d0)) :: Uf(1:NMAT,1:NMAT)
-complex(kind(0d0)) :: Uf0tom(1:NMAT,1:NMAT,0:m_omega-1)
-complex(kind(0d0)) :: Xmat(1:NMAT,1:NMAT),Ymat(1:NMAT,1:NMAT)
-complex(kind(0d0)) :: Cosinv(1:NMAT,1:NMAT)
-complex(kind(0d0)) :: Sinmat(1:NMAT,1:NMAT)
-complex(kind(0d0)) :: Omega(1:NMAT,1:NMAT)
-complex(kind(0d0)) :: UXmat(1:NMAT,1:NMAT),YUmat(1:NMAT,1:NMAT)
-complex(kind(0d0)) :: tmpmat1(1:NMAT,1:NMAT)
-complex(kind(0d0)) :: tmpmat2(1:NMAT,1:NMAT)
-complex(kind(0d0)) :: tmpmat3(1:NMAT,1:NMAT)
-integer :: i,j,k,l,f,a, l_place
-complex(kind(0d0)) :: dir_factor
-complex(kind(0d0)) :: im_over_2
-
-integer :: ll,last_place
-complex(kind(0d0)) :: U1Rfactor_fl
-
-
-do f=1,num_necessary_faces
-!! preparation( Cos^{-1} and Omega )
-  call Make_face_variable(Uf(:,:),f,UMAT) 
-  if( m_omega == 1) then 
-    Ufm=Uf
-  else
-    call matrix_power(Ufm,Uf(:,:),m_omega)
-  endif
-  !! Sinmat and Cos^{-1}
-  do i=1,NMAT
-    do j=1,NMAT
-      Cosinv(i,j) = Ufm(i,j) + dconjg(Ufm(j,i))
-      Sinmat(i,j) = Ufm(i,j) - dconjg(Ufm(j,i))
-    enddo
-  enddo
-  call Matrix_inverse(Cosinv)
-
-  !! Omega = Cosinv . Sinmat
-  call matrix_product(Omega,Cosinv,Sinmat)
-  !call make_matrix_traceless(Omega)
-
-  !!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  !! for development
-  !call make_unit_matrix(Cosinv)
-  !call make_unit_matrix(Sinmat)
-  !call make_unit_matrix(Omega)
-  !!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-  do l_place=1,links_in_f(f)%num_
-    l=links_in_f(f)%link_labels_(l_place)
-    !! U1Rfacor
-    !call calc_U1Rfactor_fl(U1Rfactor_fl,f,l)
-    call calc_U1Rfactor_fl_by_route(U1Rfactor_fl,f,l_place)
-
-    dir_factor=&
-      (0d0,-2d0)/dcmplx(m_omega)*overall_factor &
-      *dcmplx(links_in_f(f)%link_dirs_(l_place))&
-      *dcmplx(alpha_f(f)*beta_f(f)) &
-      *U1Rfactor_fl
-
-
-    if( f<=num_faces .or. l<=num_links ) then 
-
-      call calc_XYmat(Xmat,Ymat,f,l_place,UMAT)
-      !!
-      do k=0,m_omega-1
-        call matrix_power(Uf0tom(:,:,k),Uf(:,:),k)
-      enddo
-
-      do k=0,m_omega-1
-        !! UXmat
-        call matrix_product(UXmat,Uf0tom(:,:,k),Xmat)
-        !! YUmat
-        call matrix_product(YUmat,Ymat,Uf0tom(:,:,m_omega-k-1))
-  
-        !!!!  DF_chi
-        if( f<=num_faces ) then 
-          tmpmat1=(0d0,0d0)
-          tmpmat2=(0d0,0d0)
-          ! term 1
-          ! tmpmat1 = UX.lambda.YU 
-          call matrix_3_product(tmpmat1,UXmat,lambda_mat(:,:,l),YUmat)
-          ! term 2
-          ! tmpmat2 = YU^dag.lambda.UX^dag
-          call matrix_3_product(tmpmat2,YUmat,lambda_mat(:,:,l),UXmat,'C','N','C')
-  
-          tmpmat3=tmpmat1+tmpmat2
-          ! term 3 and term 4
-          call matrix_product(tmpmat3,&
-            tmpmat1-tmpmat2,Omega, &
-            'N','N',(-1d0,0d0),'ADD')
-  
-          call matrix_product(tmpmat1,Cosinv,tmpmat3)
-
-          DF_chi(:,:,f)=DF_chi(:,:,f) +  dir_factor * tmpmat1 
-        endif
-  
-        !!!!  DF_lambda
-        if( l<=num_links ) then 
-          ! tmpmat1 = chi.Cosinv
-          call matrix_product(tmpmat1,chi_mat(:,:,f),Cosinv)
-
-          ! term 5 
-          ! tmpmat3 = -YU.(chi.Cinv).UX - UX^dag.(chi.Cinv).(YU)^dag
-          call matrix_3_product(tmpmat3,YUmat,-tmpmat1,UXmat)
-          ! term 6
-          call matrix_3_product(tmpmat3,UXmat,-tmpmat1,YUmat,'C','N','C',(1d0,0d0),'ADD')
-  
-          ! tmpmat2 = Sin.Cosinv.chi.Cosinv
-          call matrix_product(tmpmat2,Omega,tmpmat1)
-          
-          call matrix_3_product(tmpmat3,YUmat,tmpmat2,UXmat,'N','N','N',&
-            (1d0,0d0),'ADD')
-          call matrix_3_product(tmpmat3,UXmat,tmpmat2,YUmat,'C','N','C',&
-            (-1d0,0d0),'ADD')
-  
-          DF_lambda(:,:,l)=DF_lambda(:,:,l) + dir_factor * tmpmat3 
-        endif
-      enddo
-    endif
-  enddo
-enddo
-
-
-end subroutine Dirac_Omega
-
-
-
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!111
-subroutine Dirac_Omega_m0(DF_chi,DF_lambda,Umat,lambda_mat,chi_mat)
-use matrix_functions, only : make_unit_matrix
-implicit none
-
-complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_necessary_links)
-complex(kind(0d0)), intent(in) :: lambda_mat(1:NMAT,1:NMAT,1:num_necessary_links)
-complex(kind(0d0)), intent(in) :: chi_mat(1:NMAT,1:NMAT,1:num_necessary_faces)
-complex(kind(0d0)), intent(out) :: DF_lambda(1:NMAT,1:NMAT,1:num_links)
-complex(kind(0d0)), intent(out) :: DF_chi(1:NMAT,1:NMAT,1:num_faces)
-
-
-complex(kind(0d0)) :: Uf(1:NMAT,1:NMAT,1:num_faces)
-!complex(kind(0d0)) :: Uf(1:NMAT,1:NMAT)
-complex(kind(0d0)) :: Xmat(1:NMAT,1:NMAT),Ymat(1:NMAT,1:NMAT)
-complex(kind(0d0)) :: tmpmat1(1:NMAT,1:NMAT)
-complex(kind(0d0)) :: tmpmat2(1:NMAT,1:NMAT)
-integer :: i,j,k,l,f,l_place
-complex(kind(0d0)) :: dir_factor
-complex(kind(0d0)) :: U1Rfactor_fl
-
-!! m_omega=0 case
-do f=1,num_necessary_faces
-  do l_place=1,links_in_f(f)%num_
-    l=links_in_f(f)%link_labels_(l_place)
-
-    if( f <= num_faces .or. l <= num_links ) then 
-      call calc_XYmat(Xmat,Ymat,f,l_place,UMAT)
-      !call make_unit_matrix(Ymat)
-       
-      !call calc_U1Rfactor_fl(U1Rfactor_fl,f,l)
-      call calc_U1Rfactor_fl_by_route(U1Rfactor_fl,f,l_place)
-
-      !dir_factor=dcmplx(dble(links_in_f(f)%link_dirs_(l_place)) &
-        !* alpha_f(f)*beta_f(f)*overall_factor )*(0d0,1d0)
-      dir_factor=&
-        (0d0,-1d0)*overall_factor &
-        *dcmplx(links_in_f(f)%link_dirs_(l_place))&
-        *dcmplx(alpha_f(f)*beta_f(f)) &
-        *U1Rfactor_fl
-
-      if( f <= num_faces ) then 
-        call matrix_3_product(tmpmat1,Xmat,lambda_mat(:,:,l),Ymat)
-        call matrix_3_product(tmpmat1,Ymat,lambda_mat(:,:,l),Xmat,'C','N','C',(1d0,0d0),'ADD')
-        DF_chi(:,:,f)=DF_chi(:,:,f) + dir_factor * tmpmat1
-      endif
-  
-      if( l <= num_links ) then 
-        call matrix_3_product(tmpmat1,Ymat,chi_mat(:,:,f),Xmat)
-        call matrix_3_product(tmpmat1,Xmat,chi_mat(:,:,f),Ymat,'C','N','C',(1d0,0d0),'ADD')
-        DF_lambda(:,:,l)=DF_lambda(:,:,l) - dir_factor * tmpmat1
-      endif
-    endif
-  enddo
-enddo
-end subroutine Dirac_Omega_m0
-
-
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!111
-subroutine Dirac_Omega_adm(DF_chi,DF_lambda,Umat,lambda_mat,chi_mat)
-implicit none
-
-complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_necessary_links)
-complex(kind(0d0)), intent(in) :: lambda_mat(1:NMAT,1:NMAT,1:num_necessary_links)
-complex(kind(0d0)), intent(in) :: chi_mat(1:NMAT,1:NMAT,1:num_necessary_faces)
-complex(kind(0d0)), intent(inout) :: DF_lambda(1:NMAT,1:NMAT,1:num_links)
-complex(kind(0d0)), intent(inout) :: DF_chi(1:NMAT,1:NMAT,1:num_faces)
-
-complex(kind(0d0)) :: Uf(1:NMAT,1:NMAT)
-complex(kind(0d0)) :: SinU(1:NMAT,1:NMAT)
-complex(kind(0d0)) :: Xmat(1:NMAT,1:NMAT),Ymat(1:NMAT,1:NMAT)
-complex(kind(0d0)) :: tmpmat1(1:NMAT,1:NMAT)
-complex(kind(0d0)) :: tmpmat2(1:NMAT,1:NMAT)
-integer :: i,j,l,f,l_place
-complex(kind(0d0)) :: dir_factor
-complex(kind(0d0)) :: Bval
-complex(kind(0d0)) :: trace
-
-do f=1,num_necessary_faces
-  !!!!!!!!!!!!!!!
-  !! Uf and SinU
-  call make_face_variable(Uf(:,:),f,Umat)
-  do i=1,NMAT
-    do j=1,NMAT
-      sinU(i,j) = Uf(i,j) - dconjg( Uf(j,i) )
-    enddo
-  enddo
-  !!!!!!!!!!!!!!!
-  !! Bval
-  Bval=(1d0,0d0)
-  do i=1,NMAT
-    Bval=Bval - ((2d0,0d0)-Uf(i,i)-dconjg(Uf(i,i)))/(e_max*e_max) 
-  enddo
-
-  do l_place=1,links_in_f(f)%num_
-    l=links_in_f(f)%link_labels_(l_place)
-
-    if( f <= num_faces .or. l <= num_links ) then 
-      dir_factor&
-        =(0d0,-1d0)*dcmplx(&
-          dble(links_in_f(f)%link_dirs_(l_place)) &
-          * alpha_f(f) * beta_f(f) * overall_factor)
-
-      !!!!!!!!!!!!!!!!!!!!!!!!
-      !! X_(f,l) and Y_(f,l)
-      call calc_XYmat(Xmat,Ymat,f,l_place,UMAT)
-    endif
-
-    if( f<= num_faces ) then
-      !!!!!!!!!!!!!!!!!!!!!!!!
-      !! tmpmat1 = X.lambda.Y  
-      !! tmpmat2 = Y^\dag .lambda. X^\dag
-      call matrix_3_product(tmpmat1,Xmat,lambda_mat(:,:,l),Ymat)
-      call matrix_3_product(tmpmat2,Ymat,lambda_mat(:,:,l),Xmat, 'C','N','C')
-      trace=(0d0,0d0)
-      do i=1,NMAT
-        trace=trace+tmpmat1(i,i)-tmpmat2(i,i)
-      enddo
-
-      Df_chi(:,:,f)=Df_chi(:,:,f) &
-        + dir_factor/Bval * (tmpmat1+tmpmat2) &
-        - dir_factor/(Bval*Bval*e_max*e_max) * trace * SinU
-    endif
-
-    if( l<= num_links ) then
-      !!!!!!!!!!!!!!!!!!!!!!!!
-      !! tmpmat1 = Y.chi.X + X^\dag .chi. Y^\dag
-      call matrix_3_product(tmpmat1,Ymat,chi_mat(:,:,f),Xmat)
-      call matrix_3_product(tmpmat1,Xmat,chi_mat(:,:,f),Ymat,&
-        'C','N','C',(1d0,0d0),'ADD')
-      !!!!!!!!!!!!!!!!!!!!!!!!
-      !! tmpmat2 = Y.X - X^dag.Y^dag
-      call matrix_product(tmpmat2,Ymat,Xmat)
-      call matrix_product(tmpmat2,Xmat,Ymat,'C','C',(-1d0,0d0),'ADD')
-
-      trace=(0d0,0d0)
-      do i=1,NMAT
-        do j=1,NMAT
-          trace=trace+chi_mat(i,j,f)*SinU(j,i)
-        enddo
-      enddo
-
-      Df_lambda(:,:,l)=Df_lambda(:,:,l) - dir_factor/Bval * tmpmat1
-      Df_lambda(:,:,l)=Df_lambda(:,:,l) &
-        + dir_factor/(Bval*Bval*e_max*e_max) * trace * tmpmat2
-    endif
-      
-  enddo
-enddo
-
-end subroutine Dirac_Omega_adm
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!111
 subroutine Dirac_mass(DF_chi,DF_lambda,DF_eta,Umat,eta_mat,lambda_mat,chi_mat)

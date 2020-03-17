@@ -7,8 +7,8 @@
 !use global_parameters
 !use global_subroutines
 !implicit none
-!
-!contains
+
+contains
 
 #include "Observables/div_rot.f90"
 #include "Observables/trphi2.f90"
@@ -33,5 +33,6 @@
 #include "Observables/WT_mass_contribution_link.f90"
 #include "Observables/WT_mass_contribution_face.f90"
 #include "Observables/make_Xi.f90"
+#include "Observables/Qfermion.f90"
 
-
+!end module observables

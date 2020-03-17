@@ -21,25 +21,24 @@ SRCS=\
 	mt95.f90 \
 	rational_algorithm.f90 \
 	global_parameters.f90 \
-	check_routines.f90 \
 	Dirac_operator.f90 \
 	differential_Dirac.f90 \
+	check_routines.f90 \
 	simulation.f90 \
 	parallel.f90 
 OBJS=$(SRCS:.f90=.o)
-DIR_OBS=Observables
 #########################
 SRC_MAIN=GSugino.f90  
 OBJ_MAIN=GSugino.o
 PROG=gsugino$(VER).exe
 LIB=Pfapack_m02/libpfapack.a
 ########################
-SRC_OBSMAIN=calcobs.f90 
-OBJ_OBSMAIN=calcobs.o
-PROG_OBS=calcobs.exe
+SRC_CALCOBSMAIN=calcobs.f90 
+OBJ_CALCOBSMAIN=calcobs.o
+PROG_CALCOBS=calcobs.exe
 ##
-SRC_OBSCOMM=initialization_calcobs.f90
-OBJ_OBSCOMM=$(SRC_OBSCOMM:.f90=.o)
+SRC_CALCOBSCOMM=initialization_calcobs.f90
+OBJ_CALCOBSCOMM=$(SRC_CALCOBSCOMM:.f90=.o)
 MESUREMENT_OBS=Measurement
 #########################
 SRC_Dirac=writeDirac.f90  
@@ -74,6 +73,7 @@ SRC_WriteConf=writeconfig.f90
 OBJ_WriteConf=writeconfig.o
 PROG_WriteConf=writeconfig.exe
 #########################
+DIR_OBSERVABLES=Observables
 
 
 #.SUFFIXES : .o .f90 # .oを作るときは必ず.f90から作るよ
@@ -94,30 +94,9 @@ dinv:$(PROG_Dinv)
 $(PROG_Dinv): $(OBJ_Dinv)
 	$(FC) $(FLAGS_CLUSTER) -o $@ $(OBJ_Dinv) 
 #########################################
-obs:$(PROG_OBS)
-$(PROG_OBS): $(OBJ_OBS) $(OBJ_OBSMAIN) $(OBJ_OBSCOMM) $(OBJS)
-	 $(FC) $(FLAGS_CLUSTER) -o $@ $(OBJ_OBSCOMM) $(OBJS) $(OBJ_OBSMAIN) $(LIB)
-#########################################
-trphi2:$(PROG_TRPHI2)
-
-$(PROG_TRPHI2): $(OBJ_TRPHI2) $(OBJ_OBSCOMM) $(OBJS) 
-	$(FC) $(FLAGS_CLUSTER) -o $@ $(OBJS) $(OBJ_OBS) $(OBJ_OBSCOMM) $(OBJ_TRPHI2) $(LIB)
-#########################################
-trf2:$(PROG_TRF2)
-
-$(PROG_TRF2): $(OBJ_TRF2) $(OBJ_OBSCOMM) $(OBJS) 
-	$(FC) $(FLAGS_CLUSTER) -o $@ $(OBJS) $(OBJ_OBS) $(OBJ_OBSCOMM) $(OBJ_TRF2) $(LIB)
-#########################################
-WTU1:$(PROG_divJ_U1V)
-
-$(PROG_divJ_U1V): $(OBJ_divJ_U1V) $(OBJ_OBSCOMM) $(OBJS) 
-	$(FC) $(FLAGS_CLUSTER) -o $@ $(OBJS) $(OBJ_OBS) $(OBJ_OBSCOMM) $(OBJ_divJ_U1V) $(LIB)
-#########################################
-U1R:$(PROG_U1R)
-
-$(PROG_U1R): $(OBJ_U1R) $(OBJ_OBSCOMM) $(OBJS) 
-	$(FC) $(FLAGS_CLUSTER) -o $@ $(OBJS) $(OBJ_OBS) $(OBJ_OBSCOMM) $(OBJ_U1R) $(LIB)
-
+obs:$(PROG_CALCOBS)
+$(PROG_CALCOBS): $(OBJ_CALCOBS) $(OBJ_CALCOBSMAIN) $(OBJ_CALCOBSCOMM) $(OBJS)
+	 $(FC) $(FLAGS_CLUSTER) -o $@ $(OBJ_CALCOBSCOMM) $(OBJS) $(OBJ_CALCOBSMAIN) $(LIB)
 #########################################
 writeconf:$(PROG_WriteConf)
 
@@ -169,7 +148,15 @@ Dirac_operator.o: \
   global_subroutines.o \
   parallel.o \
   SUN_generators.o \
-  matrix_functions.o
+  matrix_functions.o \
+  Dirac/prod_Dirac_site.f90 \
+  Dirac/prod_Dirac_link1.f90 \
+  Dirac/prod_Dirac_link2.f90 \
+  Dirac/prod_Dirac_face1.f90 \
+  Dirac/prod_Dirac_Omega.f90 \
+  Dirac/prod_Dirac_Omega_m0.f90 \
+  Dirac/prod_Dirac_Omega_adm.f90 \
+  Dirac/prod_Dirac_mass.f90
 differential_Dirac.o: \
   global_parameters.o \
   global_subroutines.o \
@@ -188,41 +175,36 @@ simulation.o: \
   rational_algorithm.o \
   MonteCarloSteps.f90 \
   hamiltonian.f90 \
-  observables.f90 \
   output.f90 \
   forces.f90 \
-  $(DIR_OBS)/bosonic_action.f90 \
-  $(DIR_OBS)/fermionic_operators.f90 \
-  $(DIR_OBS)/div_rot.f90 \
-  $(DIR_OBS)/U1V_current.f90 \
-  $(DIR_OBS)/fermion_action_site.f90 \
-  $(DIR_OBS)/fermion_action_link1.f90 \
-  $(DIR_OBS)/fermion_action_link2.f90 \
-  $(DIR_OBS)/fermion_action_face1.f90 \
-  $(DIR_OBS)/fermion_action_face2.f90 \
-  $(DIR_OBS)/fermionic_face_lagrangian.f90 \
-  $(DIR_OBS)/compensators.f90 \
-  $(DIR_OBS)/phichi.f90 \
-  $(DIR_OBS)/checkFF.f90 \
-  $(DIR_OBS)/trphi2.f90 \
-  $(DIR_OBS)/trf2.f90 \
-  $(DIR_OBS)/trivialWT.f90 \
-  $(DIR_OBS)/eigenvalues_of_Dirac.f90 \
-  $(DIR_OBS)/exact_U1R.f90 \
-  $(DIR_OBS)/mass_reweighting.f90 \
-  $(DIR_OBS)/WT_mass_contribution_site.f90 \
-  $(DIR_OBS)/WT_mass_contribution_link.f90 \
-  $(DIR_OBS)/WT_mass_contribution_face.f90 \
-  $(DIR_OBS)/make_Xi.f90 
-check_routines.o: \
-  global_parameters.o \
-  global_subroutines.o \
-  parallel.o \
-  matrix_functions.o \
-  mt95.o \
-  simplicial_complex.o \
-  simulation.o \
-  Dirac_operator.o 
+  check_QS.f90 \
+  $(DIR_OBSERVABLES)/bosonic_action.f90 \
+  $(DIR_OBSERVABLES)/fermionic_operators.f90 \
+  $(DIR_OBSERVABLES)/div_rot.f90 \
+  $(DIR_OBSERVABLES)/U1V_current.f90 \
+  $(DIR_OBSERVABLES)/fermion_action_site.f90 \
+  $(DIR_OBSERVABLES)/fermion_action_link1.f90 \
+  $(DIR_OBSERVABLES)/fermion_action_link2.f90 \
+  $(DIR_OBSERVABLES)/fermion_action_face1.f90 \
+  $(DIR_OBSERVABLES)/fermion_action_face2.f90 \
+  $(DIR_OBSERVABLES)/fermionic_face_lagrangian.f90 \
+  $(DIR_OBSERVABLES)/compensators.f90 \
+  $(DIR_OBSERVABLES)/phichi.f90 \
+  $(DIR_OBSERVABLES)/checkFF.f90 \
+  $(DIR_OBSERVABLES)/trphi2.f90 \
+  $(DIR_OBSERVABLES)/trf2.f90 \
+  $(DIR_OBSERVABLES)/trivialWT.f90 \
+  $(DIR_OBSERVABLES)/eigenvalues_of_Dirac.f90 \
+  $(DIR_OBSERVABLES)/exact_U1R.f90 \
+  $(DIR_OBSERVABLES)/mass_reweighting.f90 \
+  $(DIR_OBSERVABLES)/WT_mass_contribution_site.f90 \
+  $(DIR_OBSERVABLES)/WT_mass_contribution_link.f90 \
+  $(DIR_OBSERVABLES)/WT_mass_contribution_face.f90 \
+  $(DIR_OBSERVABLES)/make_Xi.f90 \
+  $(DIR_OBSERVABLES)/Qfermion.f90 \
+  $(DIR_OBSERVABLES)/QS_site.f90 \
+  $(DIR_OBSERVABLES)/QS_link.f90 \
+  $(DIR_OBSERVABLES)/QS_face.f90
 $(OBJ_OBSMAIN): \
   global_parameters.o \
   differential_Dirac.o \
@@ -230,33 +212,6 @@ $(OBJ_OBSMAIN): \
   initialization_calcobs.o \
   $(MESUREMENT_OBS)/FermionCorrelation_from_Dinv.f90 \
   $(MESUREMENT_OBS)/construct_Dirac.f90
-$(OBJ_TRPHI2): \
-  global_parameters.o \
-  global_subroutines.o \
-  differential_Dirac.o \
-  simulation.o \
-  initialization_calcobs.o \
-  parallel.o 
-$(OBJ_TRF2): \
-  global_parameters.o \
-  global_subroutines.o \
-  differential_Dirac.o \
-  simulation.o \
-  initialization_calcobs.o \
-  parallel.o 
-$(OBJ_divJ_U1V): \
-  global_parameters.o \
-  global_subroutines.o \
-  differential_Dirac.o \
-  simulation.o \
-  initialization_calcobs.o \
-  parallel.o 
-$(OBJ_U1R): \
-  global_parameters.o \
-  global_subroutines.o \
-  simulation.o \
-  initialization_calcobs.o \
-  parallel.o 
 $(OBJ_WriteConf): \
   global_parameters.o \
   simulation.o \

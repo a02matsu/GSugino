@@ -164,7 +164,7 @@ do l=1,num_links
   !write(*,*) l,link_org(l),link_tip(l)
   !call matrix_3_product(dPhi,Umat(:,:,l),PhiMat(:,:,link_tip(l)),Umat(:,:,l),'N','N','C',(1d0,0d0),'ADD')
   call matrix_3_product(dPhi,Umat(:,:,l),PhiMat(:,:,link_tip(l)),Umat(:,:,l),'N','N','C')
-  dPhi=dPhi * U1Rfactor_link(l)**2d0 * U1R_ratio(l)**2d0
+  dPhi=dPhi * U1Rfactor_link(l)**2d0 ! * U1R_ratio(l)**2d0
   dPhi=dPhi-PhiMat(:,:,link_org(l))
 
   tmp=0d0

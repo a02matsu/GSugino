@@ -129,7 +129,7 @@ call ZGEMM('N','N',NMAT,NMAT,NMAT,(1d0,0d0), &
     PhiMat(:,:,link_tip(l)), NMAT, &
     (0d0,0d0), tmpmat1, NMAT)
 ! U_l.Phi_tip.U_l^\dagger
-call ZGEMM('N','C',NMAT,NMAT,NMAT,U1Rfactor_link(l)**2d0 * U1R_ratio(l)**2d0, &
+call ZGEMM('N','C',NMAT,NMAT,NMAT,U1Rfactor_link(l)**2d0, &! * U1R_ratio(l)**2d0, &
     tmpmat1, NMAT, &
     UMAT(:,:,l), NMAT, &
     (-1d0,0d0), Dphi, NMAT)

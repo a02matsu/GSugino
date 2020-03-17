@@ -231,7 +231,7 @@ do s=1,num_sites
     call matrix_3_product(Ud_dPhibar_U,UMAT(:,:,l_i),dPhi,UMAT(:,:,l_i),'C','C','N')
     dSdPhi_boson_link(:,:,s)=dSdPhi_boson_link(:,:,s) &
       + alpha_l(l_i) *  Ud_dPhibar_U &
-      * U1Rfactor_link(l_i)**2d0 * U1R_ratio(l_i)**2d0
+      * U1Rfactor_link(l_i)**2d0 ! * U1R_ratio(l_i)**2d0
   enddo
 
   !write(*,*) "tip",linktip_from_s(s)%num_
@@ -282,7 +282,7 @@ do l=1,num_links
 
   ! i[ UPhiUinv, dPhi^\dagger ]
   call matrix_commutator(Comm,UPhiUinv,dPhi,'N','C')
-  Comm=Comm*U1Rfactor_link(l)**2d0 * U1R_ratio(l)**2d0
+  Comm=Comm*U1Rfactor_link(l)**2d0 ! * U1R_ratio(l)**2d0
 
   do j=1,NMAT
     do i=1,NMAT
