@@ -205,7 +205,7 @@ simulation.o: \
   $(DIR_OBSERVABLES)/QS_site.f90 \
   $(DIR_OBSERVABLES)/QS_link.f90 \
   $(DIR_OBSERVABLES)/QS_face.f90
-$(OBJ_OBSMAIN): \
+$(OBJ_CALCOBSMAIN): \
   global_parameters.o \
   differential_Dirac.o \
   simulation.o \

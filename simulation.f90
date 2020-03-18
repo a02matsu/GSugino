@@ -55,6 +55,10 @@ contains
 #include "Observables/QS_site.f90"
 #include "Observables/QS_link.f90"
 #include "Observables/QS_face.f90"
+#include "Observables/Qexact_fermion_action_link1.f90"
+#include "Observables/Qexact_fermion_action_link2.f90"
+#include "Observables/Qexact_fermion_action_face2.f90"
+#include "Observables/Qexact_fermionic_face_lagrangian.f90"
 
 
 

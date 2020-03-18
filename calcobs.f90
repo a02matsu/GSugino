@@ -12,7 +12,7 @@ implicit none
 character(128), parameter :: PARAFILE="parameters_calcobs.dat"
 character(128) :: MEDFILE
 character(128) :: DinvFILE
-integer, parameter :: num_calcobs=28 ! 考えているobservableの数
+integer, parameter :: num_calcobs=34 ! 考えているobservableの数
 character(128) :: name_obs(1:num_calcobs) = (/ &
   "|Atr|", &
   "|Aface|", &
@@ -22,15 +22,8 @@ character(128) :: name_obs(1:num_calcobs) = (/ &
   "SbS", &
   "SbL", &
   "SbF", &
-  !"Re(mass cont)", &
-  !"Im(mass cont)", &
-  !"Re(SfL2)", &
-  !"Im(SfL2)", &
   "dimG*(NS+NL)/2", &
   "dimG*NF/2", &
-  !"WT_site", &
-  !"WT_link", &
-  !"WT_face", &
   "Re(Sf_site)", &
   "Im(Sf_site)", &
   "Re(Sf_link1)", &
@@ -48,7 +41,13 @@ character(128) :: name_obs(1:num_calcobs) = (/ &
   "Im(WTmass_link)", &
   "Re(WTmass_face)", &
   "Im(WTmass_face)", &
-  "Tr|phi^2|" &
+  "Tr|phi^2|", &
+  "Re(exactSf_link1)", &
+  "Im(exactSf_link1)", &
+  "Re(exactSf_link2)", &
+  "Im(exactSf_link2)", &
+  "Re(exactSf_face2)", &
+  "Im(exactSf_face2)"  &
   /)
 
 !integer :: trig_obs(1:num_calcobs)
@@ -361,6 +360,21 @@ do
       call calc_trphi2(trphi2,PhiMat)
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') trphi2
 
+    !! Sf_link1
+      call calc_Qexact_Sf_link1(Sf2,Geta_lambda,Umat,PhiMat)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble(Sf2)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble((0d0,-1d0)*Sf2)
+
+    !! Sf_link2
+      call calc_Qexact_Sf_link2(Sf3, PhiMat, Umat, Glambda_lambda)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble(Sf3)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble((0d0,-1d0)*Sf3)
+
+    !! Sf_face2
+      call calc_Qexact_Sf_face2(Sf5,Glambda_chi,Umat)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble(Sf5)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble((0d0,-1d0)*Sf5)
+      !if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble((0d0,-1d0)*Sf)
 
     if(MYRANK==0) write(*,*)
   else
