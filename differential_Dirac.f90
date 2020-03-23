@@ -301,7 +301,7 @@ do a=1,face_in_l(ll)%num_
     dir_factor=&
       ll_dir_factor &
       * dcmplx(links_in_f(f)%link_dirs_(l_place)) &
-      * (0d0,-2d0)/dcmplx(m_omega) & 
+      * (0d0,2d0)/dcmplx(m_omega) & 
       * dcmplx(alpha_f(f) * beta_f(f)) &
       * U1Rfactor_fl
 

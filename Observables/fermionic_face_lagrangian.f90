@@ -157,7 +157,7 @@ do r=0,m_omega-1
   call update_Lff(Lff, Glambda_chi, gl, lf, Mat1, Mat2)
 enddo
 
-Lff = Lff * (0d0,2d0)/dcmplx(m_omega) * U1Rfactor_fl
+Lff = Lff * (0d0,-2d0)/dcmplx(m_omega) * U1Rfactor_fl
 
 
 end subroutine fermionic_face_lagrangian

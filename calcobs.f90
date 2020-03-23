@@ -12,7 +12,8 @@ implicit none
 character(128), parameter :: PARAFILE="parameters_calcobs.dat"
 character(128) :: MEDFILE
 character(128) :: DinvFILE
-integer, parameter :: num_calcobs=34 ! 考えているobservableの数
+character(128) :: EigenFILE
+integer, parameter :: num_calcobs=36 ! 考えているobservableの数
 character(128) :: name_obs(1:num_calcobs) = (/ &
   "|Atr|", &
   "|Aface|", &
@@ -47,7 +48,9 @@ character(128) :: name_obs(1:num_calcobs) = (/ &
   "Re(exactSf_link2)", &
   "Im(exactSf_link2)", &
   "Re(exactSf_face2)", &
-  "Im(exactSf_face2)"  &
+  "Im(exactSf_face2)",  &
+  "Re(phase Pf)",  &
+  "Im(phase Pf)"  &
   /)
 
 !integer :: trig_obs(1:num_calcobs)
@@ -72,12 +75,14 @@ complex(kind(0d0)) :: Sf1, Sf2, Sf3, Sf4, Sf5
 !complex(kind(0d0)), allocatable :: WT2(:)
 complex(kind(0d0)) :: WT1, WT2
 double precision :: trphi2
+double precision :: pf_arg
 integer :: num_fermion ! total fermion number
 integer :: num_sitelink ! total fermion number
 
 integer, parameter :: N_MEDFILE=100
 integer, parameter :: N_PARAFILE=101
 integer, parameter :: N_DinvFILE=102
+integer, parameter :: N_EigenFILE=103
 
 integer :: Sb_computed ! if Sb_computed=1, Sb has been already computed
 
@@ -116,7 +121,7 @@ use global_calcobs
 use initialization_calcobs
 use simulation
 use parallel
-use matrix_functions, only : matrix_inverse
+use matrix_functions, only : matrix_inverse, calcpfaffian, matrix_eigenvalues
 implicit none
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -140,6 +145,9 @@ integer :: exist_dinv
 complex(kind(0d0)), allocatable :: Dinv(:,:)
 double precision :: rtmp,ctmp
 complex(kind(0d0)), allocatable :: Dirac(:,:)
+complex(kind(0d0)), allocatable :: Dirac2(:,:)
+double precision :: abs_pf, arg_pf
+complex(kind(0d0)), allocatable :: eigenvals(:)
 complex(kind(0d0)) :: tmp
 integer :: k
 integer :: ios
@@ -153,6 +161,7 @@ endif
 call getarg(1,MEDFILE)
 !call getarg(2,DinvFILE)
 DinvFILE=trim("MEDCONF/Dinv"//MEDFILE(18:))
+EigenFILE=trim("MEDCONF/Eigen"//MEDFILE(18:))
 INPUT_FILE_NAME="inputfile"
   
 call initialization 
@@ -162,6 +171,8 @@ num_sitelink=(global_num_sites+global_num_links)*(NMAT*NMAT-1)
 
 allocate( Dinv(1:num_fermion, 1:num_fermion) )
 allocate( Dirac(1:num_fermion, 1:num_fermion) )
+allocate( Dirac2(1:num_fermion, 1:num_fermion) )
+allocate( eigenvals(1:num_fermion) )
 
 ! check DinvFile
 exist_dinv=access( trim(adjustl(DinvFILE)), ' ' )
@@ -181,6 +192,7 @@ if( MYRANK == 0 ) then
     open(N_DinvFILE, file=DinvFILE, status='OLD',action='READ')
   else
     open(N_DinvFILE, file=DinvFILE, status='REPLACE')
+    open(N_EigenFILE, file=EigenFILE, status='REPLACE')
   endif
 endif 
 
@@ -198,7 +210,8 @@ do
           Dinv(i,j)=rtmp+(0d0,1d0)*ctmp
       enddo
     enddo
-    read(N_DinvFILE,*) 
+    read(N_DinvFILE,*) arg_pf
+
     call MPI_BCAST(ite,1,MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
     call MPI_BCAST(ite2,1,MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
     if( ite .ne. ite2 ) then 
@@ -207,8 +220,14 @@ do
     endif
   else
     call construct_Dirac(Dirac,Umat,PhiMat) !correct!
+    !!
+    Dirac2=Dirac
+    if( MYRANK==0 ) call CalcPfaffian(abs_pf,arg_pf,Dirac2)
+    !!
     Dinv=Dirac
     if( MYRANK==0 ) call matrix_inverse(Dinv)
+    !!
+    if( MYRANK==0 ) call matrix_eigenvalues(eigenvals,Dirac)
 
     write(N_DinvFILE,'(I10,2X)',advance='no') ite
     do j=1,num_fermion
@@ -217,7 +236,13 @@ do
           dble(Dinv(i,j)), dble(Dinv(i,j)*(0d0,-1d0))
       enddo
     enddo
-    write(N_DinvFILE,*) 
+    write(N_DinvFILE,*) arg_pf
+    !! eigenvalues
+    do i=1,num_fermion
+      write(N_EigenFILE,'(E23.15,2X,E23.15,2X)',advance='no') &
+        dble(eigenvals(i)), dble(eigenvals(i)*(0d0,-1d0))
+    enddo
+    write(N_EigenFILE,*) 
   endif
 
   call make_fermion_correlation_from_Dinv(&
@@ -374,6 +399,12 @@ do
       call calc_Qexact_Sf_face2(Sf5,Glambda_chi,Umat)
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble(Sf5)
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble((0d0,-1d0)*Sf5)
+      !if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble((0d0,-1d0)*Sf)
+
+    !! Pfaffian phase
+      call calc_Qexact_Sf_face2(Sf5,Glambda_chi,Umat)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dcos(arg_pf)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dsin(arg_pf)
       !if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble((0d0,-1d0)*Sf)
 
     if(MYRANK==0) write(*,*)
