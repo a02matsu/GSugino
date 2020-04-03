@@ -18,6 +18,9 @@ complex(kind(0d0)) :: Bforce_A(1:NMAT,1:NMAT,1:num_links)
 complex(kind(0d0)) :: DQeta(1:NMAT,1:NMAT,1:num_sites)
 complex(kind(0d0)) :: DQlambda(1:NMAT,1:NMAT,1:num_links)
 
+QSL_eta=(0d0,0d0)
+QSL_lambda=(0d0,0d0)
+
 Bforce_phi=(0d0,0d0)
 Bforce_A=(0d0,0d0)
 call Make_bosonic_force_Phi_link(Bforce_phi,Umat,PhiMat)

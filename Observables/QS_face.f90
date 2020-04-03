@@ -16,6 +16,9 @@ complex(kind(0d0)) :: Bforce_A(1:NMAT,1:NMAT,1:num_links)
 complex(kind(0d0)) :: DQlambda(1:NMAT,1:NMAT,1:num_links)
 complex(kind(0d0)) :: DQchi(1:NMAT,1:NMAT,1:num_faces)
 
+QSF_lambda=(0d0,0d0)
+QSF_chi=(0d0,0d0)
+
 call Make_bosonic_force_A_face(Bforce_A,Umat)
 
 DQlambda=(0d0,0d0)

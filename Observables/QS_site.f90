@@ -13,6 +13,7 @@ integer :: s
 complex(kind(0d0)) :: Bforce(1:NMAT,1:NMAT,1:num_sites)
 complex(kind(0d0)) :: DQeta(1:NMAT,1:NMAT,1:num_sites)
 
+QS_eta=(0d0,0d0)
 Bforce=(0d0,0d0)
 call Make_bosonic_force_Phi_site(Bforce,PhiMat)
 DQeta=(0d0,0d0)

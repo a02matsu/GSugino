@@ -6,21 +6,22 @@ subroutine make_fermion_correlation_from_Dinv(&
     Geta_chi, Glambda_chi, Gchi_chi, &
     Dinv)
 use global_parameters
+use global_subroutines, only : syncronize_Dirac_sites, syncronize_Dirac_links,syncronize_Dirac_faces 
 use SUN_generators, only : make_SUN_generators
 use parallel
 implicit none
 
-complex(kind(0d0)), intent(out) :: Geta_eta(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_sites,1:num_sites) 
-complex(kind(0d0)), intent(out) :: Glambda_eta(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_links,1:num_sites) 
-complex(kind(0d0)), intent(out) :: Gchi_eta(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_faces,1:num_sites) 
+complex(kind(0d0)), intent(out) :: Geta_eta(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_sites,1:num_necessary_sites) 
+complex(kind(0d0)), intent(out) :: Glambda_eta(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_links,1:num_necessary_sites) 
+complex(kind(0d0)), intent(out) :: Gchi_eta(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_faces,1:num_necessary_sites) 
 !!!
-complex(kind(0d0)), intent(out) :: Geta_lambda(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_sites,1:num_links) 
-complex(kind(0d0)), intent(out) :: Glambda_lambda(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_links,1:num_links) 
-complex(kind(0d0)), intent(out) :: Gchi_lambda(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_faces,1:num_links) 
+complex(kind(0d0)), intent(out) :: Geta_lambda(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_sites,1:num_necessary_links) 
+complex(kind(0d0)), intent(out) :: Glambda_lambda(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_links,1:num_necessary_links) 
+complex(kind(0d0)), intent(out) :: Gchi_lambda(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_faces,1:num_necessary_links) 
 !!!
-complex(kind(0d0)), intent(out) :: Geta_chi(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_sites,1:num_faces) 
-complex(kind(0d0)), intent(out) :: Glambda_chi(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_links,1:num_faces) 
-complex(kind(0d0)), intent(out) :: Gchi_chi(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_faces,1:num_faces) 
+complex(kind(0d0)), intent(out) :: Geta_chi(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_sites,1:num_necessary_faces) 
+complex(kind(0d0)), intent(out) :: Glambda_chi(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_links,1:num_necessary_faces) 
+complex(kind(0d0)), intent(out) :: Gchi_chi(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_faces,1:num_necessary_faces) 
 
 complex(kind(0d0)), intent(in) :: Dinv(:,:)
 integer :: numF
@@ -209,6 +210,15 @@ enddo
 
 
 !! convert modes to matrices
+Geta_eta=(0d0,0d0)
+Geta_lambda=(0d0,0d0)
+Geta_chi=(0d0,0d0)
+Glambda_eta=(0d0,0d0)
+Glambda_lambda=(0d0,0d0)
+Glambda_chi=(0d0,0d0)
+Gchi_eta=(0d0,0d0)
+Gchi_lambda=(0d0,0d0)
+Gchi_chi=(0d0,0d0)
 do ls=1,num_sites
   do gs=1,global_num_sites
     do a=1,dimG
@@ -289,6 +299,16 @@ do lf=1,num_faces
     enddo
   enddo
 enddo
+
+call syncronize_Dirac_sites(Geta_eta)
+call syncronize_Dirac_sites(Glambda_eta)
+call syncronize_Dirac_sites(Gchi_eta)
+call syncronize_Dirac_links(Geta_lambda)
+call syncronize_Dirac_links(Glambda_lambda)
+call syncronize_Dirac_links(Gchi_lambda)
+call syncronize_Dirac_faces(Geta_chi)
+call syncronize_Dirac_faces(Glambda_chi)
+call syncronize_Dirac_faces(Gchi_chi)
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!! check if mode_*** is the same with Dinv !!!!!

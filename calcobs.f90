@@ -15,6 +15,8 @@ character(128) :: DinvFILE
 character(128) :: EigenFILE
 integer, parameter :: num_calcobs=36 ! 考えているobservableの数
 character(128) :: name_obs(1:num_calcobs) = (/ &
+  "Re(phase Pf)",  &
+  "Im(phase Pf)", &
   "|Atr|", &
   "|Aface|", &
   "|Aphibar|", &
@@ -48,10 +50,14 @@ character(128) :: name_obs(1:num_calcobs) = (/ &
   "Re(exactSf_link2)", &
   "Im(exactSf_link2)", &
   "Re(exactSf_face2)", &
-  "Im(exactSf_face2)",  &
-  "Re(phase Pf)",  &
-  "Im(phase Pf)"  &
+  "Im(exactSf_face2)"  &
   /)
+  !"Re(XiQS_site)", &
+  !"Im(XiQS_site)", &
+  !"Re(XiQS_link)", &
+  !"Im(XiQS_link)", &
+  !"Re(XiQS_face)", &
+  !"Im(XiQS_face)", &
 
 !integer :: trig_obs(1:num_calcobs)
 integer :: sizeM,sizeN
@@ -71,6 +77,7 @@ complex(kind(0d0)) :: WT_site
 complex(kind(0d0)) :: WT_link
 complex(kind(0d0)) :: WT_face
 complex(kind(0d0)) :: Sf1, Sf2, Sf3, Sf4, Sf5
+complex(kind(0d0)) :: XiQS
 !complex(kind(0d0)), allocatable :: WT1(:)
 !complex(kind(0d0)), allocatable :: WT2(:)
 complex(kind(0d0)) :: WT1, WT2
@@ -110,6 +117,8 @@ end subroutine make_format
 
 #include "Measurement/FermionCorrelation_from_Dinv.f90"
 #include "Measurement/construct_Dirac.f90"
+#include "Measurement/writeout_Dirac.f90"
+
 
 
 end module global_calcobs
@@ -146,10 +155,12 @@ complex(kind(0d0)), allocatable :: Dinv(:,:)
 double precision :: rtmp,ctmp
 complex(kind(0d0)), allocatable :: Dirac(:,:)
 complex(kind(0d0)), allocatable :: Dirac2(:,:)
-double precision :: abs_pf, arg_pf
+double precision :: abs_pf!, arg_pf,
+double precision :: re_phase, im_phase
+complex(kind(0d0)) :: phase_pf
 complex(kind(0d0)), allocatable :: eigenvals(:)
 complex(kind(0d0)) :: tmp
-integer :: k
+integer :: k,s1,s2,l1,l2,f1,f2,a,b
 integer :: ios
 
 iarg=iargc()
@@ -210,7 +221,12 @@ do
           Dinv(i,j)=rtmp+(0d0,1d0)*ctmp
       enddo
     enddo
-    read(N_DinvFILE,*) arg_pf
+    read(N_DinvFILE,'(E23.15,2X,E23.15,2X)') re_phase, im_phase
+    phase_pf=dcmplx(re_phase)+(0d0,1d0)*dcmplx(im_phase)
+
+
+
+
 
     call MPI_BCAST(ite,1,MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
     call MPI_BCAST(ite2,1,MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
@@ -220,9 +236,22 @@ do
     endif
   else
     call construct_Dirac(Dirac,Umat,PhiMat) !correct!
+
+    !call writeout_Dirac(Dirac)
+!    if(MYRANK==0) then
+!      write(*,'(i9)') ite
+!      do i=1,size(Dirac,1)
+!        do j=1,size(Dirac,2)
+!          if( cdabs(Dirac(i,j)) > 1d-8) write(*,'(i5,2x,i5,2x,E15.8,2X,E15.8,2X)')i,j, dble(Dirac(i,j)),dble((0d0,-1d0)*Dirac(i,j))
+!        enddo
+!      enddo
+!    endif
+
+
+    
     !!
     Dirac2=Dirac
-    if( MYRANK==0 ) call CalcPfaffian(abs_pf,arg_pf,Dirac2)
+    if( MYRANK==0 ) call CalcPfaffian(abs_pf,phase_pf,Dirac2)
     !!
     Dinv=Dirac
     if( MYRANK==0 ) call matrix_inverse(Dinv)
@@ -236,13 +265,13 @@ do
           dble(Dinv(i,j)), dble(Dinv(i,j)*(0d0,-1d0))
       enddo
     enddo
-    write(N_DinvFILE,*) arg_pf
+    write(N_DinvFILE,'(E23.15,2X,E23.15,2X)',advance='no') &
+      dble(phase_pf), dble((0d0,-1d0)*phase_pf)
     !! eigenvalues
     do i=1,num_fermion
       write(N_EigenFILE,'(E23.15,2X,E23.15,2X)',advance='no') &
         dble(eigenvals(i)), dble(eigenvals(i)*(0d0,-1d0))
     enddo
-    write(N_EigenFILE,*) 
   endif
 
   call make_fermion_correlation_from_Dinv(&
@@ -260,7 +289,6 @@ do
     Umat,PhiMat,1)
   !!!!!!!!!!!!!!!!!!!!!!!
 
-
   if( control == 0 ) then 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !! calculate observables
@@ -268,7 +296,19 @@ do
       write(*,'(I7,2X)',advance='no') ite
     endif
 
+    !write(*,*) ite
+    !do ll=1,global_num_links
+    !  if(MYRANK==local_link_of_global(ll)%rank_) then
+    !    write(*,*) Umat(:,:,local_link_of_global(ll)%label_)
+    !  endif
+    !enddo
+
     Sb_computed=0
+
+    !! Pfaffian phase
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble(phase_pf)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble( (0d0,-1d0)*phase_pf)
+      !if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble((0d0,-1d0)*Sf)
 
     !"|Atr|", &
       call calc_trace_compensator(Acomp_tr,PhiMat)
@@ -401,11 +441,22 @@ do
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble((0d0,-1d0)*Sf5)
       !if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble((0d0,-1d0)*Sf)
 
-    !! Pfaffian phase
-      call calc_Qexact_Sf_face2(Sf5,Glambda_chi,Umat)
-      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dcos(arg_pf)
-      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dsin(arg_pf)
-      !if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble((0d0,-1d0)*Sf)
+    !! XiQS_site
+      !call calc_Xisite_QS(XiQS,Geta_eta,Glambda_eta,Gchi_eta,PhiMat,Umat)
+      !if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble(XiQS)
+      !if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble((0d0,-1d0)*XiQS)
+
+    !! XiQS_link
+      !call calc_Xilink_QS(XiQS,Geta_lambda,Glambda_lambda,Gchi_lambda,PhiMat,Umat)
+      !if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble(XiQS)
+      !if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble((0d0,-1d0)*XiQS)
+
+    !! XiQS_face
+      !call calc_Xiface_QS(XiQS,Geta_chi,Glambda_chi,Gchi_chi,PhiMat,Umat)
+      !if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble(XiQS)
+      !if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble((0d0,-1d0)*XiQS)
+
+
 
     if(MYRANK==0) write(*,*)
   else

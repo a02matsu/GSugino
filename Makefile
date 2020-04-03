@@ -39,7 +39,7 @@ PROG_CALCOBS=calcobs.exe
 ##
 SRC_CALCOBSCOMM=initialization_calcobs.f90
 OBJ_CALCOBSCOMM=$(SRC_CALCOBSCOMM:.f90=.o)
-MESUREMENT_OBS=Measurement
+MEASUREMENT=Measurement
 #########################
 SRC_Dirac=writeDirac.f90  
 OBJ_Dirac=writeDirac.o
@@ -204,14 +204,19 @@ simulation.o: \
   $(DIR_OBSERVABLES)/Qfermion.f90 \
   $(DIR_OBSERVABLES)/QS_site.f90 \
   $(DIR_OBSERVABLES)/QS_link.f90 \
-  $(DIR_OBSERVABLES)/QS_face.f90
+  $(DIR_OBSERVABLES)/QS_face.f90 \
+  $(DIR_OBSERVABLES)/QS_3fermion_link.f90 \
+  $(DIR_OBSERVABLES)/Xisite_Dinv.f90 \
+  $(DIR_OBSERVABLES)/Xilink_Dinv.f90 \
+  $(DIR_OBSERVABLES)/Xiface_Dinv.f90 
 $(OBJ_CALCOBSMAIN): \
   global_parameters.o \
   differential_Dirac.o \
   simulation.o \
   initialization_calcobs.o \
-  $(MESUREMENT_OBS)/FermionCorrelation_from_Dinv.f90 \
-  $(MESUREMENT_OBS)/construct_Dirac.f90
+  $(MEASUREMENT)/FermionCorrelation_from_Dinv.f90 \
+  $(MEASUREMENT)/construct_Dirac.f90 \
+  $(MEASUREMENT)/writeout_Dirac.f90 
 $(OBJ_WriteConf): \
   global_parameters.o \
   simulation.o \
@@ -219,10 +224,6 @@ $(OBJ_WriteConf): \
   parallel.o 
 (PROG_Dinv): \
   $(SRC_Dinv)
-
- 
-
-
 
 .PHONY: clean
 clean:

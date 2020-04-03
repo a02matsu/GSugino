@@ -158,6 +158,8 @@ integer :: l
 double precision :: tmp
 complex(kind(0d0)) :: dPhi(1:NMAT,1:NMAT)
 
+!integer :: k,k2
+!complex(kind(0d0)) :: tmpmat(1:NMAT,1:NMAT)
 
 SB_L=0d0
 do l=1,num_links
@@ -166,6 +168,21 @@ do l=1,num_links
   call matrix_3_product(dPhi,Umat(:,:,l),PhiMat(:,:,link_tip(l)),Umat(:,:,l),'N','N','C')
   dPhi=dPhi * U1Rfactor_link(l)**2d0 ! * U1R_ratio(l)**2d0
   dPhi=dPhi-PhiMat(:,:,link_org(l))
+
+!  write(*,*) global_link_of_local(l), global_site_of_local(link_org(l)), global_site_of_local(link_tip(l)), dPhi(1,1), dPhi(1,2), dPhi(2,1), dPhi(2,2)
+
+!  tmpmat=(0d0,0d0)
+!  tmpmat=-PhiMat(:,:,link_org(l))
+!  do k2=1,NMAT
+!  do k=1,NMAT
+!  do j=1,NMAT
+!    do i=1,NMAT
+!      tmpmat(i,j)=tmpmat(i,j)+Umat(i,k,l)*Phimat(k,k2,link_tip(l))*dconjg(Umat(j,k2,l))
+!    enddo
+!  enddo
+!enddo
+!enddo
+!write(*,*) tmpmat-dPHi
 
   tmp=0d0
   do i=1,NMAT
@@ -176,6 +193,7 @@ do l=1,num_links
 
   SB_L=SB_L+alpha_l(l)*tmp
 enddo
+!write(*,*) overall_factor
 
 SB_L=SB_L*overall_factor !*one_ov_2g2N
 
@@ -214,7 +232,7 @@ do f=1,num_faces
       tmp=tmp+Omega(i,j)*dconjg(Omega(i,j))
     enddo
   enddo
-  !write(*,*) tmp
+  !write(*,*) global_face_of_local(f), tmp
   SB_F=SB_F+0.25d0*alpha_f(f)*beta_f(f)*beta_f(f)*dble(tmp)
 enddo
 SB_F=SB_F * overall_factor !*one_ov_2g2N

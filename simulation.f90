@@ -59,6 +59,14 @@ contains
 #include "Observables/Qexact_fermion_action_link2.f90"
 #include "Observables/Qexact_fermion_action_face2.f90"
 #include "Observables/Qexact_fermionic_face_lagrangian.f90"
+#include "Observables/Xisite_Dinv.f90"
+#include "Observables/Xilink_Dinv.f90"
+#include "Observables/Xiface_Dinv.f90"
+#include "Observables/QS_3fermion_link.f90"
+!#include "Observables/Xilink_QS.f90"
+!#include "Observables/Xiface_QS.f90"
+!#include "Observables/test_fermion_action_site.f90"
+!#include "Observables/test_fermion_action_link1.f90"
 
 
 

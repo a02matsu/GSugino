@@ -960,10 +960,12 @@ end subroutine PfaffianLog
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! abs_pf = |Pfaffian|
 !! Pfaffian/|Pfaffian| = exp( i arg_pf ) -Pi< arg_pf < Pi
-subroutine CalcPfaffian(abs_pf,arg_pf,MAT)
+!subroutine CalcPfaffian(abs_pf,arg_pf,MAT)
+subroutine CalcPfaffian(abs_pf,phase_pf,MAT)
 implicit none
 
-real(8), intent(out) :: abs_pf, arg_pf
+real(8), intent(out) :: abs_pf!, arg_pf
+complex(kind(0d0)), intent(out) :: phase_pf
 complex(kind(0d0)), intent(in) :: MAT(:,:)
 
 integer :: NMAT
@@ -972,7 +974,7 @@ integer  LWORK, LDA,NB, INFO
 complex(kind(0d0)), allocatable :: WORK(:)
 real(8), allocatable :: RWORK(:)
 real(8) LogPf
-complex(kind(0d0)) phase
+!complex(kind(0d0)) phase
 
 NMAT=size(MAT,1)
 
@@ -983,11 +985,11 @@ allocate ( RWORK(1:NMAT-1) )
 allocate ( WORK(LWORK) )
 LDA = NMAT
 
-call ZSKPFA('U','P',NMAT,MAT,LDA,LogPf,phase,&
+call ZSKPFA('U','P',NMAT,MAT,LDA,LogPf,phase_pf,&
 IWORK,WORK,LWORK,RWORK,INFO)
 
 abs_pf=dexp(LogPf)
-arg_pf=datan2( dble((0d0,-1d0)*phase), dble(phase) )
+!arg_pf=datan2( dble((0d0,-1d0)*phase), dble(phase) )
 end subroutine CalcPfaffian
 
 

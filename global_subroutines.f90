@@ -3327,7 +3327,151 @@ deallocate(ISEND, IRECV)
 !tmplambda=lambda
 end subroutine syncronize_linkval
 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! 必要なサイト変数(Dirac)を通信するsubroutine
+#ifdef PARALLEL
+subroutine syncronize_Dirac_sites(eta)
+use parallel
+!complex(kind(0d0)), intent(inout) :: eta(1:NMAT,1:NMAT,1:NMAT,1:NMAT,:,:num_necessary_sites)
+complex(kind(0d0)), intent(inout) :: eta(:,:,:,:,:,:)!1:num_necessary_sites)
 
+integer :: s_send
+integer :: s_recv
+integer :: local, rank, tag
+integer, allocatable :: ISEND(:), IRECV(:) ! for MPI_WAIT 
+
+integer :: global_num, data_size
+global_num=size(eta,5)
+data_size=NMAT*NMAT*NMAT*NMAT*global_num
+
+!!!!!!!!
+allocate(ISEND(1:num_send_sites))
+allocate(IRECV(1:num_recv_sites))
+do s_send=1,num_send_sites
+  local=send_sites(s_send)%label_
+  rank=send_sites(s_send)%rank_
+  tag=10000*rank + global_site_of_local(local)
+
+  call MPI_ISEND(eta(:,:,:,:,:,local),data_size,MPI_DOUBLE_COMPLEX,rank,tag,MPI_COMM_WORLD,ISEND(s_send),IERR)
+enddo
+
+do s_recv=1,num_recv_sites
+  local=recv_sites(s_recv)%label_
+  rank=recv_sites(s_recv)%rank_
+  tag=10000*MYRANK + global_site_of_local(local)
+
+  call MPI_IRECV(eta(:,:,:,:,:,local),data_size,MPI_DOUBLE_COMPLEX,rank,tag,MPI_COMM_WORLD,IRECV(s_recv),IERR)
+enddo
+
+do s_send=1,num_send_sites
+  call MPI_WAIT(ISEND(s_send),ISTATUS,IERR)
+enddo
+do s_recv=1,num_recv_sites
+  call MPI_WAIT(IRECV(s_recv),ISTATUS,IERR)
+enddo
+
+deallocate(ISEND, IRECV)
+end subroutine syncronize_Dirac_sites
+#endif
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! 必要なlink変数を通信するsubroutine
+#ifdef PARALLEL
+subroutine syncronize_Dirac_links(lambda)
+use global_parameters
+use parallel
+!complex(kind(0d0)), intent(inout) :: lambda(1:NMAT,1:NMAT,1:num_necessary_links)
+complex(kind(0d0)), intent(inout) :: lambda(:,:,:,:,:,:)
+
+integer :: s_send
+integer :: s_recv
+integer :: local, rank, tag
+integer, allocatable :: ISEND(:), IRECV(:) ! for MPI_WAIT 
+complex(kind(0d0)) :: tmpmat(1:NMAT,1:NMAT)
+
+integer :: global_num, data_size
+global_num=size(lambda,5)
+data_size=NMAT*NMAT*NMAT*NMAT*global_num
+
+!lambda=tmplambda
+!!!!!!!!
+allocate(ISEND(1:num_send_links))
+allocate(IRECV(1:num_recv_links))
+do s_send=1,num_send_links
+  local=send_links(s_send)%label_
+  rank=send_links(s_send)%rank_
+  tag=10000*rank + global_link_of_local(local)
+
+  call MPI_ISEND(lambda(:,:,:,:,:,local),global_num,MPI_DOUBLE_COMPLEX,rank,tag,MPI_COMM_WORLD,ISEND(s_send),IERR)
+enddo
+
+do s_recv=1,num_recv_links
+  local=recv_links(s_recv)%label_
+  rank=recv_links(s_recv)%rank_
+  tag=10000*MYRANK + global_link_of_local(local)
+
+  call MPI_IRECV(lambda(:,:,:,:,:,local),global_num,MPI_DOUBLE_COMPLEX,rank,tag,MPI_COMM_WORLD,IRECV(s_recv),IERR)
+enddo
+
+do s_send=1,num_send_links
+  call MPI_WAIT(ISEND(s_send),ISTATUS,IERR)
+enddo
+do s_recv=1,num_recv_links
+  call MPI_WAIT(IRECV(s_recv),ISTATUS,IERR)
+enddo
+
+deallocate(ISEND, IRECV)
+
+end subroutine syncronize_Dirac_links
+#endif
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! 必要なface変数を通信するsubroutine
+#ifdef PARALLEL
+subroutine syncronize_Dirac_faces(chi)
+use parallel
+!complex(kind(0d0)), intent(inout) :: chi(1:NMAT,1:NMAT,1:num_necessary_faces)
+complex(kind(0d0)), intent(inout) :: chi(:,:,:,:,:,:)!1:num_necessary_faces)
+
+integer :: s_send
+integer :: s_recv
+integer :: local, rank, tag
+integer, allocatable :: ISEND(:), IRECV(:) ! for MPI_WAIT 
+
+integer :: global_num, data_size
+global_num=size(chi,5)
+data_size=NMAT*NMAT*NMAT*NMAT*global_num
+
+!!!!!!!!
+allocate(ISEND(1:num_send_faces))
+allocate(IRECV(1:num_recv_faces))
+do s_send=1,num_send_faces
+  local=send_faces(s_send)%label_
+  rank=send_faces(s_send)%rank_
+  tag=10000*rank + global_face_of_local(local)
+
+  call MPI_ISEND(chi(:,:,:,:,:,local),global_num,MPI_DOUBLE_COMPLEX,rank,tag,MPI_COMM_WORLD,ISEND(s_send),IERR)
+enddo
+
+do s_recv=1,num_recv_faces
+  local=recv_faces(s_recv)%label_
+  rank=recv_faces(s_recv)%rank_
+  tag=10000*MYRANK + global_face_of_local(local)
+
+  call MPI_IRECV(chi(:,:,:,:,:,local),global_num,MPI_DOUBLE_COMPLEX,rank,tag,MPI_COMM_WORLD,IRECV(s_recv),IERR)
+enddo
+
+do s_send=1,num_send_faces
+  call MPI_WAIT(ISEND(s_send),ISTATUS,IERR)
+enddo
+do s_recv=1,num_recv_faces
+  call MPI_WAIT(IRECV(s_recv),ISTATUS,IERR)
+enddo
+
+deallocate(ISEND, IRECV)
+end subroutine syncronize_Dirac_faces
+#endif
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!! サイト変数の絶対値の和を吐き出す関数
