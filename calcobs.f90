@@ -13,13 +13,19 @@ character(128), parameter :: PARAFILE="parameters_calcobs.dat"
 character(128) :: MEDFILE
 character(128) :: DinvFILE
 character(128) :: EigenFILE
-integer, parameter :: num_calcobs=36 ! 考えているobservableの数
+integer, parameter :: num_calcobs=42 ! 考えているobservableの数
 character(128) :: name_obs(1:num_calcobs) = (/ &
   "Re(phase Pf)",  &
   "Im(phase Pf)", &
   "|Atr|", &
+  "Re(phase Atr)", &
+  "Im(phase Atr)", &
   "|Aface|", &
+  "Re(phase Aface)", &
+  "Im(phase Aface)", &
   "|Aphibar|", &
+  "Re(phase Aphibar)", &
+  "Im(phase Aphibar)", &
   "Re(Q(Aphibar)Xi)", &
   "Im(Q(Aphibar)Xi)", &
   "SbS", &
@@ -315,14 +321,20 @@ do
       !call calc_VM_compensator(Acomp_VM,PhiMat)
       !APQ_phase = dconjg(Acomp_tr) / cdabs(Acomp_tr) 
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') cdabs(Acomp_tr)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble(Acomp_tr/cdabs(Acomp_tr))
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble( (0d0,-1d0)*Acomp_tr/cdabs(Acomp_tr))
 
     !"|Aface|", &
       call calc_face_compensator(Acomp_face,Umat,PhiMat,Geta_chi)
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') cdabs(Acomp_face)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble(Acomp_face/cdabs(Acomp_face))
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble( (0d0,-1d0)*Acomp_face/cdabs(Acomp_face))
 
     !"|Aphibar|", &
       call calc_phibar_compensator(Acomp_phibar,PhiMat)
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') cdabs(Acomp_phibar)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble(Acomp_phibar/cdabs(Acomp_phibar))
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble( (0d0,-1d0)*Acomp_phibar/cdabs(Acomp_phibar))
 
     !"|Aphibar|", &
       call calc_QC_Xi(QC_Xi,Geta_eta,Geta_lambda,Geta_chi,Umat,PhiMat)
