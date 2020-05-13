@@ -3,9 +3,185 @@
 !! calculate D^\mu J_\mu for U(1)_V current
 !!  vec1 ~ 1/2 Tr(\lambda(l) \eta(s))
 !!  vec2 ~ Tr(\lambda(l) \chi(f))
+!! and
+!!  DJ1 = d.vec1, DJ2 = d.vec2
 !! where \chi(f) is associated with the link variable Uf
 !! as in the fermionic part of the face action
-subroutine calc_divJ_U1V(divJ1,divJ2,Glambda_eta,Glambda_chi,UMAT)
+subroutine calc_DJ_U1V(DJ1,DJ2,Glambda_eta,Glambda_chi,UMAT)
+use global_parameters
+!use initialization_calcobs
+use parallel
+use global_subroutines, only : syncronize_linkval
+implicit none
+
+complex(kind(0d0)), intent(out) :: DJ1(1:num_faces)
+complex(kind(0d0)), intent(out) :: DJ2(1:num_faces)
+complex(kind(0d0)), intent(in) :: Glambda_eta(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_links,1:num_sites) 
+complex(kind(0d0)), intent(in) :: Glambda_chi(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_links,1:num_faces) 
+complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_necessary_links)
+
+
+complex(kind(0d0)) :: U_fs(1:NMAT,1:NMAT)
+complex(kind(0d0)) :: U_sf(1:NMAT,1:NMAT)
+complex(kind(0d0)) :: Uf(1:NMAT,1:NMAT)
+complex(kind(0d0)) :: mat1(1:NMAT,1:NMAT)
+complex(kind(0d0)) :: mat2(1:NMAT,1:NMAT)
+complex(kind(0d0)) :: tmp
+integer :: ls,ll,lf,gs,gl,gf,kk,dir
+integer :: i,j,k,l,a,b
+
+
+!!  DJ1 ~ 1/2 rot Tr(\lambda(l) \eta(s))
+DJ1=(0d0,0d0)
+do lf=1,num_faces
+  do kk=1,links_in_f(lf)%num_
+    ll=links_in_f(lf)%link_labels_(kk)
+    dir=links_in_f(lf)%link_dirs_(kk)
+    gl=global_link_of_local(ll)
+    ls=link_org(ll)
+    do j=1,NMAT
+      do i=1,NMAT
+        DJ1(lf)=DJ1(lf) + (0.5d0,0d0)*dcmplx(dir)*Glambda_eta(i,j,j,i,gl,ls)
+      enddo
+    enddo
+  enddo
+  DJ1(lf)=DJ1(lf)*beta_f(lf)
+enddo
+
+!! 
+DJ2=(0d0,0d0)
+do lf=1,num_faces
+  do kk=1,sites_in_f(lf)%num_
+    ls=sites_in_f(lf)%label_(kk)
+    call make_face_variable(Uf,lf,Umat)
+    call calc_prodUl_from_n1_to_n2_in_Uf(U_fs,lf,1,kk,Umat)
+    call matrix_product(U_sf,U_fs,Uf,'C','N')
+    do a=1,linktip_from_s(ls)%num_
+      tmp=(0d0,0d0)
+      ll=linktip_from_s(ls)%labels_(a)
+      gl=global_link_of_local(ll)
+      do l=1,NMAT
+        do k=1,NMAT
+          do j=1,NMAT
+            do i=1,NMAT
+              tmp=tmp + Glambda_chi(i,j,k,l,gl,lf)*U_sf(j,k)*U_fs(l,i)
+            enddo
+          enddo
+        enddo
+      enddo
+      DJ2(lf) = DJ2(lf) + tmp * dcmplx(alpha_l(ll))/dcmplx( num_faces_in_s(ls) )
+    enddo
+    !!!
+    do a=1,linkorg_to_s(ls)%num_
+      tmp=(0d0,0d0)
+      ll=linkorg_to_s(ls)%labels_(a)
+      gl=global_link_of_local(ll)
+      call matrix_product(mat1,Umat(:,:,ll),U_sf)
+      call matrix_product(mat2,U_fs,Umat(:,:,ll),'N','C')
+      do l=1,NMAT
+        do k=1,NMAT
+          do j=1,NMAT
+            do i=1,NMAT
+              tmp=tmp + Glambda_chi(i,j,k,l,gl,lf)*mat1(j,k)*mat2(l,i)
+            enddo
+          enddo
+        enddo
+      enddo
+    enddo
+    DJ2(lf) = DJ2(lf) - tmp * dcmplx(alpha_l(ll))/dcmplx( num_faces_in_s(ls) )
+  enddo
+enddo
+
+DJ1=(DJ1)/dcmplx(LatticeSpacing**4)
+DJ2=(DJ2)/dcmplx(LatticeSpacing**4)
+
+end subroutine calc_DJ_U1V
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! calculate lambda.lambda(U.\bar{phi}.U^-1 + \bar{phi})
+subroutine make_trV1(vec1,Glambda_eta)
+use global_parameters
+use parallel
+use global_subroutines, only : syncronize_linkval
+implicit none
+
+complex(kind(0d0)), intent(out) :: trvec1(1:num_necessary_links) ! 1/2 Tr(\lambda(l) \eta(s))
+complex(kind(0d0)), intent(in) :: Glambda_eta(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_links,1:num_sites) 
+
+integer :: ll,ls
+integer :: gl
+integer :: org_ll
+integer :: i,j
+
+trvec1=(0d0,0d0)
+do ll=1,num_links
+  gl=global_link_of_local(ll)
+  ls=link_org(ll)
+  do j=1,NMAT
+    do i=1,NMAT
+      trvec1(ll)=trvec1(ll) + (0.5d0,0d0)*Glambda_eta(i,j,j,i,gl,ls)
+    enddo
+  enddo
+enddo
+call syncronize_linkval(trvec1)
+end subroutine make_trV1
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! calculate lambda.lambda(U.\bar{phi}.U^-1 + \bar{phi})
+subroutine make_trV2(trvec2,Gchi_lambda,UMAT)
+use global_parameters
+use parallel
+use global_subroutines, only : syncronize_linkval, calc_prodUl_from_n1_to_n2_in_Uf
+implicit none
+
+complex(kind(0d0)), intent(out) :: trvec2(1:num_necessary_links) ! Tr(\lambda(l) \chi(f))
+complex(kind(0d0)), intent(in) :: Gchi_lambda(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_faces,1:num_links) 
+complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_necessary_links)
+
+complex(kind(0d0)) :: Ucarry(1:NMAT,1:NMAT)
+complex(kind(0d0)) :: tmp(1:num_faces)
+integer :: ll,lf
+integer :: gl,gf
+integer :: org_ll
+integer :: i,j,k,l
+
+trvec2=(0d0,0d0)
+do ll=1,num_links
+  call find_origin_of_dual_link(lf,org_ll,ll)
+  gf=global_face_of_local(lf)
+  !write(*,*) gf,global_site_of_local(link_org(ll)),global_site_of_local(link_tip(ll))
+  !! Ucarry = U1 ... U_orgll
+  call calc_prodUl_from_n1_to_n2_in_Uf(Ucarry,lf,1,org_ll,Umat)
+  do l=1,NMAT
+    do k=1,NMAT
+      do j=1,NMAT
+        do i=1,NMAT
+          trvec2(ll)=trvec2(ll)&
+            + Ucarry(j,k) * dconjg(Ucarry(i,l)) * Gchi_lambda(i,j,k,l,gf,ll)
+        enddo
+      enddo
+    enddo
+  enddo  
+  !!!!!!!!!!!!!!!!! !!!!!!!!!!!!!!!!! !!!!!!!!!!!!!!!!!
+  !! special treatment of the present discretization
+  if(gf==1) trvec2(ll)=-trvec2(ll)
+  !!!!!!!!!!!!!!!!! !!!!!!!!!!!!!!!!! !!!!!!!!!!!!!!!!!
+  !write(*,*) global_link_of_local(ll), dble(vec2(ll)), dble((0d0,-1d0)*vec2(ll))
+enddo
+call syncronize_linkval(trvec2)
+end subroutine make_trV2
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! calculate D^\mu J_\mu for U(1)_V current
+!!  vec1 ~ 1/2 Tr(\lambda(l) \eta(s))
+!!  vec2 ~ Tr(\lambda(l) \chi(f))
+!! where \chi(f) is associated with the link variable Uf
+!! as in the fermionic part of the face action
+subroutine calc_divJ_U1Vorg2(divJ1,divJ2,Glambda_eta,Glambda_chi,UMAT)
 use global_parameters
 !use initialization_calcobs
 use parallel
@@ -37,7 +213,7 @@ call calc_trdiv(divJ2,trvec2)
 divJ1=(divJ1)/dcmplx(LatticeSpacing**4)
 divJ2=(divJ2)/dcmplx(LatticeSpacing**4)
 
-end subroutine calc_divJ_U1V
+end subroutine calc_divJ_U1Vorg2
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -174,39 +350,6 @@ call syncronize_links(vec1)
 end subroutine make_V1
 
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!! calculate lambda.lambda(U.\bar{phi}.U^-1 + \bar{phi})
-subroutine make_trV1(vec1,Glambda_eta)
-use global_parameters
-use parallel
-use global_subroutines, only : syncronize_linkval
-implicit none
-
-complex(kind(0d0)), intent(out) :: vec1(1:num_necessary_links) ! 1/2 Tr(\lambda(l) \eta(s))
-complex(kind(0d0)), intent(in) :: Glambda_eta(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_links,1:num_sites) 
-
-integer :: ll,ls
-integer :: gl
-integer :: org_ll
-integer :: i,j
-
-
-vec1=(0d0,0d0)
-do ll=1,num_links
-  gl=global_link_of_local(ll)
-  ls=link_org(ll)
-  do j=1,NMAT
-    do i=1,NMAT
-      vec1(ll)=vec1(ll) + (0.5d0,0d0)*Glambda_eta(i,j,j,i,gl,ls)
-    enddo
-  enddo
-  !write(*,*) global_link_of_local(ll), dble(vec1(ll)), dble((0d0,-1d0)*vec1(ll))
-enddo
-call syncronize_linkval(vec1)
-
-
-end subroutine make_trV1
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -261,51 +404,6 @@ call syncronize_linkval(vec2)
 end subroutine make_V2_bak
 
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!! calculate lambda.lambda(U.\bar{phi}.U^-1 + \bar{phi})
-subroutine make_trV2(vec2,Gchi_lambda,UMAT)
-use global_parameters
-use parallel
-use global_subroutines, only : syncronize_linkval, calc_prodUl_from_n1_to_n2_in_Uf
-implicit none
-
-complex(kind(0d0)), intent(out) :: vec2(1:num_necessary_links) ! Tr(\lambda(l) \chi(f))
-complex(kind(0d0)), intent(in) :: Gchi_lambda(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_faces,1:num_links) 
-complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_necessary_links)
-
-complex(kind(0d0)) :: Ucarry(1:NMAT,1:NMAT)
-complex(kind(0d0)) :: tmp(1:num_faces)
-integer :: ll,lf
-integer :: gl,gf
-integer :: org_ll
-integer :: i,j,k,l
-
-vec2=(0d0,0d0)
-do ll=1,num_links
-  call find_origin_of_dual_link(lf,org_ll,ll)
-  gf=global_face_of_local(lf)
-  !write(*,*) gf,global_site_of_local(link_org(ll)),global_site_of_local(link_tip(ll))
-  !! Ucarry = U1 ... U_orgll
-  call calc_prodUl_from_n1_to_n2_in_Uf(Ucarry,lf,1,org_ll,Umat)
-  do l=1,NMAT
-    do k=1,NMAT
-      do j=1,NMAT
-        do i=1,NMAT
-          vec2(ll)=vec2(ll)&
-            + Ucarry(j,k) * dconjg(Ucarry(i,l)) * Gchi_lambda(i,j,k,l,gf,ll)
-        enddo
-      enddo
-    enddo
-  enddo  
-  !!!!!!!!!!!!!!!!! !!!!!!!!!!!!!!!!! !!!!!!!!!!!!!!!!!
-  !! special treatment of the present discretization
-  if(gf==1) vec2(ll)=-vec2(ll)
-  !!!!!!!!!!!!!!!!! !!!!!!!!!!!!!!!!! !!!!!!!!!!!!!!!!!
-  !write(*,*) global_link_of_local(ll), dble(vec2(ll)), dble((0d0,-1d0)*vec2(ll))
-enddo
-call syncronize_linkval(vec2)
-end subroutine make_trV2
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
