@@ -12,6 +12,7 @@ use global_parameters
 !use initialization_calcobs
 use parallel
 use global_subroutines, only : syncronize_linkval
+use matrix_functions, only :matrix_product
 implicit none
 
 complex(kind(0d0)), intent(out) :: DJ1(1:num_faces)
