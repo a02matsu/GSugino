@@ -100,7 +100,7 @@ end subroutine calc_DJ_U1V
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! calculate lambda.lambda(U.\bar{phi}.U^-1 + \bar{phi})
-subroutine make_trV1(vec1,Glambda_eta)
+subroutine make_trV1(trvec1,Glambda_eta)
 use global_parameters
 use parallel
 use global_subroutines, only : syncronize_linkval
