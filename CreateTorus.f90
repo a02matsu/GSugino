@@ -84,18 +84,18 @@ do n=0, sizeN-1
   do i=1,sizeM
     if( i /= sizeM ) then
       l=l+1
-      write(OUT,'(I6,X,I6,X,I6,X,E15.8)') l, n*sizeM+i, n*sizeM+i+1, alpha_l(l)
+      write(OUT,'(I6,X,I6,X,I6,X,E15.8,X,A)') l, n*sizeM+i, n*sizeM+i+1, alpha_l(l), "0d0"
     else
       l=l+1
-      write(OUT,'(I6,X,I6,X,I6,X,E15.8)') l, n*sizeM+i, n*sizeM+1, alpha_l(l)
+      write(OUT,'(I6,X,I6,X,I6,X,E15.8,X,A)') l, n*sizeM+i, n*sizeM+1, alpha_l(l), "0d0"
     endif
     !!
     if( n /= sizeN-1 ) then
       l=l+1
-      write(OUT,'(I6,X,I6,X,I6,X,E15.8)') l, n*sizeM+i, (n+1)*sizeM+i, alpha_l(l)
+      write(OUT,'(I6,X,I6,X,I6,X,E15.8,X,A)') l, n*sizeM+i, (n+1)*sizeM+i, alpha_l(l), "0d0"
     else
       l=l+1
-      write(OUT,'(I6,X,I6,X,I6,X,E15.8)') l, n*sizeM+i, i, alpha_l(l)
+      write(OUT,'(I6,X,I6,X,I6,X,E15.8,X,A)') l, n*sizeM+i, i, alpha_l(l), "0d0"
     endif
   enddo
 enddo
