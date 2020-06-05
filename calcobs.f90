@@ -140,7 +140,7 @@ use matrix_functions, only : matrix_inverse, calcpfaffian, matrix_eigenvalues
 implicit none
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-integer :: l,ll,s,ls,tag,rank,i,j, ite, ite2
+integer :: l,ll,s,ls,lf,gf,tag,rank,i,j, ite, ite2
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 integer :: iarg
 character(128) :: config_file
@@ -163,11 +163,16 @@ complex(kind(0d0)), allocatable :: Dirac(:,:)
 complex(kind(0d0)), allocatable :: Dirac2(:,:)
 double precision :: abs_pf!, arg_pf,
 double precision :: re_phase, im_phase
+!double precision :: re_tmp1, im_tmp1, re_tmp2, im_tmp2
 complex(kind(0d0)) :: phase_pf
 complex(kind(0d0)), allocatable :: eigenvals(:)
-complex(kind(0d0)) :: tmp
+complex(kind(0d0)) :: tmp,tmp1,tmp2
 integer :: k,s1,s2,l1,l2,f1,f2,a,b
 integer :: ios
+
+!!!!!
+complex(kind(0d0)), allocatable :: DJ1(:), DJ2(:)
+
 
 iarg=iargc()
 if( iarg ==0 ) then
@@ -190,6 +195,9 @@ allocate( Dinv(1:num_fermion, 1:num_fermion) )
 allocate( Dirac(1:num_fermion, 1:num_fermion) )
 allocate( Dirac2(1:num_fermion, 1:num_fermion) )
 allocate( eigenvals(1:num_fermion) )
+
+allocate( DJ1(1:num_faces) )
+allocate( DJ2(1:num_faces) )
 
 ! check DinvFile
 exist_dinv=access( trim(adjustl(DinvFILE)), ' ' )
@@ -224,13 +232,11 @@ do
       do i=1,num_fermion
         read(N_DinvFILE,'(E23.15,2X,E23.15,2X)',advance='no') &
           rtmp,ctmp
-          Dinv(i,j)=rtmp+(0d0,1d0)*ctmp
+          Dinv(i,j)=dcmplx(rtmp)+(0d0,1d0)*ctmp
       enddo
     enddo
     read(N_DinvFILE,'(E23.15,2X,E23.15,2X)') re_phase, im_phase
     phase_pf=dcmplx(re_phase)+(0d0,1d0)*dcmplx(im_phase)
-
-
 
 
 
@@ -271,7 +277,7 @@ do
           dble(Dinv(i,j)), dble(Dinv(i,j)*(0d0,-1d0))
       enddo
     enddo
-    write(N_DinvFILE,'(E23.15,2X,E23.15,2X)',advance='no') &
+    write(N_DinvFILE,'(E23.15,2X,E23.15,2X)') &
       dble(phase_pf), dble((0d0,-1d0)*phase_pf)
     !! eigenvalues
     do i=1,num_fermion
@@ -468,7 +474,33 @@ do
       !if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble(XiQS)
       !if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble((0d0,-1d0)*XiQS)
 
-
+      !! divergence of U(1)V current
+      call calc_DJ_U1V(DJ1,DJ2,Glambda_eta,Glambda_chi,Umat)
+      do gf=1,global_num_faces
+        rank=local_face_of_global(gf)%rank_
+        lf=local_face_of_global(gf)%label_
+        tag=gf
+        if( MYRANK == 0 ) then 
+          if( MYRANK == rank ) then
+            tmp1 = DJ1(lf)
+            tmp2 = DJ2(lf)
+          else
+            call MPI_RECV(tmp1,1,MPI_DOUBLE_COMPLEX,rank,2*tag-1,MPI_COMM_WORLD,ISTATUS,IERR)
+            call MPI_RECV(tmp2,1,MPI_DOUBLE_COMPLEX,rank,2*tag,MPI_COMM_WORLD,ISTATUS,IERR)
+          endif
+        else
+          if( MYRANK == rank ) then
+            call MPI_SEND(DJ1(lf),1,MPI_DOUBLE_COMPLEX,0,2*tag-1,MPI_COMM_WORLD,IERR)
+            call MPI_SEND(DJ2(lf),1,MPI_DOUBLE_COMPLEX,0,2*tag,MPI_COMM_WORLD,IERR)
+          endif
+        endif
+        if( MYRANK == 0 ) then 
+          write(*,'(E15.8,2X)',advance='no')  dble(tmp1)
+          write(*,'(E15.8,2X)',advance='no')  dble((0d0,-1d0)*tmp1)
+          write(*,'(E15.8,2X)',advance='no')  dble(tmp2)
+          write(*,'(E15.8,2X)',advance='no')  dble((0d0,-1d0)*tmp2)
+        endif
+      enddo
 
     if(MYRANK==0) write(*,*)
   else
