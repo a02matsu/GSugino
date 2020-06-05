@@ -16,6 +16,7 @@ complex(kind(0d0)) :: Bforce_A(1:NMAT,1:NMAT,1:num_links)
 complex(kind(0d0)) :: DQlambda(1:NMAT,1:NMAT,1:num_links)
 complex(kind(0d0)) :: DQchi(1:NMAT,1:NMAT,1:num_faces)
 
+
 QSF_lambda=(0d0,0d0)
 QSF_chi=(0d0,0d0)
 
@@ -23,7 +24,9 @@ call Make_bosonic_force_A_face(Bforce_A,Umat)
 
 DQlambda=(0d0,0d0)
 DQchi=(0d0,0d0)
+!! from Sf_face1
 call prod_Dirac_face1(DQchi,PhiMat,Qchi)
+!! from Sf_face2
 if( m_omega == 0 ) then
   call Dirac_Omega_m0(DQchi,DQlambda,Umat,Qlambda,Qchi)
 elseif( m_omega == -1 ) then
@@ -33,14 +36,13 @@ else
 endif
 
 QSF_lambda=(0d0,0d0)
-QSF_chi=(0d0,0d0)
 do l=1,num_links
-  !! boson
-  QSF_lambda(:,:,l)=Bforce_A(:,:,l)*U1Rfactor_site(link_org(l))
-  !! fermion
-  QSF_lambda(:,:,l)=QSF_lambda(:,:,l)-DQlambda(:,:,l)
+  QSF_lambda(:,:,l)=&
+    Bforce_A(:,:,l)*U1Rfactor_site(link_org(l)) & !! fermion
+    -DQlambda(:,:,l) !! boson
 enddo
 !!
+QSF_chi=(0d0,0d0)
 do f=1,num_faces
   !! boson
   ! no terms

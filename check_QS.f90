@@ -32,19 +32,19 @@ complex(kind(0d0)) :: ctmp
 double precision :: tmp,QS,tmp2
 integer :: info,s,l,f,i,j,triger
 
-!! fermion part
-call make_Qfermion(Qeta,Qlambda,Qchi,Omega,Umat,PhiMat)
-call Prod_Dirac(DQeta,DQlambda,DQchi,Qeta,Qlambda,Qchi,UMAT,Phimat)
+!call Prod_Dirac(DQeta,DQlambda,DQchi,Qeta,Qlambda,Qchi,UMAT,Phimat)
 
 !! boson part
-call make_bosonic_force_nomass(Bforce_s,Bforce_l,Umat,PhiMat)
-do s=1,num_sites
-  Bforce_s(:,:,s)=Bforce_s(:,:,s)*dconjg(U1Rfactor_site(s))
-enddo
-do l=1,num_links
-  Bforce_l(:,:,l)=Bforce_l(:,:,l)*U1Rfactor_site(link_org(l))
-enddo
+!call make_bosonic_force_nomass(Bforce_s,Bforce_l,Umat,PhiMat)
+!do s=1,num_sites
+  !Bforce_s(:,:,s)=Bforce_s(:,:,s)*dconjg(U1Rfactor_site(s))
+!enddo
+!do l=1,num_links
+  !Bforce_l(:,:,l)=Bforce_l(:,:,l)*U1Rfactor_site(link_org(l))
+!enddo
 
+!! Qeta, Qlambda, Qchi
+call make_Qfermion(Qeta,Qlambda,Qchi,Omega,Umat,PhiMat)
 
 if(MYRANK==0) write(*,*) "# QS = 0 ?"
 !!!!!!!!!!!!!!!!!!!!!

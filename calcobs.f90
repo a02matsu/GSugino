@@ -476,6 +476,12 @@ do
 
       !! divergence of U(1)V current
       call calc_DJ_U1V(DJ1,DJ2,Glambda_eta,Glambda_chi,Umat)
+      tmp=(0d0,0d0)
+      do j=1,NMAT
+        do i=1,NMAT
+          tmp=tmp+PhiMat(i,j,1)*dconjg(PhiMat(i,j,1))
+        enddo
+      enddo
       do gf=1,global_num_faces
         rank=local_face_of_global(gf)%rank_
         lf=local_face_of_global(gf)%label_
@@ -494,11 +500,12 @@ do
             call MPI_SEND(DJ2(lf),1,MPI_DOUBLE_COMPLEX,0,2*tag,MPI_COMM_WORLD,IERR)
           endif
         endif
+        tmp=(1d0,0d0)
         if( MYRANK == 0 ) then 
-          write(*,'(E15.8,2X)',advance='no')  dble(tmp1)
-          write(*,'(E15.8,2X)',advance='no')  dble((0d0,-1d0)*tmp1)
-          write(*,'(E15.8,2X)',advance='no')  dble(tmp2)
-          write(*,'(E15.8,2X)',advance='no')  dble((0d0,-1d0)*tmp2)
+          write(*,'(E15.8,2X)',advance='no')  dble(tmp*tmp1)
+          write(*,'(E15.8,2X)',advance='no')  dble((0d0,-1d0)*tmp*tmp1)
+          write(*,'(E15.8,2X)',advance='no')  dble(tmp*tmp2)
+          write(*,'(E15.8,2X)',advance='no')  dble((0d0,-1d0)*tmp*tmp2)
         endif
       enddo
 

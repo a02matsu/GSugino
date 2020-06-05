@@ -22,8 +22,8 @@ complex(kind(0d0)), intent(in) :: Glambda_chi(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:glob
 complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_necessary_links)
 
 
-!complex(kind(0d0)) :: trvec1(1:num_necessary_links)
-complex(kind(0d0)) :: vec1(1:NMAT,1:NMAT,1:num_necessary_links)
+complex(kind(0d0)) :: trvec1(1:num_necessary_links)
+!complex(kind(0d0)) :: vec1(1:NMAT,1:NMAT,1:num_necessary_links)
 complex(kind(0d0)) :: U_fs(1:NMAT,1:NMAT)
 complex(kind(0d0)) :: U_sf(1:NMAT,1:NMAT)
 complex(kind(0d0)) :: Uf(1:NMAT,1:NMAT)
@@ -36,22 +36,25 @@ integer :: i,j,k,l,a,b
 
 
 !!  DJ1 ~ 1/2 rot Tr(\lambda(l) \eta(s))
-!call make_trV1(trvec1,Glambda_eta)
-call make_V1(vec1,Glambda_eta)
+call make_trV1(trvec1,Glambda_eta)
+!call make_V1(vec1,Glambda_eta)
 DJ1=(0d0,0d0)
 do lf=1,num_faces
-  call make_unit_matrix(mat1)
+  !call make_unit_matrix(mat1)
+  tmp=(1d0,0d0)
   do kk=1,links_in_f(lf)%num_
     ll=links_in_f(lf)%link_labels_(kk)
     dir=links_in_f(lf)%link_dirs_(kk)
-    call matrix_exp(tmpmat, dcmplx(dir)*dcmplx(beta_f(lf))*vec1(:,:,ll))
-    call matrix_product(mat2,mat1,tmpmat)
-    mat1=mat2
+    tmp=tmp*cdexp( (0d0,1d0) * dcmplx(dir*beta_f(lf)/LatticeSpacing**4) * trvec1(ll)  )
+    !call matrix_exp(tmpmat, dcmplx(dir)*dcmplx(beta_f(lf))*vec1(:,:,ll))
+    !call matrix_product(mat2,mat1,tmpmat)
+    !mat1=mat2
     !DJ1(lf)=DJ1(lf) + dcmplx(dir)*trvec1(ll)
     !DJ1(lf)=DJ1(lf) + trvec1(ll)
     !DJ1(lf)=DJ1(lf)*cdexp( dcmplx(dir)*trvec1(ll)*dcmplx(beta_f(lf)) )
   enddo
-  call matrix_trace(DJ1(lf),mat1)
+  DJ1(lf)=tmp
+  !call matrix_trace(DJ1(lf),mat1)
   !DJ1(lf) = cdlog(DJ1(lf))
   !DJ1(lf)=DJ1(lf)*beta_f(lf)
   !DJ1(lf)=cdlog( DJ1(lf) )
@@ -111,7 +114,7 @@ do lf=1,num_faces
   enddo
 enddo
 
-DJ1=(DJ1)/dcmplx(LatticeSpacing**4)
+!DJ1=(DJ1)/dcmplx(LatticeSpacing**4)
 DJ2=(DJ2)/dcmplx(LatticeSpacing**4)
 
 end subroutine calc_DJ_U1V

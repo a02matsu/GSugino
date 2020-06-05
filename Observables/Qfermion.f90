@@ -45,8 +45,8 @@ do f=1,num_faces
     call matrix_power(Ufm,Uf,m_omega)
     call Make_moment_map(Omega(:,:,f),Ufm)
   endif
-  Qchi(:,:,f)=(0d0,0.5d0)*dcmplx(beta_f(f))*Omega(:,:,f)
-  Qchi(:,:,f)=Qchi(:,:,f)*U1Rfactor_site(sites_in_f(f)%label_(1))
+  Qchi(:,:,f)=(0d0,0.5d0)*dcmplx(beta_f(f))*Omega(:,:,f)*U1Rfactor_site(sites_in_f(f)%label_(1))
+  !Qchi(:,:,f)=Qchi(:,:,f)*U1Rfactor_site(sites_in_f(f)%label_(1))
 enddo
 
 #ifdef PARALLEL

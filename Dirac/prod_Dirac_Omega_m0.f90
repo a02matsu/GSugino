@@ -34,7 +34,7 @@ do f=1,num_necessary_faces
       !dir_factor=dcmplx(dble(links_in_f(f)%link_dirs_(l_place)) &
         !* alpha_f(f)*beta_f(f)*overall_factor )*(0d0,1d0)
       dir_factor=&
-        (0d0,-1d0)*overall_factor &
+        (0d0,1d0)*overall_factor &
         *dcmplx(links_in_f(f)%link_dirs_(l_place))&
         *dcmplx(alpha_f(f)*beta_f(f)) &
         *U1Rfactor_fl

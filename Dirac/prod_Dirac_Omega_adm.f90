@@ -39,7 +39,7 @@ do f=1,num_necessary_faces
 
     if( f <= num_faces .or. l <= num_links ) then 
       dir_factor&
-        =(0d0,-1d0)*dcmplx(&
+        =(0d0,1d0)*dcmplx(&  ! sign is flipped (2020/06/05)
           dble(links_in_f(f)%link_dirs_(l_place)) &
           * alpha_f(f) * beta_f(f) * overall_factor)
 
