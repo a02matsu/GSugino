@@ -13,7 +13,7 @@ character(128), parameter :: PARAFILE="parameters_calcobs.dat"
 character(128) :: MEDFILE
 character(128) :: DinvFILE
 character(128) :: EigenFILE
-integer, parameter :: num_calcobs=42 ! 考えているobservableの数
+integer, parameter :: num_calcobs=36 ! 考えているobservableの数
 character(128) :: name_obs(1:num_calcobs) = (/ &
   "Re(phase Pf)",  &
   "Im(phase Pf)", &
@@ -50,14 +50,14 @@ character(128) :: name_obs(1:num_calcobs) = (/ &
   "Im(WTmass_link)", &
   "Re(WTmass_face)", &
   "Im(WTmass_face)", &
-  "Tr|phi^2|", &
-  "Re(exactSf_link1)", &
-  "Im(exactSf_link1)", &
-  "Re(exactSf_link2)", &
-  "Im(exactSf_link2)", &
-  "Re(exactSf_face2)", &
-  "Im(exactSf_face2)"  &
+  "Tr|phi^2|" &
   /)
+  !"Re(exactSf_link1)", &
+  !"Im(exactSf_link1)", &
+  !"Re(exactSf_link2)", &
+  !"Im(exactSf_link2)", &
+  !"Re(exactSf_face2)", &
+  !"Im(exactSf_face2)"  &
   !"Re(XiQS_site)", &
   !"Im(XiQS_site)", &
   !"Re(XiQS_link)", &
@@ -443,20 +443,20 @@ do
       call calc_trphi2(trphi2,PhiMat)
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') trphi2
 
-    !! Sf_link1
-      call calc_Qexact_Sf_link1(Sf2,Geta_lambda,Umat,PhiMat)
-      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble(Sf2)
-      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble((0d0,-1d0)*Sf2)
-
-    !! Sf_link2
-      call calc_Qexact_Sf_link2(Sf3, PhiMat, Umat, Glambda_lambda)
-      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble(Sf3)
-      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble((0d0,-1d0)*Sf3)
-
-    !! Sf_face2
-      call calc_Qexact_Sf_face2(Sf5,Glambda_chi,Umat)
-      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble(Sf5)
-      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble((0d0,-1d0)*Sf5)
+!    !! Sf_link1
+!      call calc_Qexact_Sf_link1(Sf2,Geta_lambda,Umat,PhiMat)
+!      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble(Sf2)
+!      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble((0d0,-1d0)*Sf2)
+!
+!    !! Sf_link2
+!      call calc_Qexact_Sf_link2(Sf3, PhiMat, Umat, Glambda_lambda)
+!      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble(Sf3)
+!      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble((0d0,-1d0)*Sf3)
+!
+!    !! Sf_face2
+!      call calc_Qexact_Sf_face2(Sf5,Glambda_chi,Umat)
+!      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble(Sf5)
+!      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble((0d0,-1d0)*Sf5)
       !if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble((0d0,-1d0)*Sf)
 
     !! XiQS_site
@@ -474,40 +474,40 @@ do
       !if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble(XiQS)
       !if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble((0d0,-1d0)*XiQS)
 
-      !! divergence of U(1)V current
-      call calc_DJ_U1V(DJ1,DJ2,Glambda_eta,Glambda_chi,Umat)
-      tmp=(0d0,0d0)
-      do j=1,NMAT
-        do i=1,NMAT
-          tmp=tmp+PhiMat(i,j,1)*dconjg(PhiMat(i,j,1))
-        enddo
-      enddo
-      do gf=1,global_num_faces
-        rank=local_face_of_global(gf)%rank_
-        lf=local_face_of_global(gf)%label_
-        tag=gf
-        if( MYRANK == 0 ) then 
-          if( MYRANK == rank ) then
-            tmp1 = DJ1(lf)
-            tmp2 = DJ2(lf)
-          else
-            call MPI_RECV(tmp1,1,MPI_DOUBLE_COMPLEX,rank,2*tag-1,MPI_COMM_WORLD,ISTATUS,IERR)
-            call MPI_RECV(tmp2,1,MPI_DOUBLE_COMPLEX,rank,2*tag,MPI_COMM_WORLD,ISTATUS,IERR)
-          endif
-        else
-          if( MYRANK == rank ) then
-            call MPI_SEND(DJ1(lf),1,MPI_DOUBLE_COMPLEX,0,2*tag-1,MPI_COMM_WORLD,IERR)
-            call MPI_SEND(DJ2(lf),1,MPI_DOUBLE_COMPLEX,0,2*tag,MPI_COMM_WORLD,IERR)
-          endif
-        endif
-        tmp=(1d0,0d0)
-        if( MYRANK == 0 ) then 
-          write(*,'(E15.8,2X)',advance='no')  dble(tmp*tmp1)
-          write(*,'(E15.8,2X)',advance='no')  dble((0d0,-1d0)*tmp*tmp1)
-          write(*,'(E15.8,2X)',advance='no')  dble(tmp*tmp2)
-          write(*,'(E15.8,2X)',advance='no')  dble((0d0,-1d0)*tmp*tmp2)
-        endif
-      enddo
+!      !! divergence of U(1)V current
+!      call calc_DJ_U1V(DJ1,DJ2,Glambda_eta,Glambda_chi,Umat)
+!      tmp=(0d0,0d0)
+!      do j=1,NMAT
+!        do i=1,NMAT
+!          tmp=tmp+PhiMat(i,j,1)*dconjg(PhiMat(i,j,1))
+!        enddo
+!      enddo
+!      do gf=1,global_num_faces
+!        rank=local_face_of_global(gf)%rank_
+!        lf=local_face_of_global(gf)%label_
+!        tag=gf
+!        if( MYRANK == 0 ) then 
+!          if( MYRANK == rank ) then
+!            tmp1 = DJ1(lf)
+!            tmp2 = DJ2(lf)
+!          else
+!            call MPI_RECV(tmp1,1,MPI_DOUBLE_COMPLEX,rank,2*tag-1,MPI_COMM_WORLD,ISTATUS,IERR)
+!            call MPI_RECV(tmp2,1,MPI_DOUBLE_COMPLEX,rank,2*tag,MPI_COMM_WORLD,ISTATUS,IERR)
+!          endif
+!        else
+!          if( MYRANK == rank ) then
+!            call MPI_SEND(DJ1(lf),1,MPI_DOUBLE_COMPLEX,0,2*tag-1,MPI_COMM_WORLD,IERR)
+!            call MPI_SEND(DJ2(lf),1,MPI_DOUBLE_COMPLEX,0,2*tag,MPI_COMM_WORLD,IERR)
+!          endif
+!        endif
+!        tmp=(1d0,0d0)
+!        if( MYRANK == 0 ) then 
+!          write(*,'(E15.8,2X)',advance='no')  dble(tmp*tmp1)
+!          write(*,'(E15.8,2X)',advance='no')  dble((0d0,-1d0)*tmp*tmp1)
+!          write(*,'(E15.8,2X)',advance='no')  dble(tmp*tmp2)
+!          write(*,'(E15.8,2X)',advance='no')  dble((0d0,-1d0)*tmp*tmp2)
+!        endif
+!      enddo
 
     if(MYRANK==0) write(*,*)
   else
