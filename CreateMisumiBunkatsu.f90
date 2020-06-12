@@ -140,15 +140,15 @@ write(OUT,'(A)') "# alpha_l: l, org(l), tip(l), alpha_l(l)"
 do n=1,sizeN/2
   do i=1,sizeM-1
     l=(n-1)*sizeM+i
-    write(OUT,'(I6,X,I6,X,I6,X,E15.8)') l, (n-1)*sizeM+i, (n-1)*sizeM+i+1, alpha_l(l)
+    write(OUT,'(I6,X,I6,X,I6,X,E15.8,X,A)') l, (n-1)*sizeM+i, (n-1)*sizeM+i+1, alpha_l(l), "0d0"
   enddo
   l=n*sizeM
-  write(OUT,'(I6,X,I6,X,I6,X,E15.8)' ) l, n*sizeM, (n-1)*sizeM+1, alpha_l(l)
+  write(OUT,'(I6,X,I6,X,I6,X,E15.8,X,A)' ) l, n*sizeM, (n-1)*sizeM+1, alpha_l(l), "0d0"
 enddo
 do n=1,sizeN/2-1
   do i=1,sizeM
     l= sizeM*sizeN/2 + (n-1)*sizeM + i
-    write(OUT,'(I6,X,I6,X,I6,X,E15.8)') l , (n-1)*sizeM+i, n*sizeM+i, alpha_l(l)
+    write(OUT,'(I6,X,I6,X,I6,X,E15.8,X,A)') l , (n-1)*sizeM+i, n*sizeM+i, alpha_l(l), "0d0"
   enddo
 enddo
 !!!!!!!!!!!!
