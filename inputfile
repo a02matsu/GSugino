@@ -12,6 +12,8 @@
 2 
 ## FB_ratio ; force計算のfermion/boson比
 10
+## ratio_DtauPhi_over_DtauA : Dtau_Phi/Dtau_A
+1.0d0
 ## num_ite: Number of trajectories
 10 
 ## save_med_step: Interval to save configs
