@@ -113,7 +113,9 @@ else
   write(output,'(A,I5,A,I5)') "# make branch from ",branch_root," to ",branch_num
 endif
 write(output,'(a)') "#"
-write(output,'(A,F10.8)') "# Tau= ",Tau
+write(output,'(A,F10.8)') "# Tau for A= ",Tau
+write(output,'(A,F10.8)') "# Tau for Phi= ",Tau*ratio_DtauPhi_over_DtauA
+write(output,'(A,F10.8)') "# DTau_phi/Dtau_A= ",ratio_DtauPhi_over_DtauA
 write(output,'(A,I5)') "# Nfermion= ",Nfermion
 write(output,'(A,I5)') "# Nboson= ",Nboson
 write(output,'(A,I5)') "# iterations= ", num_ite
@@ -147,14 +149,15 @@ integer :: i,fix_num
 fix_num=4
 write(output,'(a)',advance='no') "# 1) iteration, 2) delta Hamiltonian, 3) max||Uf-1||/max 4) CG ite, "
 if( force_measurement == 1 ) then
-  fix_num=6
-  write(output,'(a)',advance='no') "5) FF/FB_phi, "
-  write(output,'(a)',advance='no') "6) FF/FB_A, "
+  fix_num=7
+  write(output,'(a)',advance='no') "5) FB_phi/FB_A, "
+  write(output,'(a)',advance='no') "6) FF_phi/FB_phi, "
+  write(output,'(a)',advance='no') "7) FF_A/FB_A, "
 endif
 if( eigen_measurement == 1 ) then
-  fix_num=8
-  write(output,'(a)',advance='no') "7) min(DDdag), "
-  write(output,'(a)',advance='no') "8) max(DDdag), "
+  fix_num=9
+  write(output,'(a)',advance='no') "8) min(DDdag), "
+  write(output,'(a)',advance='no') "9) max(DDdag), "
 endif
 do i=1,num_obs
   write(output,'(I3,a1,a,a1)',advance='no') i+fix_num,")",trim(obs_name(i) ),","
@@ -219,6 +222,7 @@ write(output,'(f12.5,2X)',advance='no') delta_Ham
 write(output,'(f6.2,2X)',advance='no') ratio
 write(output,'(I6,2X)',advance='no') CGite
 if( force_measurement == 1 ) then
+  write(output,'(f6.2,2X)',advance='no') bosonic_force_Phi/bosonic_force_A
   write(output,'(f6.2,2X)',advance='no') fermionic_force_Phi/bosonic_force_Phi
   write(output,'(f6.2,2X)',advance='no') fermionic_force_A/bosonic_force_A
 endif

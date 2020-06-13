@@ -287,6 +287,8 @@ integer, save :: FB_ratio ! Phiのfermion forceの計算回数をboson forceの�
 integer, save :: Nfermion, Nboson
 double precision, save :: Dtau_boson ! Dtau for boson
 double precision, save :: Dtau_fermion ! Dtau for fermion
+double precision, save :: Dtau_fermion_A, Dtau_fermion_phi
+double precision, save :: ratio_DtauPhi_over_DtauA
 
 double precision, save :: overall_factor ! N/2g^2N=N/2a^2
 double precision, save :: maximal_dist ! the largest allowed value of |U_f|

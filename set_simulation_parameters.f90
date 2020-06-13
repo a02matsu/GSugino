@@ -34,6 +34,9 @@ if (MYRANK==0) then
 !! FB_ratio ; force計算のfermion/boson比
   read(INPUT_FILE,'()') 
   read(INPUT_FILE,*) FB_ratio
+!! ratio_DtauPhi_overDtau_A : Dtau_Phi/Dtau_A
+  read(INPUT_FILE,'()') 
+  read(INPUT_FILE,*) ratio_DtauPhi_over_DtauA
 !! num_ite
   read(INPUT_FILE,'()') 
   read(INPUT_FILE,*) num_ite
@@ -82,14 +85,19 @@ if (num_sub_SC .ne. NPROCS) then
   call stop_for_test
 endif
 
+!ratio_DtauPhi_over_DtauA=1d0
+
 Nboson = Nfermion * FB_ratio
 Dtau_boson = Tau / dble(Nboson*Nfermion)
 Dtau_fermion = Tau / dble(Nfermion)
 
-Ntau = Nboson * Nfermion
-Dtau_phi = Dtau_boson
 Dtau_A = Dtau_boson
+Dtau_fermion_A = Dtau_fermion
+Dtau_phi = Dtau_boson*ratio_DtauPhi_over_DtauA
+Dtau_fermion_phi = Dtau_fermion*ratio_DtauPhi_over_DtauA
+
 Dtau = Dtau_boson
+Ntau = Nboson * Nfermion
 
 #else
 open(INPUT_FILE, file=INPUT_FILE_NAME, status='old',action='READ')
