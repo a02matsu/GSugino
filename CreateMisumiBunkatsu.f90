@@ -99,6 +99,10 @@ if( mod(sizeN,4) == 0 ) then
 
     alpha_l((n-1)*sizeM+1:n*sizeM)=tmp
   enddo
+elseif( sizeN == 6 ) then
+  do n=1,3
+    alpha_l((n-1)*sizeM+1:n*sizeM)=dble(sizeM)/dsqrt(3d0)/Pi
+  enddo
 else
   tmp=0d0
   do k=1, (sizeN-2)/4-2
