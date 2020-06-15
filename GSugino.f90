@@ -194,7 +194,10 @@ endif
   if (new_config == 1 .or. new_config == 2) then ! new config
     total_ite=0
     job_number=1
+    !!! when cold start, evaluation of Dirac is time-consuming
+    eval_eigen=0
     call set_random_config(UMAT,PHIMAT) 
+    !call set_cold_config(UMAT,PHIMAT)
   else ! read config from CONF directory
     if( branch_mode == 0 ) then ! continuous simulation 
       if( branch_use == 0 ) then
@@ -427,7 +430,7 @@ end subroutine read_config
 !! 
 subroutine set_random_config(UMAT,PhiMat)
 use SUN_generators, only : Make_SUN_generators
-use matrix_functions, only : matrix_exp
+use matrix_functions, only : matrix_exp,make_matrix_traceless
 use global_subroutines, only : BoxMuller2
 use global_parameters
 use mt95
@@ -444,6 +447,7 @@ complex(kind(0d0)) :: TMAT(1:NMAT,1:NMAT,1:NMAT**2-1)
 double precision :: rsite(1:2*NMAT*NMAT*num_sites) ! for PHI
 double precision :: rlink(1:dimG,1:num_links) ! for UMAT
 complex(kind(0d0)) :: AMAT(1:NMAT,1:NMAT,1:num_links)
+complex(kind(0d0)) :: BMAT(1:NMAT,1:NMAT)
 complex(kind(0d0)) :: trace
 integer :: s,l,a,f,i,j,num
 
@@ -468,7 +472,7 @@ if( PARATEST== 1 ) then
     call BoxMuller2(g_rsite,2*global_num_sites*NMAT*NMAT)
     call genrand_real3(g_rlink)
   
-    g_rsite=g_rsite * 0.01d0 !/ mass_square_phi
+    g_rsite=g_rsite * 1d-8 !/ mass_square_phi
     num=0
     do s=1,global_num_sites
       do i=1,NMAT
@@ -490,19 +494,14 @@ if( PARATEST== 1 ) then
   
     ! random number must be sufficiently small
     if( m_omega == 0 .or. m_omega == -1 ) then 
-      g_rlink=g_rlink * ( 1d0/dble(NMAT*NMAT) )
+      !g_rlink=g_rlink * ( 1d0/dble(NMAT*NMAT) )
+      g_rlink=g_rlink * 1d-3
     else
-      g_rlink=g_rlink * ( 1d0/dble(NMAT*NMAT*m_omega) )
+      !g_rlink=g_rlink * ( 1d0/dble(NMAT*NMAT*m_omega) )
+      g_rlink=g_rlink * ( 1d-3/dble(m_omega) )
     endif
     G_AMAT=(0d0,0d0)
     do l=1,global_num_links
-      !trace=(0d0,0d0)
-      !do i=1,NMAT
-      !  trace=trace+g_rlink(i,l)
-      !enddo
-      !do i=1,NMAT
-      !  G_AMat(i,i,l)=g_rlink(i,l)-trace/dble(NMAT)
-      !enddo
       do a=1,dimG
         G_AMAT(:,:,l)=G_AMAT(:,:,l)+g_rlink(a,l)*TMAT(:,:,a)
       enddo
@@ -642,9 +641,55 @@ endif
   enddo
 
 #endif
+!Bmat=(0d0,0d0)
+!do i=1,NMAT
+!  BMat(i,i)=dble(NMAT-2*i)*1d-8
+!enddo
+!call make_matrix_traceless(BMat(:,:))
+!do s=1,num_necessary_sites
+!  PhiMat(:,:,s)=BMat
+!enddo
+!do l=1,num_necessary_links
+!  call matrix_exp(Umat(:,:,l),(0d0,1d0) * Bmat )! * dcmplx(global_link_of_local(l)))
+!enddo
 
 end subroutine set_random_config
 
+
+!!!!!!!!!!!!!!!!!!!!!!!
+!! cold start
+!subroutine set_cold_config(UMAT,PhiMat)
+!use global_parameters
+!use matrix_functions, only : matrix_exp, make_matrix_traceless
+!use SUN_generators, only : Make_SUN_generators
+!use parallel
+!implicit none
+!
+!complex(kind(0d0)), intent(inout) :: UMAT(1:NMAT,1:NMAT,1:num_necessary_links)
+!complex(kind(0d0)), intent(inout) :: PhiMat(1:NMAT,1:NMAT,1:num_necessary_sites)
+!complex(kind(0d0))  :: AMAT(1:NMAT,1:NMAT)
+!complex(kind(0d0)) :: TMAT(1:NMAT,1:NMAT,1:NMAT**2-1)
+!integer :: i,j,s,l,a
+!
+!
+!call make_SUN_generators(TMAT,NMAT)
+!Amat=(0d0,0d0)
+!do a=1,NMAT*NMAT-1
+!  AMat(:,:)=AMAT(:,:)+TMAT(:,:,a)*1d-8
+!enddo
+!!call make_matrix_traceless(AMat(:,:))
+!
+!do s=1,num_necessary_sites
+!  do a=1,NMAT*NMAT-1
+!    PhiMat(:,:,s)=PhiMat(:,:,s)+TMat*dcmplx(global_site_of_local(s))
+!  enddo
+!enddo
+!do l=1,num_necessary_links
+!  call matrix_exp(Umat(:,:,l),(0d0,1d0)*Amat*dcmplx(global_link_of_local(l)))
+!enddo
+!
+!end subroutine set_cold_config
+!
 
 
 
