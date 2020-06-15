@@ -472,14 +472,18 @@ if( PARATEST== 1 ) then
     call BoxMuller2(g_rsite,2*global_num_sites*NMAT*NMAT)
     call genrand_real3(g_rlink)
   
-    g_rsite=g_rsite * 1d-8 !/ mass_square_phi
+    !g_rsite=g_rsite * 1d-8 !/ mass_square_phi
     num=0
     do s=1,global_num_sites
       do i=1,NMAT
         do j=1,NMAT
           num=num+1
           !if ( i.ne.NMAT .or. j.ne.NMAT ) then
+          if( i==j ) then
             G_PHIMAT(i,j,s)=dcmplx(g_rsite(2*num-1))+(0d0,1d0)*dcmplx(g_rsite(2*num))
+          else
+            G_PHIMAT(i,j,s)=dcmplx(1d-2 *g_rsite(2*num-1))+(0d0,1d-2)*dcmplx(g_rsite(2*num))
+          endif
           !endif
         enddo
       enddo
