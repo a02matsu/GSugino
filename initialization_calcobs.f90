@@ -94,9 +94,15 @@ mass_square_phi = phys_mass_square_phi * (LatticeSpacing*latticeSpacing)
 !   この段階で、
 !      num_sites,num_links,num_faces
 !      local_{site,link,face}_of_globalの(1:num_{sites,links,faces})が確定する。
-call set_simulation_parameters(local_site_list)
+!call set_simulation_parameters(local_site_list)
 
-! set local data
+! (2020/06/17変更)
+! 分割情報は別ファイルにまとめて、siteの割り振りを決定
+call set_mpi_distribution(local_site_list)
+!   Rank=0にたまっているsiteのデータを使って、
+!      num_sites,num_links,num_faces
+!      local_{site,link,face}_of_globalの(1:num_{sites,links,faces})
+!   を確定させる
 call set_local_data(local_site_list)
 
 allocate( UMAT(1:NMAT,1:NMAT,1:num_necessary_links) )

@@ -347,6 +347,7 @@ contains
 #include "set_NZF.f90"
 #include "set_global_simplicial_complex.f90"
 #include "set_simulation_parameters.f90"
+#include "set_mpi_distribution.f90"
 #include "set_local_data.f90"
 #include "set_Remez_data.f90"
 

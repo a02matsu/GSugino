@@ -130,6 +130,7 @@ global_parameters.o: \
   SUN_generators.o \
   set_theory_parameters.f90 \
   set_simulation_parameters.f90 \
+  set_mpi_distribution.f90 \
   set_local_data.f90 \
   set_NZF.f90 \
   set_global_simplicial_complex.f90 \
