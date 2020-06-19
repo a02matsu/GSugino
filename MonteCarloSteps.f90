@@ -83,18 +83,22 @@ call check_QS(Umat,PhiMat)
 call genrand_init( get=state )
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!! check if molecular dynamics is reversible
+!! check if the molecular evolution is reversible
 if( MYRANK==0 ) then
   write(*,*) "# Checking if the molecular evolution is reversible...." 
 endif
 call genrand_init( put=seed )
 call set_randomP_single(P_AMat,P_PhiMat)
 if( pf==0 ) call make_pseudo_fermion(PF_eta,PF_lambda,PF_chi,UMAT,PhiMat)
+! backup
 PhiMat_bak=PhiMat
 UMAT_bak=UMAT
+! forward
 call molecular_evolution_multistep(UMAT,PhiMat,PF_eta,PF_lambda,PF_chi,P_AMat,P_PhiMat,info)
+! backward
 P_Amat=-P_Amat
 P_Phimat=-P_Phimat
+!if( pf==0 ) call make_pseudo_fermion(PF_eta,PF_lambda,PF_chi,UMAT,PhiMat)
 call molecular_evolution_multistep(UMAT,PhiMat,PF_eta,PF_lambda,PF_chi,P_AMat,P_PhiMat,info)
 
 tmp_diff_phi=0d0
@@ -129,15 +133,17 @@ if( MYRANK==0 ) then
 endif
 n=1
 do while ( n > 0 ) 
-Ntau=Ntau*2
+!Ntau=Ntau*2
+!Nboson=Nboson*2
 Nfermion=Nfermion*2
+!FB_ratio=FB_ratio*2
 Dtau_phi=Dtau_phi/2d0
 Dtau_A=Dtau_A/2d0
 Dtau_fermion_phi=Dtau_fermion_phi/2d0
 Dtau_fermion_A=Dtau_fermion_A/2d0
 
-Dtau_boson=Dtau_boson/2d0
-Dtau_fermion=Dtau_fermion/2d0
+!Dtau_boson=Dtau_boson/2d0
+!Dtau_fermion=Dtau_fermion/2d0
 
 !! fix the random seed
 !if( fix_seed == 1 ) then
@@ -391,12 +397,12 @@ endif
 ave_dHam = ave_dHam/dble(num_ite)
 write(OUTPUT_FILE,*) "# Total time: ",diff,"[s]"
 write(OUTPUT_FILE,*) "# Time/ite: ",diff/dble(num_ite),"[s]"
-write(OUTPUT_FILE,*) "# Time/ite/Ntau: ",diff/dble(num_ite*Ntau),"[s]"
+!write(OUTPUT_FILE,*) "# Time/ite/Ntau: ",diff/dble(num_ite*Ntau),"[s]"
 write(OUTPUT_FILE,*) "# ave_dHam=",ave_dHam
 write(OUTPUT_FILE,*) "# acceptance=",dble(accept)/dble(num_ite)
 write(*,*) "# Total time: ",diff,"[s]"
 write(*,*) "# Step time: ",diff/dble(num_ite),"[s]"
-write(*,*) "# Time/ite/Ntau: ",diff/dble(num_ite*Ntau),"[s]"
+!write(*,*) "# Time/ite/Ntau: ",diff/dble(num_ite*Ntau),"[s]"
 write(*,*) "# ave_dHam=",ave_dHam
 write(*,*) "# acceptance=",dble(accept)/dble(num_ite)
 
@@ -675,31 +681,53 @@ integer, intent(inout) :: info
 integer :: i,j,step,local_info
 double precision :: rtmp
 
-
 info=0
+
 !!!!!!!!!!!!!!!!!!
 !!!! Update Phi
 !! first step
-!write(*,*) "test"
+!call update_Umat(UMat,P_AMat,Dtau_A*0.5d0)
+!call update_PhiMat(PhiMat,P_phiMat,Dtau_phi*0.5d0)
+!
+!!! main step
+!do i=1,Nfermion
+!  do j=1,FB_ratio
+!    call update_momentum_boson(P_PhiMat,P_AMat,PhiMat,UMAT,Dtau_A,Dtau_phi)
+!    call update_Umat(UMat,P_AMat,Dtau_A)
+!    call update_PhiMat(PhiMat,P_phiMat,Dtau_phi)
+!  enddo
+!  if(pf==0) call update_momentum_fermion(P_PhiMat,P_AMat,PhiMat,UMAT,PF_eta,PF_lambda,PF_chi,local_info,Dtau_fermion_A, Dtau_fermion_phi)
+!!  if(local_info==1) then
+!!    info=1
+!!    return
+!!  endif
+!enddo
+!
+!!! final step
+!call update_Umat(UMat,P_AMat,Dtau_A*0.5d0)
+!call update_PhiMat(PhiMat,P_phiMat,Dtau_phi*0.5d0)
+
+!! first step
+
 call update_momentum_boson(P_PhiMat,P_AMat,PhiMat,UMAT,Dtau_A*0.5d0,Dtau_phi*0.5d0)
 if(pf==0) call update_momentum_fermion(P_PhiMat,P_AMat,PhiMat,UMAT,PF_eta,PF_lambda,PF_chi,local_info,Dtau_fermion_A*0.5d0, Dtau_fermion_phi*0.5d0)
-if(local_info==1) then
-  info=1
-  return
-endif
+!if(local_info==1) then
+  !info=1
+  !return
+!endif
 
 !! main step
 step=0
 do i=1,Nfermion
-  do j=1,Nboson
+  do j=1,FB_ratio
     call update_PhiMat(PhiMat,P_phiMat,Dtau_phi)
     call update_Umat(UMat,P_AMat,Dtau_A)
     step=step+1
-    if( step .ne. Nfermion*Nboson ) then
+    if( step .ne. Nfermion*FB_ratio ) then
       call update_momentum_boson(P_PhiMat,P_AMat,PhiMat,UMAT,Dtau_A,Dtau_phi)
     endif
   enddo
-  if( step .ne. Nfermion*Nboson ) then
+  if( step .ne. Nfermion*FB_ratio ) then
     if(pf==0) call update_momentum_fermion(P_PhiMat,P_AMat,PhiMat,UMAT,PF_eta,PF_lambda,PF_chi,local_info,Dtau_fermion_A, Dtau_fermion_phi)
     if(local_info==1) then
       info=1
@@ -715,6 +743,7 @@ if(local_info==1) then
   info=1
   return
 endif
+
 
 end subroutine molecular_evolution_multistep
 
@@ -762,10 +791,9 @@ end subroutine molecular_evolution_multistep
 !
 !end subroutine molecular_evolution_Omelyan
 
-
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! update UMAT
-subroutine update_UMAT(UMAT,P_AMat,Dtau)
+subroutine update_UMAT(UMAT,P_AMat,delta)
 use matrix_functions, only : MATRIX_EXP,make_matrix_traceless
 use SUN_generators, only : make_traceless_matrix_from_modes
 #ifdef PARALLEL
@@ -776,7 +804,7 @@ implicit none
 complex(kind(0d0)),intent(inout) :: UMAT(1:NMAT,1:NMAT,1:num_necessary_links)
 !double precision,intent(in) :: P_A(1:dimG,1:num_links)
 complex(kind(0d0)), intent(in) :: P_AMat(1:NMAT,1:NMAT,1:num_links)
-double precision, intent(in) :: Dtau
+double precision, intent(in) :: delta
 complex(kind(0d0)) :: Plmat(1:NMAT,1:NMAT)
 complex(kind(0d0)) :: dU(1:NMAT,1:NMAT)
 complex(kind(0d0)) :: tmpmat(1:NMAT,1:NMAT)
@@ -786,7 +814,7 @@ integer :: l
   !call Make_traceless_matrix_from_modes(P_Amat(:,:,l), NMAT, dcmplx(P_A(:,l)))
 !enddo
 do l=1,num_links
-  Plmat=(0d0,1d0)*Dtau*P_Amat(:,:,l)
+  Plmat=(0d0,1d0)*delta*P_Amat(:,:,l)
   !call MATRIX_EXP(NMAT,Plmat,dU)
   !call traceless_projection(Plmat)
   call make_matrix_traceless(Plmat)
@@ -804,7 +832,7 @@ end subroutine update_UMAT
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! update PhiMat
-subroutine update_PhiMat(PhiMat,P_phimat,Dtau)
+subroutine update_PhiMat(PhiMat,P_phimat,delta)
 use SUN_generators, only : make_traceless_matrix_from_modes
 #ifdef PARALLEL
 use parallel
@@ -814,14 +842,14 @@ implicit none
 complex(kind(0d0)),intent(inout) :: PhiMAT(1:NMAT,1:NMAT,1:num_necessary_sites)
 !complex(kind(0d0)),intent(inout) :: Phi(1:dimG,1:num_links)
 complex(kind(0d0)),intent(in) :: P_PhiMat(1:NMAT,1:NMAT,1:num_sites)
-double precision, intent(in) :: Dtau
+double precision, intent(in) :: delta
 integer :: s,i,j
 
 do s=1,num_sites
   !do a=1,dimG
   do j=1,NMAT
     do i=1,NMAT
-      PhiMat(i,j,s)=PhiMat(i,j,s)+Dtau*dconjg( P_PhiMat(j,i,s) )
+      PhiMat(i,j,s)=PhiMat(i,j,s)+delta*dconjg( P_PhiMat(j,i,s) )
       !Phi(a,s)=Phi(a,s) + Dtau * dconjg( P_phi(a,s) )
     enddo
   enddo
@@ -888,7 +916,7 @@ integer :: s,l
 
 call Make_bosonic_force(dSdPhi,dSdA,UMAT,PhiMat)
 
-P_PhiMat(:,:,:)=P_PhiMat(:,:,:) - dSdPhi(:,:,:) * delta_phi
+P_PhiMat(:,:,:)=P_PhiMat(:,:,:) - dSdPhi(:,:,:) * dcmplx(delta_phi)
 P_AMat(:,:,:) = P_AMat(:,:,:) - dSdA(:,:,:) * dcmplx(delta_A)
 
 end subroutine update_momentum_boson
@@ -921,7 +949,7 @@ info=0
 call Make_fermionic_force(dSdPhi,dSdA,UMAT,PhiMat,PF_eta,PF_lambda,PF_chi,info)
 if( info == 1) return
 
-P_PhiMat(:,:,:)=P_PhiMat(:,:,:) - dSdPhi(:,:,:) * delta_f_phi
+P_PhiMat(:,:,:)=P_PhiMat(:,:,:) - dSdPhi(:,:,:) * dcmplx(delta_f_phi)
 P_AMat(:,:,:) = P_AMat(:,:,:) - dSdA(:,:,:) * dcmplx(delta_f_A)
 
 end subroutine update_momentum_fermion

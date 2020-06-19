@@ -75,6 +75,7 @@ call MPI_BCAST(Tau,1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERR)
 call MPI_BCAST(eval_eigen,1,MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
 call MPI_BCAST(Nfermion,1,MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
 call MPI_BCAST(FB_ratio,1,MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
+call MPI_BCAST(ratio_DtauPhi_over_DtauA,1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERR)
 call MPI_BCAST(num_ite,1,MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
 call MPI_BCAST(save_med_step,1,MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
 call MPI_BCAST(save_config_step,1,MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
@@ -88,16 +89,19 @@ endif
 !ratio_DtauPhi_over_DtauA=1d0
 
 Nboson = Nfermion * FB_ratio
-Dtau_boson = Tau / dble(Nboson*Nfermion)
-Dtau_fermion = Tau / dble(Nfermion)
 
-Dtau_A = Dtau_boson
-Dtau_fermion_A = Dtau_fermion
-Dtau_phi = Dtau_boson*ratio_DtauPhi_over_DtauA
-Dtau_fermion_phi = Dtau_fermion*ratio_DtauPhi_over_DtauA
+!Dtau_boson = Tau / dble(Nboson)
+!Dtau_fermion = Tau / dble(Nfermion)
 
-Dtau = Dtau_boson
-Ntau = Nboson * Nfermion
+Dtau_A = Tau / dble(Nboson)
+Dtau_fermion_A = Tau / dble(Nfermion)
+Dtau_phi = Dtau_A * ratio_DtauPhi_over_DtauA
+Dtau_fermion_phi = Dtau_fermion_A * ratio_DtauPhi_over_DtauA
+
+!Dtau = Dtau_boson
+!Ntau = Nboson * Nfermion
+
+!write(*,*) MYRANK, Dtau_A, Dtau_fermion_A, Dtau_phi, Dtau_fermion_phi, Nboson, Nfermion, FB_ratio
 
 #else
 open(INPUT_FILE, file=INPUT_FILE_NAME, status='old',action='READ')

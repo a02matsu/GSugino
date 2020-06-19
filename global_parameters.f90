@@ -279,14 +279,15 @@ complex(kind(0d0)), save :: e_max
 !integer :: Ntau_base ! Ntau
 !integer :: Ntau 
 double precision, save :: Tau ! trajectory length
-double precision, save :: Dtau,Dtau_phi,Dtau_A   ! Dtau
-integer, save :: Ntau
+double precision, save :: Dtau_phi,Dtau_A   ! Dtau
+!double precision, save :: Dtau,Dtau_phi,Dtau_A   ! Dtau
+!integer, save :: Ntau
 
 ! For multi-step
 integer, save :: FB_ratio ! Phiのfermion forceの計算回数をboson forceの回数の何倍にするか
 integer, save :: Nfermion, Nboson
-double precision, save :: Dtau_boson ! Dtau for boson
-double precision, save :: Dtau_fermion ! Dtau for fermion
+!double precision, save :: Dtau_boson ! Dtau for boson
+!double precision, save :: Dtau_fermion ! Dtau for fermion
 double precision, save :: Dtau_fermion_A, Dtau_fermion_phi
 double precision, save :: ratio_DtauPhi_over_DtauA
 

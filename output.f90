@@ -151,8 +151,8 @@ write(output,'(a)',advance='no') "# 1) iteration, 2) delta Hamiltonian, 3) max||
 if( force_measurement == 1 ) then
   fix_num=7
   write(output,'(a)',advance='no') "5) FB_phi/FB_A, "
-  write(output,'(a)',advance='no') "6) FF_phi/FB_phi, "
-  write(output,'(a)',advance='no') "7) FF_A/FB_A, "
+  write(output,'(a)',advance='no') "6) FB_phi/FF_phi, "
+  write(output,'(a)',advance='no') "7) FB_A/FF_A, "
 endif
 if( eigen_measurement == 1 ) then
   fix_num=9
@@ -223,8 +223,8 @@ write(output,'(f6.2,2X)',advance='no') ratio
 write(output,'(I6,2X)',advance='no') CGite
 if( force_measurement == 1 ) then
   write(output,'(f6.2,2X)',advance='no') bosonic_force_Phi/bosonic_force_A
-  write(output,'(f6.2,2X)',advance='no') fermionic_force_Phi/bosonic_force_Phi
-  write(output,'(f6.2,2X)',advance='no') fermionic_force_A/bosonic_force_A
+  write(output,'(f6.2,2X)',advance='no') bosonic_force_Phi/fermionic_force_Phi
+  write(output,'(f6.2,2X)',advance='no') bosonic_force_A/fermionic_force_A
 endif
 if( eigen_measurement == 1 ) then
   write(output,'(E12.5,2X)',advance='no') cdabs(minDDdag)
