@@ -40,6 +40,7 @@ call MPI_BCAST(LatticeSpacing,1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERR)
 ! initialize the simplicial complex
 call init_smpcom(SC,global_num_sites,global_num_links,global_num_faces)
 
+
 !allocate( local_site_of_global(1:global_num_sites) )
 !allocate( local_link_of_global(1:global_num_links) )
 !allocate( local_face_of_global(1:global_num_faces) )
@@ -104,6 +105,8 @@ if (MYRANK==0) then
   close(SC_FILE)
 endif
 
+
+!write(*,*) "test"
 !ここまでで、global_alpha,betaがRANK 0に設定された。
 
 ! set links
@@ -141,6 +144,7 @@ do f=1,global_num_faces
     global_links_in_f(f)%link_dirs_)
 enddo
 
+!write(*,*) "test4"
 ! faces included in a link l
 allocate(global_face_in_l(1:global_num_links))
 do l=1,global_num_links
@@ -182,10 +186,13 @@ do f=1,global_num_faces
   enddo
 enddo
 
+!write(*,*) "test3"
 !! set global_U1Rfactor_site from global_U1Rfactor_link
 call set_global_U1Rfactor_site
+!write(*,*) "test1"
 !! set global_U1R_ratio
 call set_global_U1R_ratio
+!write(*,*) "test2"
 
 contains
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -219,6 +226,7 @@ numU=0
 do while (numS < global_num_sites) 
   do i=1,numT
     s=groupT(i)
+    !! sから出るlink
     do j=1,global_linktip_from_s(s)%num_
       t=global_linktip_from_s(s)%sites_(j)
       l=global_linktip_from_s(s)%labels_(j)
@@ -248,6 +256,39 @@ do while (numS < global_num_sites)
         groupU(numU)=t
       endif
     enddo
+    !! sに向かうlink
+    do j=1,global_linkorg_to_s(s)%num_
+      t=global_linkorg_to_s(s)%sites_(j)
+      l=global_linkorg_to_s(s)%labels_(j)
+
+      info=1
+      do k=1,numS
+        if( t==groupS(k) ) then
+          info=0
+          exit
+        endif
+      enddo
+      do k=1,numT
+        if( t==groupT(k) ) then
+          info=0
+          exit
+        endif
+      enddo
+      do k=1,numU
+        if( t==groupU(k) ) then
+          info=0
+          exit
+        endif
+      enddo
+      if( info==1 ) then
+        numU=numU+1
+        global_U1Rfactor_site(t)=global_U1Rfactor_site(s)*dconjg(global_U1Rfactor_link(l))
+        groupU(numU)=t
+      endif
+    enddo
+
+
+
   enddo
   !! update groupS
   groupS(numS+1:numS+numT)=groupT(1:numT)

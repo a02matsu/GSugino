@@ -15,7 +15,7 @@ implicit none
 !integer, parameter :: num_obs=4
 integer, parameter :: num_obs=2
 character(10) :: obs_name(1:num_obs)
-data obs_name/ "Sb","TrX2" /
+data obs_name/ "Sb/NumF","TrX2" /
 !data obs_name/ "Sb","TrX2","Re(WT_Tr)","Im(WT_Tr)" /
 
 double precision :: OBS(1:num_obs) ! 1) bosonic action SB

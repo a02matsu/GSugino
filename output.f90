@@ -150,7 +150,7 @@ fix_num=4
 write(output,'(a)',advance='no') "# 1) iteration, 2) delta Hamiltonian, 3) max||Uf-1||/max 4) CG ite, "
 if( force_measurement == 1 ) then
   fix_num=7
-  write(output,'(a)',advance='no') "5) FB_phi/FB_A, "
+  write(output,'(a)',advance='no') "5) FB_A/FB_phi, "
   write(output,'(a)',advance='no') "6) FB_phi/FF_phi, "
   write(output,'(a)',advance='no') "7) FB_A/FF_A, "
 endif
@@ -187,6 +187,8 @@ integer :: output,i,s,a
 complex(kind(0d0)) :: min_eigen,max_eigen
 
 call calc_bosonic_action(OBS(1),UMAT,PhiMat)
+!! OBS(1)= Sb / (NS+NL)*dimG/2
+OBS(1)=OBS(1) * 2d0/dble( (NMAT*NMAT-1)*(global_num_sites+global_num_links) )
 call calc_TrX2(OBS(2),PhiMat)
 !call calc_PCSC(OBS(3),OBS(4),Umat,PhiMat,1)
 if( eigen_measurement == 1 ) then
@@ -222,7 +224,7 @@ write(output,'(f12.5,2X)',advance='no') delta_Ham
 write(output,'(f6.2,2X)',advance='no') ratio
 write(output,'(I6,2X)',advance='no') CGite
 if( force_measurement == 1 ) then
-  write(output,'(f6.2,2X)',advance='no') bosonic_force_Phi/bosonic_force_A
+  write(output,'(f6.2,2X)',advance='no') bosonic_force_A/bosonic_force_Phi
   write(output,'(f6.2,2X)',advance='no') bosonic_force_Phi/fermionic_force_Phi
   write(output,'(f6.2,2X)',advance='no') bosonic_force_A/fermionic_force_A
 endif

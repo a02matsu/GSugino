@@ -94,12 +94,14 @@ if( pf==0 ) call make_pseudo_fermion(PF_eta,PF_lambda,PF_chi,UMAT,PhiMat)
 PhiMat_bak=PhiMat
 UMAT_bak=UMAT
 ! forward
+!call molecular_evolution_multistep_kai(UMAT,PhiMat,PF_eta,PF_lambda,PF_chi,P_AMat,P_PhiMat,info)
 call molecular_evolution_multistep(UMAT,PhiMat,PF_eta,PF_lambda,PF_chi,P_AMat,P_PhiMat,info)
 ! backward
 P_Amat=-P_Amat
 P_Phimat=-P_Phimat
 !if( pf==0 ) call make_pseudo_fermion(PF_eta,PF_lambda,PF_chi,UMAT,PhiMat)
 call molecular_evolution_multistep(UMAT,PhiMat,PF_eta,PF_lambda,PF_chi,P_AMat,P_PhiMat,info)
+!call molecular_evolution_multistep_kai(UMAT,PhiMat,PF_eta,PF_lambda,PF_chi,P_AMat,P_PhiMat,info)
 
 tmp_diff_phi=0d0
 do s=1,num_sites
@@ -176,6 +178,7 @@ if( force_measurement == 1 ) then
 endif
 !call molecular_evolution_Omelyan(UMAT,PhiMat,PF_eta,PF_lambda,PF_chi,P_AMat,P_PhiMat,info)
 call molecular_evolution_multistep(UMAT,PhiMat,PF_eta,PF_lambda,PF_chi,P_AMat,P_PhiMat,info)
+!call molecular_evolution_multistep_kai(UMAT,PhiMat,PF_eta,PF_lambda,PF_chi,P_AMat,P_PhiMat,info)
 if( force_measurement == 1 ) then
   bosonic_force_Phi= bosonic_force_Phi / dble(b_phi_count)
   fermionic_force_Phi= fermionic_force_Phi / dble(f_phi_count)
@@ -310,6 +313,7 @@ do ite=total_ite+1,total_ite+num_ite
   !call molecular_evolution_Omelyan(UMAT,PhiMat,PF_eta,PF_lambda,PF_chi,P_AMat,P_PhiMat,info)
   info=0 ! check if CG successes during molecular evolution
   call molecular_evolution_multistep(UMAT,PhiMat,PF_eta,PF_lambda,PF_chi,P_AMat,P_PhiMat,info)
+  !call molecular_evolution_multistep_kai(UMAT,PhiMat,PF_eta,PF_lambda,PF_chi,P_AMat,P_PhiMat,info)
 
   if( force_measurement == 1 ) then
     bosonic_force_Phi= bosonic_force_Phi / dble(b_phi_count)
@@ -662,6 +666,7 @@ P_AMat=G_AMat
 
 end subroutine set_randomP_single
 
+
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! Molecular Evolution by multistep Leap Frog ingegrator
 subroutine molecular_evolution_multistep(UMAT,PhiMat,PF_eta,PF_lambda,PF_chi,P_AMat,P_PhiMat,info)
@@ -682,30 +687,6 @@ integer :: i,j,step,local_info
 double precision :: rtmp
 
 info=0
-
-!!!!!!!!!!!!!!!!!!
-!!!! Update Phi
-!! first step
-!call update_Umat(UMat,P_AMat,Dtau_A*0.5d0)
-!call update_PhiMat(PhiMat,P_phiMat,Dtau_phi*0.5d0)
-!
-!!! main step
-!do i=1,Nfermion
-!  do j=1,FB_ratio
-!    call update_momentum_boson(P_PhiMat,P_AMat,PhiMat,UMAT,Dtau_A,Dtau_phi)
-!    call update_Umat(UMat,P_AMat,Dtau_A)
-!    call update_PhiMat(PhiMat,P_phiMat,Dtau_phi)
-!  enddo
-!  if(pf==0) call update_momentum_fermion(P_PhiMat,P_AMat,PhiMat,UMAT,PF_eta,PF_lambda,PF_chi,local_info,Dtau_fermion_A, Dtau_fermion_phi)
-!!  if(local_info==1) then
-!!    info=1
-!!    return
-!!  endif
-!enddo
-!
-!!! final step
-!call update_Umat(UMat,P_AMat,Dtau_A*0.5d0)
-!call update_PhiMat(PhiMat,P_phiMat,Dtau_phi*0.5d0)
 
 !! first step
 
