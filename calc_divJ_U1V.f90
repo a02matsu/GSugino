@@ -23,31 +23,33 @@ integer, parameter :: N_divJFILE=102
 complex(kind(0d0)), allocatable :: divJ1(:)
 complex(kind(0d0)), allocatable :: divJ2(:)
 complex(kind(0d0)), allocatable :: divJ(:)
+complex(kind(0d0)), allocatable :: Dinv(:,:)
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! misc
-integer :: ite
+integer :: ite, ite2
 integer :: rank,tag
 integer :: lf, gf
 integer :: jj
-double precision :: rtmp
+double precision :: rtmp, itmp
 complex(kind(0d0)) :: ctmp
+complex(kind(0d0)) :: phase_pf
 
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! initialization
 iarg=iargc()
-if( iarg <=1 ) then
-  if (MYRANK==0) write(*,*) "use as a.out [MEDFILE] [DinvFILE] [divJFILE]"
+if( iarg < 1 ) then
+  if (MYRANK==0) write(*,*) "use as a.out [MEDFILE]"
   stop
 endif
 call getarg(1,MEDFILE)
-call getarg(2,DinvFILE)
-call getarg(3,divJFILE)
+DinvFILE=trim("MEDCONF/Dinv"//MEDFILE(18:))
+divJFILE=trim("OBS/U1V"//MEDFILE(18:))
 INPUT_FILE_NAME="inputfile"
+
 call initialization 
 
-!allocate( UMAT(1:NMAT,1:NMAT,1:num_necessary_links) )
-!allocate(  PhiMat(1:NMAT,1:NMAT,1:num_necessary_sites) )
+allocate( Dinv(1:num_fermion, 1:num_fermion) )
 allocate( divJ(1:num_faces) )
 allocate( divJ1(1:num_faces) )
 allocate( divJ2(1:num_faces) )
@@ -65,18 +67,26 @@ endif
 !! output measurements 
 do 
   call read_config_from_medfile(Umat,PhiMat,ite,N_MEDFILE,control)
-  call read_Dinv(ite, Geta_eta, Glambda_eta, Gchi_eta, &
-                 Geta_lambda, Glambda_lambda, Gchi_lambda, &
-                 Geta_chi, Glambda_chi, Gchi_chi, &
-                 N_DinvFILE)
+
+  read(N_DinvFILE,'(I10,2X)',advance='no',iostat=ios) ite2
+  if( ios == -1) exit
+  do j=1,num_fermion
+    do i=1,num_fermion
+      read(N_DinvFILE,'(E23.15,2X,E23.15,2X)',advance='no') &
+        rtmp,itmp
+        Dinv(i,j)=dcmplx(rtmp)+(0d0,1d0)*itmp
+    enddo
+  enddo
+  read(N_DinvFILE,'(E23.15,2X,E23.15,2X)') rtmp, itmp
+  phase_pf=dcmplx(rtmp)+(0d0,1d0)*dcmplx(itmp)
+
 
   if( control == 0 ) then 
     if( MYRANK == 0 ) then
       write(N_divJFILE,'(I7,2X)',advance='no') ite
     endif
     !!!!!!!!!!!!!!!!
-    !call calc_divJ_U1V(divJ1,divJ2,Glambda_eta,Gchi_lambda,UMAT)
-    call calc_divJ_U1V(divJ1,divJ2,Glambda_eta,Glambda_chi,UMAT)
+    call calc_DJ_U1V(DJ1,DJ2,Glambda_eta,Glambda_chi,Umat)
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !! write divJ
@@ -117,6 +127,7 @@ do
     if( MYRANK == 0 ) then
       close(N_MEDFILE)
       close(N_divJFILE)
+      close(N_DinvFILE)
     endif
     exit
   endif
