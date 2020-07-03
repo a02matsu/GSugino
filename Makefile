@@ -98,6 +98,17 @@ obs:$(PROG_CALCOBS)
 $(PROG_CALCOBS): $(OBJ_CALCOBS) $(OBJ_CALCOBSMAIN) $(OBJ_CALCOBSCOMM) $(OBJS)
 	 $(FC) $(FLAGS_CLUSTER) -o $@ $(OBJ_CALCOBSCOMM) $(OBJS) $(OBJ_CALCOBSMAIN) $(LIB)
 #########################################
+U1V:$(PROG_divJ_U1V)
+
+$(PROG_divJ_U1V): $(OBJ_divJ_U1V) $(OBJS) $(OBJ_CALCOBSMAIN) 
+	 $(FC) $(FLAGS_CLUSTER) -o $@ $(OBJ_CALCOBSCOMM) $(OBJS) $(OBJ_divJ_U1V) $(LIB)
+	
+	
+
+
+
+
+
 writeconf:$(PROG_WriteConf)
 
 $(PROG_WriteConf): $(OBJ_WriteConf) $(OBJ_WriteConf) $(OBJS) 
