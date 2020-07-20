@@ -71,20 +71,24 @@ endif
 !! output measurements 
 do 
   call read_config_from_medfile(Umat,PhiMat,ite,N_MEDFILE,control)
-
+  
   if( MYRANK==0 ) then
     read(N_DinvFILE,'(I10,2X)',advance='no',iostat=ios) ite2
-    if( ios == -1) exit
-    do j=1,num_fermion
-      do i=1,num_fermion
-        read(N_DinvFILE,'(E23.15,2X,E23.15,2X)',advance='no') &
-          rtmp,itmp
-          Dinv(i,j)=dcmplx(rtmp)+(0d0,1d0)*itmp
+    if( ios == -1) control=1
+    if( control==0 ) then 
+      do j=1,num_fermion
+        do i=1,num_fermion
+          read(N_DinvFILE,'(E23.15,2X,E23.15,2X)',advance='no') &
+            rtmp,itmp
+            Dinv(i,j)=dcmplx(rtmp)+(0d0,1d0)*itmp
+        enddo
       enddo
-    enddo
-    read(N_DinvFILE,'(E23.15,2X,E23.15,2X)') rtmp, itmp
-    phase_pf=dcmplx(rtmp)+(0d0,1d0)*dcmplx(itmp)
+      read(N_DinvFILE,'(E23.15,2X,E23.15,2X)') rtmp, itmp
+      phase_pf=dcmplx(rtmp)+(0d0,1d0)*dcmplx(itmp)
+    endif
   endif
+  call MPI_BCAST(control, 1, MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
+  if( control == 1 ) exit
 
   call make_fermion_correlation_from_Dinv(&
       Geta_eta, Glambda_eta, Gchi_eta, &
@@ -136,15 +140,17 @@ do
       write(N_divJFILE,*)
     endif
   else
-    if( MYRANK == 0 ) then
-      close(N_MEDFILE)
-      close(N_divJFILE)
-      close(N_DinvFILE)
-    endif
     exit
   endif
 enddo
+if( MYRANK == 0 ) then
+  close(N_MEDFILE)
+  close(N_divJFILE)
+  close(N_DinvFILE)
+endif
 
+!write(*,*) MYRANK, control
+!stop
 call stop_for_test
 end program main
 

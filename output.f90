@@ -390,11 +390,17 @@ complex(kind(0d0)), intent(out) :: UMAT(1:NMAT,1:NMAT,1:num_necessary_links)
 complex(kind(0d0)), intent(out) :: PhiMat(1:NMAT,1:NMAT,1:num_necessary_links)
 integer, intent(out) :: control
 complex(kind(0d0)) :: tmpmat(1:NMAT,1:NMAT)
-integer :: l,ll,s,ls,tag,rank,i
+integer :: l,ll,s,ls,tag,rank,i,ios
 
 control=0
 if( MYRANK == 0 ) then
-  read(N_MEDFILE, END=700) ite
+  !read(N_MEDFILE, END=700) ite
+  read(N_MEDFILE,iostat=ios) ite
+  if( ios < 0 ) then
+    control=1
+    call MPI_BCAST(control, 1, MPI_INTEGER,0,MPI_COMM_WORLD,IERR) 
+    return
+  endif
 endif
 
 call MPI_BCAST(control, 1, MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
@@ -405,7 +411,8 @@ if( control == 0) then
     ll=local_link_of_global(l)%label_
     rank=local_link_of_global(l)%rank_
     if( MYRANK == 0 ) then
-      read(N_MEDFILE, END=700) tmpmat
+      read(N_MEDFILE) tmpmat
+      !read(N_MEDFILE, END=700) tmpmat
       if( rank == 0 ) then
         Umat(:,:,ll) = tmpmat
       else
@@ -423,7 +430,8 @@ if( control == 0) then
     ls=local_site_of_global(s)%label_
     rank=local_site_of_global(s)%rank_
     if( MYRANK == 0 ) then
-      read(N_MEDFILE, END=700) tmpmat
+      !read(N_MEDFILE, END=700) tmpmat
+      read(N_MEDFILE) tmpmat
       if( rank == 0 ) then
         PhiMat(:,:,ls) = tmpmat
       else
@@ -444,10 +452,10 @@ else
   return
 endif
 
-700 control=1
+!700 control=1
 !write(*,*) MYRANK, control
-call MPI_BCAST(control, 1, MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
-return
+!call MPI_BCAST(control, 1, MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
+!return
 
 end subroutine read_config_from_medfile
 

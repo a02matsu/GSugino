@@ -230,43 +230,42 @@ endif
       
 do    
   call read_config_from_medfile(Umat,PhiMat,ite,N_MEDFILE,control)
+  call MPI_BCAST(control, 1, MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
+  if( control == 1 ) exit
 
+  !! Dinvが存在するときは読み込む
   if( exist_dinv==0 ) then 
-    read(N_DinvFILE,'(I10,2X)',advance='no',iostat=ios) ite2
-    if( ios == -1) exit
-    do j=1,num_fermion
-      do i=1,num_fermion
-        read(N_DinvFILE,'(E23.15,2X,E23.15,2X)',advance='no') &
-          rtmp,ctmp
-          Dinv(i,j)=dcmplx(rtmp)+(0d0,1d0)*ctmp
-      enddo
-    enddo
-    read(N_DinvFILE,'(E23.15,2X,E23.15,2X)') re_phase, im_phase
-    phase_pf=dcmplx(re_phase)+(0d0,1d0)*dcmplx(im_phase)
-
-
-
+    if( MYRANK==0 ) then 
+      read(N_DinvFILE,'(I10,2X)',advance='no',iostat=ios) ite2
+      if( ios == -1) then 
+        control = 1
+      else
+        do j=1,num_fermion
+          do i=1,num_fermion
+            read(N_DinvFILE,'(E23.15,2X,E23.15,2X)',advance='no') &
+              rtmp,ctmp
+              Dinv(i,j)=dcmplx(rtmp)+(0d0,1d0)*ctmp
+          enddo
+        enddo
+        read(N_DinvFILE,'(E23.15,2X,E23.15,2X)') re_phase, im_phase
+        phase_pf=dcmplx(re_phase)+(0d0,1d0)*dcmplx(im_phase)
+      endif
+    endif
+    call MPI_BCAST(control, 1, MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
+    if( control == 1 ) exit
+  
     call MPI_BCAST(ite,1,MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
     call MPI_BCAST(ite2,1,MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
     if( ite .ne. ite2 ) then 
       write(*,*) "MEDFILE and Dinv do not match."
-      call stop_for_test
+      control=1
+      !call stop_for_test
     endif
+    call MPI_BCAST(control, 1, MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
+    if( control == 1 ) exit
+  !! さもなくば作る
   else
     call construct_Dirac(Dirac,Umat,PhiMat) !correct!
-
-    !call writeout_Dirac(Dirac)
-!    if(MYRANK==0) then
-!      write(*,'(i9)') ite
-!      do i=1,size(Dirac,1)
-!        do j=1,size(Dirac,2)
-!          if( cdabs(Dirac(i,j)) > 1d-8) write(*,'(i5,2x,i5,2x,E15.8,2X,E15.8,2X)')i,j, dble(Dirac(i,j)),dble((0d0,-1d0)*Dirac(i,j))
-!        enddo
-!      enddo
-!    endif
-
-
-    
     !!
     Dirac2=Dirac
     if( MYRANK==0 ) call CalcPfaffian(abs_pf,phase_pf,Dirac2)
