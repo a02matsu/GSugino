@@ -102,7 +102,7 @@ $(PROG_divJ_U1V): $(OBJ_divJ_U1V) $(OBJS) $(OBJ_CALCOBSMAIN)
 #########################################
 lops:$(PROG_localops)
 
-$(OBJ_localops): $(MEASUREMENT)/FermionCorrelation_from_Dinv.f90 
+$(OBJ_localops): $(MEASUREMENT)/FermionCorrelation_from_Dinv.f90 simulation.o $(OBJ_CALCOBSCOMM)
 $(PROG_localops): $(OBJ_localops) $(OBJS) $(OBJ_CALCOBSMAIN) 
 	 $(FC) $(FLAGS_CLUSTER) -o $@ $(OBJ_CALCOBSCOMM) $(OBJS) $(OBJ_localops) $(LIB)
 
