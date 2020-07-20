@@ -40,6 +40,38 @@ Acomp=Acomp/dcmplx(dble(global_num_sites))
 
 end subroutine calc_phibar_compensator
 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! local phibar
+subroutine calc_phibar_compensator_site(phibar,PhiMat)
+use global_parameters
+use parallel
+implicit none
+
+complex(kind(0d0)), intent(out) :: phibar(1:num_necessary_sites)
+complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_necessary_sites)
+double precision :: ratio,eular
+double precision :: radius, phase
+complex(kind(0d0)) :: tmp
+integer :: ls,i,j
+
+eular=global_num_sites-global_num_links+global_num_faces 
+ratio=dble((NMAT*NMAT-1)*eular)/4d0 
+
+do ls=1,num_necessary_sites
+  tmp=(0d0,0d0)
+  do i=1,NMAT
+    do j=1,NMAT
+      tmp = tmp + PhiMat(i,j,ls)*PHiMat(j,i,ls)
+    enddo
+  enddo
+  tmp=dconjg(tmp)/dcmplx(dble(NMAT))
+  radius=cdabs(tmp)
+  phase=atan2(dble(tmp),dble(tmp*(0d0,-1d0)))
+
+  phibar(ls) = dcmplx(radius**ratio) * cdexp( (0d0,1d0)*dcmplx(phase*ratio) )
+enddo
+
+end subroutine calc_phibar_compensator_site
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! Q( C_{\bar\phi} ) \Xi term 

@@ -65,6 +65,10 @@ SRC_divJ_U1V=calc_divJ_U1V.f90
 OBJ_divJ_U1V=calc_divJ_U1V.o
 PROG_divJ_U1V=calc_divJ_U1V.exe
 #########################
+SRC_localops=calc_local_operators.f90  
+OBJ_localops=calc_local_operators.o
+PROG_localops=calc_local_operators.exe
+#########################
 SRC_U1R=calc_exact_U1R.f90  
 OBJ_U1R=calc_exact_U1R.o
 PROG_U1R=calc_exact_U1R.exe
@@ -84,16 +88,6 @@ all:$(PROG)
 $(PROG): $(OBJS) $(OBJ_MAIN)
 	$(FC) $(FLAGS_CLUSTER) -o $@  $(OBJS) $(OBJ_MAIN) $(LIB)
 #########################################
-dirac:$(PROG_Dirac)
-
-$(PROG_Dirac): $(OBJ_Dirac) $(OBJ_MAIN)
-	$(FC) $(FLAGS_CLUSTER) -o $@ $(OBJS) $(OBJ_Dirac) $(LIB)
-#########################################
-dinv:$(PROG_Dinv)
-
-$(PROG_Dinv): $(OBJ_Dinv)
-	$(FC) $(FLAGS_CLUSTER) -o $@ $(OBJ_Dinv) 
-#########################################
 obs:$(PROG_CALCOBS)
 $(PROG_CALCOBS): $(OBJ_CALCOBS) $(OBJ_CALCOBSMAIN) $(OBJ_CALCOBSCOMM) $(OBJS)
 	 $(FC) $(FLAGS_CLUSTER) -o $@ $(OBJ_CALCOBSCOMM) $(OBJS) $(OBJ_CALCOBSMAIN) $(LIB)
@@ -103,11 +97,14 @@ U1V:$(PROG_divJ_U1V)
 $(OBJ_divJ_U1V): $(MEASUREMENT)/FermionCorrelation_from_Dinv.f90 
 $(PROG_divJ_U1V): $(OBJ_divJ_U1V) $(OBJS) $(OBJ_CALCOBSMAIN) 
 	 $(FC) $(FLAGS_CLUSTER) -o $@ $(OBJ_CALCOBSCOMM) $(OBJS) $(OBJ_divJ_U1V) $(LIB)
-	
-	
 
 
+#########################################
+lops:$(PROG_localops)
 
+$(OBJ_localops): $(MEASUREMENT)/FermionCorrelation_from_Dinv.f90 
+$(PROG_localops): $(OBJ_localops) $(OBJS) $(OBJ_CALCOBSMAIN) 
+	 $(FC) $(FLAGS_CLUSTER) -o $@ $(OBJ_CALCOBSCOMM) $(OBJS) $(OBJ_localops) $(LIB)
 
 
 writeconf:$(PROG_WriteConf)
