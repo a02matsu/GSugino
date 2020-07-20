@@ -100,6 +100,7 @@ $(PROG_CALCOBS): $(OBJ_CALCOBS) $(OBJ_CALCOBSMAIN) $(OBJ_CALCOBSCOMM) $(OBJS)
 #########################################
 U1V:$(PROG_divJ_U1V)
 
+$(OBJ_divJ_U1V): $(MEASUREMENT)/FermionCorrelation_from_Dinv.f90 
 $(PROG_divJ_U1V): $(OBJ_divJ_U1V) $(OBJS) $(OBJ_CALCOBSMAIN) 
 	 $(FC) $(FLAGS_CLUSTER) -o $@ $(OBJ_CALCOBSCOMM) $(OBJS) $(OBJ_divJ_U1V) $(LIB)
 	
@@ -201,6 +202,7 @@ simulation.o: \
   $(DIR_OBSERVABLES)/fermion_action_face2.f90 \
   $(DIR_OBSERVABLES)/fermionic_face_lagrangian.f90 \
   $(DIR_OBSERVABLES)/compensators.f90 \
+  $(DIR_OBSERVABLES)/phibar_compensator.f90 \
   $(DIR_OBSERVABLES)/phichi.f90 \
   $(DIR_OBSERVABLES)/checkFF.f90 \
   $(DIR_OBSERVABLES)/trphi2.f90 \
@@ -236,6 +238,7 @@ $(OBJ_WriteConf): \
   parallel.o 
 (PROG_Dinv): \
   $(SRC_Dinv)
+
 
 .PHONY: clean
 clean:

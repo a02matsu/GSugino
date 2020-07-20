@@ -24,12 +24,13 @@ complex(kind(0d0)), allocatable :: divJ1(:)
 complex(kind(0d0)), allocatable :: divJ2(:)
 complex(kind(0d0)), allocatable :: divJ(:)
 complex(kind(0d0)), allocatable :: Dinv(:,:)
+integer :: num_fermion
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! misc
 integer :: ite, ite2
 integer :: rank,tag
 integer :: lf, gf
-integer :: jj
+integer :: jj,j,i,ios
 double precision :: rtmp, itmp
 complex(kind(0d0)) :: ctmp
 complex(kind(0d0)) :: phase_pf
@@ -47,8 +48,11 @@ DinvFILE=trim("MEDCONF/Dinv"//MEDFILE(18:))
 divJFILE=trim("OBS/U1V"//MEDFILE(18:))
 INPUT_FILE_NAME="inputfile"
 
+!write(*,*) DinvFile, divJFILE
+
 call initialization 
 
+num_fermion=(global_num_sites+global_num_links+global_num_faces)*(NMAT*NMAT-1)
 allocate( Dinv(1:num_fermion, 1:num_fermion) )
 allocate( divJ(1:num_faces) )
 allocate( divJ1(1:num_faces) )
@@ -68,25 +72,32 @@ endif
 do 
   call read_config_from_medfile(Umat,PhiMat,ite,N_MEDFILE,control)
 
-  read(N_DinvFILE,'(I10,2X)',advance='no',iostat=ios) ite2
-  if( ios == -1) exit
-  do j=1,num_fermion
-    do i=1,num_fermion
-      read(N_DinvFILE,'(E23.15,2X,E23.15,2X)',advance='no') &
-        rtmp,itmp
-        Dinv(i,j)=dcmplx(rtmp)+(0d0,1d0)*itmp
+  if( MYRANK==0 ) then
+    read(N_DinvFILE,'(I10,2X)',advance='no',iostat=ios) ite2
+    if( ios == -1) exit
+    do j=1,num_fermion
+      do i=1,num_fermion
+        read(N_DinvFILE,'(E23.15,2X,E23.15,2X)',advance='no') &
+          rtmp,itmp
+          Dinv(i,j)=dcmplx(rtmp)+(0d0,1d0)*itmp
+      enddo
     enddo
-  enddo
-  read(N_DinvFILE,'(E23.15,2X,E23.15,2X)') rtmp, itmp
-  phase_pf=dcmplx(rtmp)+(0d0,1d0)*dcmplx(itmp)
+    read(N_DinvFILE,'(E23.15,2X,E23.15,2X)') rtmp, itmp
+    phase_pf=dcmplx(rtmp)+(0d0,1d0)*dcmplx(itmp)
+  endif
 
+  call make_fermion_correlation_from_Dinv(&
+      Geta_eta, Glambda_eta, Gchi_eta, &
+      Geta_lambda, Glambda_lambda, Gchi_lambda, &
+      Geta_chi, Glambda_chi, Gchi_chi, &
+      Dinv,num_fermion)
 
   if( control == 0 ) then 
     if( MYRANK == 0 ) then
       write(N_divJFILE,'(I7,2X)',advance='no') ite
     endif
     !!!!!!!!!!!!!!!!
-    call calc_DJ_U1V(DJ1,DJ2,Glambda_eta,Glambda_chi,Umat)
+    call calc_DJ_U1V(DivJ1,DivJ2,Glambda_eta,Glambda_chi,Umat)
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !! write divJ
@@ -103,6 +114,7 @@ do
         endif
 
         if( MYRANK == rank ) then
+
           ctmp=divJ(lf)
           if( MYRANK /= 0 ) then 
             call MPI_SEND(ctmp,1,MPI_DOUBLE_COMPLEX,0,tag,MPI_COMM_WORLD,IERR)
@@ -135,5 +147,7 @@ enddo
 
 call stop_for_test
 end program main
+
+#include  "Measurement/FermionCorrelation_from_Dinv.f90"
 
 

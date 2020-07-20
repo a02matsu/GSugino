@@ -41,23 +41,13 @@ call make_trV1(trvec1,Glambda_eta)
 DJ1=(0d0,0d0)
 do lf=1,num_faces
   !call make_unit_matrix(mat1)
-  tmp=(1d0,0d0)
+  !tmp=(1d0,0d0)
   do kk=1,links_in_f(lf)%num_
     ll=links_in_f(lf)%link_labels_(kk)
     dir=links_in_f(lf)%link_dirs_(kk)
-    tmp=tmp*cdexp( (0d0,1d0) * dcmplx(dir*beta_f(lf)/LatticeSpacing**4) * trvec1(ll)  )
-    !call matrix_exp(tmpmat, dcmplx(dir)*dcmplx(beta_f(lf))*vec1(:,:,ll))
-    !call matrix_product(mat2,mat1,tmpmat)
-    !mat1=mat2
-    !DJ1(lf)=DJ1(lf) + dcmplx(dir)*trvec1(ll)
-    !DJ1(lf)=DJ1(lf) + trvec1(ll)
-    !DJ1(lf)=DJ1(lf)*cdexp( dcmplx(dir)*trvec1(ll)*dcmplx(beta_f(lf)) )
+    DJ1(lf)=DJ1(lf) + dcmplx(dir)*trvec1(ll)
   enddo
-  DJ1(lf)=tmp
-  !call matrix_trace(DJ1(lf),mat1)
-  !DJ1(lf) = cdlog(DJ1(lf))
-  !DJ1(lf)=DJ1(lf)*beta_f(lf)
-  !DJ1(lf)=cdlog( DJ1(lf) )
+  DJ1(lf)=DJ1(lf)*beta_f(lf)
 enddo
 
 !! 
@@ -114,7 +104,7 @@ do lf=1,num_faces
   enddo
 enddo
 
-!DJ1=(DJ1)/dcmplx(LatticeSpacing**4)
+DJ1=(DJ1)/dcmplx(LatticeSpacing**4)
 DJ2=(DJ2)/dcmplx(LatticeSpacing**4)
 
 end subroutine calc_DJ_U1V
@@ -151,7 +141,7 @@ end subroutine make_trV1
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!! calculate lambda.lambda(U.\bar{phi}.U^-1 + \bar{phi})
+!! calculate 
 subroutine make_trV2(trvec2,Gchi_lambda,UMAT)
 use global_parameters
 use parallel

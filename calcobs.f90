@@ -13,7 +13,7 @@ character(128), parameter :: PARAFILE="parameters_calcobs.dat"
 character(128) :: MEDFILE
 character(128) :: DinvFILE
 character(128) :: EigenFILE
-integer, parameter :: num_calcobs=36 ! 考えているobservableの数
+integer, parameter :: num_calcobs=40 ! 考えているobservableの数
 character(128) :: name_obs(1:num_calcobs) = (/ &
   "Re(phase Pf)",  &
   "Im(phase Pf)", &
@@ -26,8 +26,12 @@ character(128) :: name_obs(1:num_calcobs) = (/ &
   "|Aphibar|", &
   "Re(phase Aphibar)", &
   "Im(phase Aphibar)", &
-  "Re(Q(Aphibar)Xi)", &
-  "Im(Q(Aphibar)Xi)", &
+  "Re(Q(Aphibar)XiS)", &
+  "Im(Q(Aphibar)XiS)", &
+  "Re(Q(Aphibar)XiL)", &
+  "Im(Q(Aphibar)XiL)", &
+  "Re(Q(Aphibar)XiF)", &
+  "Im(Q(Aphibar)XiF)", &
   "SbS", &
   "SbL", &
   "SbF", &
@@ -76,7 +80,9 @@ complex(kind(0d0)) :: Acomp_phibar ! phia compensator
 !complex(kind(0d0)) :: Atr_phase ! A*/|A|
 !complex(kind(0d0)) :: Aface_phase ! A*/|A|
 !complex(kind(0d0)) :: Aphibar_phase ! A*/|A|
-complex(kind(0d0)) :: QC_Xi ! Q(Aphibar).\Xi 
+complex(kind(0d0)) :: QC_Xi_site ! Q(Aphibar).\Xi 
+complex(kind(0d0)) :: QC_Xi_link ! Q(Aphibar).\Xi 
+complex(kind(0d0)) :: QC_Xi_face ! Q(Aphibar).\Xi 
 complex(kind(0d0)) :: min_eigen
 complex(kind(0d0)) :: mass_cont
 complex(kind(0d0)) :: WT_site
@@ -290,7 +296,7 @@ do
     Geta_eta, Glambda_eta, Gchi_eta, &
     Geta_lambda, Glambda_lambda, Gchi_lambda, &
     Geta_chi, Glambda_chi, Gchi_chi, &
-    Dinv)
+    Dinv,num_fermion)
 
   !!!!!!!!!!!!!!!!!!!!!!!
   !!! CHECK ROUTINES !!!!
@@ -343,11 +349,19 @@ do
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble( (0d0,-1d0)*Acomp_phibar/cdabs(Acomp_phibar))
 
     !"|Aphibar|", &
-      call calc_QC_Xi(QC_Xi,Geta_eta,Geta_lambda,Geta_chi,Umat,PhiMat)
+      call calc_QCphibar_Xi(QC_Xi_site,QC_Xi_link,QC_Xi_face,Geta_eta,Geta_lambda,Geta_chi,Umat,PhiMat)
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  &
-        dble(QC_Xi / (Acomp_phibar/dcmplx(cdabs(Acomp_phibar))))
+        dble(QC_Xi_site / (Acomp_phibar/dcmplx(cdabs(Acomp_phibar))))
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  &
-        dble((0d0,-1d0) * QC_Xi / (Acomp_phibar/dcmplx(cdabs(Acomp_phibar))))
+        dble((0d0,-1d0) * QC_Xi_site / (Acomp_phibar/dcmplx(cdabs(Acomp_phibar))))
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  &
+        dble(QC_Xi_link / (Acomp_phibar/dcmplx(cdabs(Acomp_phibar))))
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  &
+        dble((0d0,-1d0) * QC_Xi_link / (Acomp_phibar/dcmplx(cdabs(Acomp_phibar))))
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  &
+        dble(QC_Xi_face / (Acomp_phibar/dcmplx(cdabs(Acomp_phibar))))
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  &
+        dble((0d0,-1d0) * QC_Xi_face / (Acomp_phibar/dcmplx(cdabs(Acomp_phibar))))
 
     !! SbS
       call calc_bosonic_action_site(SbS,PhiMat)

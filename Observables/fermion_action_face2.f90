@@ -28,7 +28,8 @@ do lf=1,num_faces
     endif
     dir = links_in_f(lf)%link_dirs_(l_place) 
     tmp_Sf_face = tmp_Sf_face &
-      - dcmplx( dble(dir) * alpha_f(lf)*beta_f(lf) ) * Lff
+      + dcmplx( dble(dir) * alpha_f(lf)*beta_f(lf) ) * Lff ! sign is flipped (2020/7/20)
+      !- dcmplx( dble(dir) * alpha_f(lf)*beta_f(lf) ) * Lff 
   enddo
 enddo
 

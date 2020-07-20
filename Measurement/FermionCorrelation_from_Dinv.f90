@@ -4,7 +4,7 @@ subroutine make_fermion_correlation_from_Dinv(&
     Geta_eta, Glambda_eta, Gchi_eta, &
     Geta_lambda, Glambda_lambda, Gchi_lambda, &
     Geta_chi, Glambda_chi, Gchi_chi, &
-    Dinv)
+    Dinv, numF)
 use global_parameters
 use global_subroutines, only : syncronize_Dirac_sites, syncronize_Dirac_links,syncronize_Dirac_faces 
 use SUN_generators, only : make_SUN_generators
@@ -23,8 +23,8 @@ complex(kind(0d0)), intent(out) :: Geta_chi(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global
 complex(kind(0d0)), intent(out) :: Glambda_chi(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_links,1:num_necessary_faces) 
 complex(kind(0d0)), intent(out) :: Gchi_chi(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_faces,1:num_necessary_faces) 
 
-complex(kind(0d0)), intent(in) :: Dinv(:,:)
-integer :: numF
+complex(kind(0d0)), intent(in) :: Dinv(1:numF,1:numF)
+integer, intent(in) :: numF
 
 complex(kind(0d0)), allocatable :: mode_Geta_eta(:,:,:,:)
 complex(kind(0d0)), allocatable :: mode_Geta_lambda(:,:,:,:)
@@ -49,7 +49,7 @@ integer :: a,b,i,j,k,l
 integer :: Dlabel
 integer :: rank,tag
 
-numF=(global_num_sites+global_num_links+global_num_faces)*(NMAT*NMAT-1)
+!numF=(global_num_sites+global_num_links+global_num_faces)*(NMAT*NMAT-1)
 allocate( mode_Geta_eta(1:dimG,1:dimG,1:global_num_sites,1:num_sites) )
 allocate( mode_Geta_lambda(1:dimG,1:dimG,1:global_num_sites,1:num_links) )
 allocate( mode_Geta_chi(1:dimG,1:dimG,1:global_num_sites,1:num_faces) )
@@ -65,7 +65,7 @@ allocate( mode_Gchi_chi(1:dimG,1:dimG,1:global_num_faces,1:num_faces) )
 allocate( Dinv_check(1:numF,1:numF) )
 
 if( size(Dinv,1) .ne. numF) then
-  write(*,*) "size of Dinv is incorrect."
+  write(*,*) "size of Dinv is incorrect.", size(Dinv,1)
   call stop_for_test
 endif
 
