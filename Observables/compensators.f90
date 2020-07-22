@@ -56,7 +56,7 @@ complex(kind(0d0)), intent(in) :: Geta_chi(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_
 
 complex(kind(0d0)) :: tmp_Acomp, tmp
 complex(kind(0d0)) :: tmpmat(1:NMAT,1:NMAT)
-complex(kind(0d0)) :: phibar_p(1:NMAT,1:NMAT,0:dimG)
+complex(kind(0d0)) :: phibar_p(1:NMAT,1:NMAT,0:dimG+2)
 complex(kind(0d0)) :: Omega(1:NMAT,1:NMAT)
 complex(kind(0d0)) :: Uf(1:NMAT,1:NMAT)
 integer :: lf,ls,gs,gf
@@ -81,17 +81,17 @@ do lf=1, num_faces
     enddo
   enddo
   !!1
-  do k=2,dimG
+  do k=2,dimG+2
     call matrix_product(phibar_p(:,:,k),phibar_p(:,:,k-1),PhiMat(:,:,ls),'N','C')
   enddo
 
   tmp=(0d0,0d0)
-  do p=1,dimG
+  do p=0,dimG+1
     do l=1,NMAT
       do k=1,NMAT
         do j=1,NMAT
           do i=1,NMAT
-            tmp = tmp + phibar_p(i,j,p-1)*phibar_p(k,l,dimG-p)&
+            tmp = tmp + phibar_p(i,j,dimG+1-p)*phibar_p(k,l,p)&
               *Geta_chi(j,k,l,i,gs,lf)
           enddo
         enddo
@@ -104,7 +104,7 @@ do lf=1, num_faces
   call Make_moment_map_adm(Omega,Uf)
   do j=1,NMAT
     do i=1,NMAT
-      tmp = tmp + (0d0,0.5d0)*beta_f(lf)*phibar_p(i,j,dimG)*Omega(j,i)
+      tmp = tmp + (0d0,0.5d0)*beta_f(lf)*phibar_p(i,j,dimG+2)*Omega(j,i)
     enddo
   enddo
 
