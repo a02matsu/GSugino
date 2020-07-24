@@ -33,16 +33,16 @@ allocate( tmp(1:NMAT,1:NMAT) )
 
 if( MYRANK==0 ) then
   open(N_MEDFILE, file=MEDFILE, status='OLD',action='READ',form='unformatted')
-  write(*,*) Nmat, "   # Nc"
-  write(*,*) LatticeSpacing, "   # lattice spacing a"
+  !write(*,*) Nmat, "   # Nc"
+  !write(*,*) LatticeSpacing, "   # lattice spacing a"
 endif
 do    
   call read_config_from_medfile(Umat,PhiMat,ite,N_MEDFILE,control)
   if( control == 0 ) then 
-    if( MYRANK==0 ) then
-      write(*,*) ite, "   # iteration"
-      write(*,*) "# PhiMat(i,j)"
-    endif
+    !if( MYRANK==0 ) then
+      !write(*,*) ite, "   # iteration"
+      !write(*,*) "# PhiMat(i,j)"
+    !endif
     !!!
     do gs=1,global_num_sites
       ls=local_site_of_global(gs)%label_
@@ -63,16 +63,16 @@ do
       if( MYRANK==0 ) then
         do i=1,NMAT
           do j=1,NMAT
-            write(*,'(I5,2X,I5,2X,I5,2X,E23.15,2X,E23.15,2X)') &
-              gs,i,j,dble(tmp(i,j)),dble( (0d0,-1d0)*tmp(i,j))
+            write(*,'(I5,2X,A,2X,I5,2X,I5,2X,I5,2X,E23.15,2X,E23.15,2X)') &
+              ite,"P",gs,i,j,dble(tmp(i,j)),dble( (0d0,-1d0)*tmp(i,j))
           enddo
         enddo
       endif
     enddo
     !!!!!!!!!!!!!!!
-    if( MYRANK==0 ) then
-      write(*,*) "# UMat(i,j)"
-    endif
+    !if( MYRANK==0 ) then
+      !write(*,*) "# UMat(i,j)"
+    !endif
     do gl=1,global_num_links
       ll=local_link_of_global(gl)%label_
       rank=local_link_of_global(gl)%rank_ 
@@ -92,8 +92,8 @@ do
       if( MYRANK==0 ) then
         do i=1,NMAT
           do j=1,NMAT
-            write(*,'(I5,2X,I5,2X,I5,2X,E23.15,2X,E23.15,2X)') &
-              gl,i,j,dble(tmp(i,j)),dble( (0d0,-1d0)*tmp(i,j))
+            write(*,'(I5,2X,A,2X,I5,2X,I5,2X,I5,2X,E23.15,2X,E23.15,2X)') &
+              ite,"U",gl,i,j,dble(tmp(i,j)),dble( (0d0,-1d0)*tmp(i,j))
           enddo
         enddo
       endif
