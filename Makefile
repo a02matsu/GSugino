@@ -89,7 +89,7 @@ $(PROG): $(OBJS) $(OBJ_MAIN)
 	$(FC) $(FLAGS_CLUSTER) -o $@  $(OBJS) $(OBJ_MAIN) $(LIB)
 #########################################
 obs:$(PROG_CALCOBS)
-$(PROG_CALCOBS): $(OBJ_CALCOBS) $(OBJ_CALCOBSMAIN) $(OBJ_CALCOBSCOMM) $(OBJS)
+$(PROG_CALCOBS): $(OBJ_CALCOBSMAIN) $(OBJ_CALCOBSCOMM) $(OBJS)
 	 $(FC) $(FLAGS_CLUSTER) -o $@ $(OBJ_CALCOBSCOMM) $(OBJS) $(OBJ_CALCOBSMAIN) $(LIB)
 #########################################
 U1V:$(PROG_divJ_U1V)
@@ -109,8 +109,8 @@ $(PROG_localops): $(OBJ_localops) $(OBJS) $(OBJ_CALCOBSMAIN)
 
 writeconf:$(PROG_WriteConf)
 
-$(PROG_WriteConf): $(OBJ_WriteConf) $(OBJ_WriteConf) $(OBJS) 
-	$(FC) $(FLAGS_CLUSTER) -o $@ $(OBJS) $(OBJ_OBS) $(OBJ_OBSCOMM) $(OBJ_WriteConf) $(LIB)
+$(PROG_WriteConf): $(OBJ_WriteConf)  $(OBJS) $(OBJ_CALCOBSCOMM) 
+	$(FC) $(FLAGS_CLUSTER) -o $@ $(OBJ_CALCOBSCOMM) $(OBJS) $(OBJ_WriteConf) $(LIB)
 
 
 
@@ -201,6 +201,7 @@ simulation.o: \
   $(DIR_OBSERVABLES)/compensators.f90 \
   $(DIR_OBSERVABLES)/phibar_compensator.f90 \
   $(DIR_OBSERVABLES)/Yphi_compensator.f90 \
+  $(DIR_OBSERVABLES)/Yphibar_compensator.f90 \
   $(DIR_OBSERVABLES)/phichi.f90 \
   $(DIR_OBSERVABLES)/checkFF.f90 \
   $(DIR_OBSERVABLES)/trphi2.f90 \

@@ -3,13 +3,14 @@
 subroutine calc_Yphibar_compensator(Acomp,PhiMat,UMAT)
 use parallel
 use global_parameters
-use matrix_functions, only : matrix_product
+use matrix_functions, only : hermitian_conjugate, matrix_power, trace_mm, make_unit_matrix, matrix_product, matrix_3_product, matrix_commutator
 implicit none
 
 complex(kind(0d0)), intent(out) :: Acomp
 complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_necessary_sites)
 complex(kind(0d0)), intent(in) :: UMat(1:NMAT,1:NMAT,1:num_necessary_links)
 complex(kind(0d0)) :: phibar(1:NMAT,1:NMAT)
+complex(kind(0d0)) :: Uf(1:NMAT,1:NMAT)
 complex(kind(0d0)) :: phibar_p(1:NMAT,1:NMAT)
 complex(kind(0d0)) :: Ymat(1:NMAT,1:NMAT)
 integer :: ratio,eular
@@ -53,6 +54,7 @@ subroutine calc_QCYphibar_Xi(&
     Geta_eta,Geta_lambda,Geta_chi,&
     Gchi_eta,Gchi_lambda,Gchi_chi,&
     Umat,PhiMat)
+use matrix_functions, only : hermitian_conjugate, matrix_power, trace_mm, make_unit_matrix, matrix_product, matrix_3_product, matrix_commutator
 implicit none
 
 complex(kind(0d0)), intent(out) :: QC_Xi_site
@@ -83,7 +85,7 @@ complex(kind(0d0)) trace
 complex(kind(0d0)) tmp_QC_Xi_site
 complex(kind(0d0)) tmp_QC_Xi_link
 complex(kind(0d0)) tmp_QC_Xi_face
-integer gf,ls,ll,lf,rank
+integer gf,gs,ls,ll,lf,rank
 integer i,j,k,l,kk
 
 complex(kind(0d0)) tr_phibar2
@@ -112,8 +114,8 @@ do gf=1,global_num_faces
 
   rank=local_site_of_global(gs)%rank_
   if( MYRANK==rank) then
-    lf=local_face_of_global(gf)
-    ls=local_site_of_global(gs)
+    lf=local_face_of_global(gf)%label_
+    ls=local_site_of_global(gs)%label_
 
     call hermitian_conjugate(phibar_p(:,:,1), PhiMat(:,:,ls))
     do k=2,ratio
@@ -147,7 +149,7 @@ do gf=1,global_num_faces
             !! face
             do lf=1,num_faces
               tmp_QC_Xi_face=tmp_QC_Xi_face&
-                + tmpmat(i,j)*Xi_chi(k,l,lf)*Geta_eta(j,i,l,k,gs,lf)
+                + tmpmat(i,j)*Xi_chi(k,l,lf)*Geta_chi(j,i,l,k,gs,lf)
             enddo
           enddo
         enddo
@@ -173,7 +175,7 @@ do gf=1,global_num_faces
           !! face
           do lf=1,num_faces
             tmp_QC_Xi_face=tmp_QC_Xi_face&
-              + comm(i,j)*Xi_chi(k,l,lf)*Gchi_eta(j,i,l,k,gf,lf)
+              + comm(i,j)*Xi_chi(k,l,lf)*Gchi_chi(j,i,l,k,gf,lf)
           enddo
         enddo
       enddo
