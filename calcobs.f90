@@ -13,16 +13,25 @@ character(128), parameter :: PARAFILE="parameters_calcobs.dat"
 character(128) :: MEDFILE
 character(128) :: DinvFILE
 character(128) :: EigenFILE
-integer, parameter :: num_calcobs=40 ! 考えているobservableの数
+integer, parameter :: num_calcobs=49 ! 考えているobservableの数
 character(128) :: name_obs(1:num_calcobs) = (/ &
   "Re(phase Pf)",  &
   "Im(phase Pf)", &
   "|Atr|", &
   "Re(phase Atr)", &
   "Im(phase Atr)", &
-  "|Aface|", &
-  "Re(phase Aface)", &
-  "Im(phase Aface)", &
+  "|AYphi|", &
+  "Re(phase AYphi)", &
+  "Im(phase AYphi)", &
+  "|AYphibar|", &
+  "Re(phase AYphibar)", &
+  "Im(phase AYphibar)", &
+  "Re(Q(AYphibar)XiS)", &
+  "Im(Q(AYphibar)XiS)", &
+  "Re(Q(AYphibar)XiL)", &
+  "Im(Q(AYphibar)XiL)", &
+  "Re(Q(AYphibar)XiF)", &
+  "Im(Q(AYphibar)XiF)", &
   "|Aphibar|", &
   "Re(phase Aphibar)", &
   "Im(phase Aphibar)", &
@@ -335,11 +344,36 @@ do
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble(Acomp_tr/cdabs(Acomp_tr))
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble( (0d0,-1d0)*Acomp_tr/cdabs(Acomp_tr))
 
-    !"|Aface|", &
-      call calc_face_compensator(Acomp_face,Umat,PhiMat,Geta_chi)
+    !"|AYphi|", &
+      call calc_Yphi_compensator(Acomp_face,PhiMat,Umat)
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') cdabs(Acomp_face)
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble(Acomp_face/cdabs(Acomp_face))
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble( (0d0,-1d0)*Acomp_face/cdabs(Acomp_face))
+
+    !"|AYphibar|", &
+      call calc_Yphibar_compensator(Acomp_phibar,PhiMat,Umat)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') cdabs(Acomp_phibar)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble(Acomp_phibar/cdabs(Acomp_phibar))
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble( (0d0,-1d0)*Acomp_phibar/cdabs(Acomp_phibar))
+
+    !"QCYphibar_Xi", &
+      call calc_QCYphibar_Xi(QC_Xi_site,QC_Xi_link,QC_Xi_face,&
+        Geta_eta,Geta_lambda,Geta_chi,&
+        Gchi_eta,Gchi_lambda,Gchi_chi,&
+        Umat,PhiMat)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  &
+        dble(QC_Xi_site / (Acomp_phibar/dcmplx(cdabs(Acomp_phibar))))
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  &
+        dble((0d0,-1d0) * QC_Xi_site / (Acomp_phibar/dcmplx(cdabs(Acomp_phibar))))
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  &
+        dble(QC_Xi_link / (Acomp_phibar/dcmplx(cdabs(Acomp_phibar))))
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  &
+        dble((0d0,-1d0) * QC_Xi_link / (Acomp_phibar/dcmplx(cdabs(Acomp_phibar))))
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  &
+        dble(QC_Xi_face / (Acomp_phibar/dcmplx(cdabs(Acomp_phibar))))
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  &
+        dble((0d0,-1d0) * QC_Xi_face / (Acomp_phibar/dcmplx(cdabs(Acomp_phibar))))
+
 
     !"|Aphibar|", &
       call calc_phibar_compensator(Acomp_phibar,PhiMat)
@@ -347,7 +381,7 @@ do
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble(Acomp_phibar/cdabs(Acomp_phibar))
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble( (0d0,-1d0)*Acomp_phibar/cdabs(Acomp_phibar))
 
-    !"|Aphibar|", &
+    !"QCphibar_Xi", &
       call calc_QCphibar_Xi(QC_Xi_site,QC_Xi_link,QC_Xi_face,Geta_eta,Geta_lambda,Geta_chi,Umat,PhiMat)
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  &
         dble(QC_Xi_site / (Acomp_phibar/dcmplx(cdabs(Acomp_phibar))))

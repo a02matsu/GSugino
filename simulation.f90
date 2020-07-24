@@ -33,6 +33,8 @@ contains
 #include "Observables/trf2.f90"
 #include "Observables/compensators.f90"
 #include "Observables/phibar_compensator.f90"
+#include "Observables/Yphi_compensator.f90"
+#include "Observables/Yphibar_compensator.f90"
 #include "Observables/bosonic_action.f90"
 #include "Observables/U1V_current.f90"
 #include "Observables/fermion_action_site.f90"

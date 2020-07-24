@@ -200,6 +200,7 @@ simulation.o: \
   $(DIR_OBSERVABLES)/fermionic_face_lagrangian.f90 \
   $(DIR_OBSERVABLES)/compensators.f90 \
   $(DIR_OBSERVABLES)/phibar_compensator.f90 \
+  $(DIR_OBSERVABLES)/Yphi_compensator.f90 \
   $(DIR_OBSERVABLES)/phichi.f90 \
   $(DIR_OBSERVABLES)/checkFF.f90 \
   $(DIR_OBSERVABLES)/trphi2.f90 \
