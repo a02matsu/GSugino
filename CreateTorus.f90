@@ -24,16 +24,21 @@ integer :: s1, s2, s3, s4
 
 integer :: iarg
 character(50) :: CM,CN
+double precision :: U1R_ratio ! exp(2\pi i U1R_ratio) is the U(1) monodoromy of the cycle (common to the two cycles)
+character(50) :: C_U1R_ratio
+double precision :: U1R_link1 ! U1R_ratio/sizeM 
+double precision :: U1R_link2 ! U1R_ratio/sizeN 
 
 iarg=iargc()
 call getarg(1,CM)
-call getarg(1,CN)
+call getarg(2,CN)
 read(CM,*) sizeM
 read(CN,*) sizeN
-
-if( mod(sizeN,2) == 1 ) then 
-  write(*,*) "Set even N"
-  stop
+if( iarg >= 3 ) then 
+  call getarg(3,C_U1R_ratio)
+  read(C_U1R_ratio,*) U1R_ratio
+else
+  U1R_ratio=0d0
 endif
 
 num_sites=sizeM*sizeN
@@ -41,6 +46,10 @@ num_links=2*sizeM*sizeN
 num_faces=sizeM*sizeN
 
 a=dsqrt( length1 * length2 / dble(sizeM*sizeN) )
+
+U1R_link1 = U1R_ratio / dble(sizeM) 
+U1R_link2 = U1R_ratio / dble(sizeN) 
+
 
 !write(*,*) radius,num_sites,num_links,num_faces,PI
 
@@ -84,18 +93,18 @@ do n=0, sizeN-1
   do i=1,sizeM
     if( i /= sizeM ) then
       l=l+1
-      write(OUT,'(I6,X,I6,X,I6,X,E15.8,X,A)') l, n*sizeM+i, n*sizeM+i+1, alpha_l(l), "0d0"
+      write(OUT,'(I6,X,I6,X,I6,X,E15.8,X,E15.8)') l, n*sizeM+i, n*sizeM+i+1, alpha_l(l), U1R_link1
     else
       l=l+1
-      write(OUT,'(I6,X,I6,X,I6,X,E15.8,X,A)') l, n*sizeM+i, n*sizeM+1, alpha_l(l), "0d0"
+      write(OUT,'(I6,X,I6,X,I6,X,E15.8,X,E15.8)') l, n*sizeM+i, n*sizeM+1, alpha_l(l), U1R_link1
     endif
     !!
     if( n /= sizeN-1 ) then
       l=l+1
-      write(OUT,'(I6,X,I6,X,I6,X,E15.8,X,A)') l, n*sizeM+i, (n+1)*sizeM+i, alpha_l(l), "0d0"
+      write(OUT,'(I6,X,I6,X,I6,X,E15.8,X,E15.8)') l, n*sizeM+i, (n+1)*sizeM+i, alpha_l(l), U1R_link2
     else
       l=l+1
-      write(OUT,'(I6,X,I6,X,I6,X,E15.8,X,A)') l, n*sizeM+i, i, alpha_l(l), "0d0"
+      write(OUT,'(I6,X,I6,X,I6,X,E15.8,X,E15.8)') l, n*sizeM+i, i, alpha_l(l), U1R_link2
     endif
   enddo
 enddo

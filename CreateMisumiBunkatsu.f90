@@ -25,7 +25,7 @@ character(50) :: CM,CN
 
 iarg=iargc()
 call getarg(1,CM)
-call getarg(1,CN)
+call getarg(2,CN)
 read(CM,*) sizeM
 read(CN,*) sizeN
 

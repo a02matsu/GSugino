@@ -663,6 +663,7 @@ complex(kind(0d0)) :: XY_Ushiro(1:NMAT,1:NMAT)
 complex(kind(0d0)) :: XY_factor
 !complex(kind(0d0)) :: dsinUdA(1:NMAT,1:NMAT,1:NMAT,1:NMAT)
 complex(kind(0d0)) :: dir_factor
+complex(kind(0d0)) :: U1Rfactor_fl
 complex(kind(0d0)) :: Bval,trace
 complex(kind(0d0)) :: tmp,tmp1,tmp2
 integer :: i,j,k,l,ll,f,a,b,l_place,ll_place,X_last,r!,kk
@@ -697,8 +698,13 @@ do k=1,face_in_l(ll)%num_
 
   do l_place=1,links_in_f(f)%num_
     l=links_in_f(f)%link_labels_(l_place)
+
+    !! U1Rfactor
+    call calc_U1Rfactor_fl_by_route(U1Rfactor_fl,f,l_place)
+
     dir_factor=(0d0,1d0)*dcmplx(& !! sign is flipped (2020/06/05)
-      dble(links_in_f(f)%link_dirs_(l_place)) * alpha_f(f) * beta_f(f) )
+      dble(links_in_f(f)%link_dirs_(l_place)) * alpha_f(f) * beta_f(f) ) &
+      * U1R_factor_fl
 
     call calc_XYmat(Xmat,Ymat,f,l_place,UMAT)
 
