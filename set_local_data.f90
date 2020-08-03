@@ -907,7 +907,7 @@ do s=1,num_sites
       endif
     enddo
     if( info==0 ) then 
-      write(*,*) MYRANK,"Something happpend in set_local_linkorg_to_s 1"
+      write(*,*) "Something happpend in set_local_linkorg_to_s in link", l, "in RANK ",MYRANK
       call stop_for_test
     endif
   enddo
