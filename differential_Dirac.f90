@@ -704,7 +704,7 @@ do k=1,face_in_l(ll)%num_
 
     dir_factor=(0d0,1d0)*dcmplx(& !! sign is flipped (2020/06/05)
       dble(links_in_f(f)%link_dirs_(l_place)) * alpha_f(f) * beta_f(f) ) &
-      * U1R_factor_fl
+      * U1Rfactor_fl
 
     call calc_XYmat(Xmat,Ymat,f,l_place,UMAT)
 
