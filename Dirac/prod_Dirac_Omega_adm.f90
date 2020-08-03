@@ -15,6 +15,7 @@ complex(kind(0d0)) :: tmpmat1(1:NMAT,1:NMAT)
 complex(kind(0d0)) :: tmpmat2(1:NMAT,1:NMAT)
 integer :: i,j,l,f,l_place
 complex(kind(0d0)) :: dir_factor
+complex(kind(0d0)) :: U1R_factor_fl
 complex(kind(0d0)) :: Bval
 complex(kind(0d0)) :: trace
 
