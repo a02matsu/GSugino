@@ -78,7 +78,7 @@ subroutine calc_4fermi_in_CSFsite(CSF, Umat, Phimat, &
     Geta_eta, Gchi_eta )
 use parallel
 use global_parameters
-use Dirac_operator !, only : prod_dirc_site
+use Dirac_operator , only : prod_Dirac_site
 use matrix_functions, only : hermitian_conjugate, matrix_power, trace_mm, make_unit_matrix, matrix_product, matrix_3_product, matrix_commutator
 implicit none
 
@@ -152,8 +152,8 @@ do gf=1,global_num_faces
   do p=0,ratio-1
     do i=1,NMAT
       do j=1,NMAT
-        call prod_Dirc_site(DFmat,PhiMat,FMAT(:,:,:,i,j,ratio-p-1,gf))
-        call prod_Dirc_site(DSmat,PhiMat,SMAT(:,:,:,i,j,p,gf))
+        call prod_Dirac_site(DFmat,PhiMat,FMAT(:,:,:,i,j,ratio-p-1,gf))
+        call prod_Dirac_site(DSmat,PhiMat,SMAT(:,:,:,i,j,p,gf))
         do ls=1,num_sites
           do b=1,NMAT
             do a=1,NMAT
