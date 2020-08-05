@@ -360,7 +360,7 @@ do
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble( (0d0,-1d0)*Acomp_face/cdabs(Acomp_face))
 
     !"|Af-SF4_site|", &
-      call calc_calc_4fermi_in_CSFsite(CSF_site, Umat, Phimat, Geta_eta, Gchi_eta )
+      call calc_4fermi_in_CSFsite(CSF_site, Umat, Phimat, Geta_eta, Gchi_eta )
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') cdabs(CSF_site)
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble(CSF_site/cdabs(CSF_site))
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble( (0d0,-1d0)*CSF_site/cdabs(CSF_site))
