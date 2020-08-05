@@ -67,7 +67,7 @@ enddo
 call MPI_REDUCE(tmp_Acomp,Acomp,1,MPI_DOUBLE_COMPLEX, &
   MPI_SUM,0,MPI_COMM_WORLD,IERR)
   
-Acomp=Acomp/dcmplx(dble(global_num_faces))
+Acomp=Acomp/dcmplx(dble(global_num_faces * NMAT))
 
 end subroutine calc_face_compensator
 
@@ -153,7 +153,7 @@ do gf=1,global_num_faces
     do i=1,NMAT
       do j=1,NMAT
         call prod_Dirac_site(DFmat,PhiMat,FMAT(:,:,:,i,j,ratio-p-1,gf))
-        call prod_Dirac_site(DSmat,PhiMat,SMAT(:,:,:,i,j,p,gf))
+        call prod_Dirc_site(DSmat,PhiMat,SMAT(:,:,:,i,j,p,gf))
         do ls=1,num_sites
           do b=1,NMAT
             do a=1,NMAT
