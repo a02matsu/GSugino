@@ -13,13 +13,19 @@ character(128), parameter :: PARAFILE="parameters_calcobs.dat"
 character(128) :: MEDFILE
 character(128) :: DinvFILE
 character(128) :: EigenFILE
-integer, parameter :: num_calcobs=49 ! 考えているobservableの数
+integer, parameter :: num_calcobs=55 ! 考えているobservableの数
 character(128) :: name_obs(1:num_calcobs) = (/ &
   "Re(phase Pf)",  &
   "Im(phase Pf)", &
   "|Atr|", &
   "Re(phase Atr)", &
   "Im(phase Atr)", &
+  "|Aface|", &
+  "Re(phase Aface)", &
+  "Im(phase Aface)", &
+  "|Af-SF4 site|", &
+  "Re(phase Af-SF4 site)", &
+  "Im(phase Af-SF4 site)", &
   "|AYphi|", &
   "Re(phase AYphi)", &
   "Im(phase AYphi)", &
@@ -85,6 +91,9 @@ double precision :: Sb, SbS, SbL, SbF
 complex(kind(0d0)) :: SfL2
 complex(kind(0d0)) :: Acomp_tr ! trace compensator
 complex(kind(0d0)) :: Acomp_face ! face compensator
+complex(kind(0d0)) :: CSF_site ! 4-fermi term in Aface-(SFsite+mass)
+complex(kind(0d0)) :: CSF_link ! 4-fermi term in Aface-(SFlink+mass)
+complex(kind(0d0)) :: CSF_face ! 4-fermi term in Aface-(SFface+mass)
 complex(kind(0d0)) :: Acomp_phibar ! phia compensator
 !complex(kind(0d0)) :: Atr_phase ! A*/|A|
 !complex(kind(0d0)) :: Aface_phase ! A*/|A|
@@ -343,6 +352,20 @@ do
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') cdabs(Acomp_tr)
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble(Acomp_tr/cdabs(Acomp_tr))
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble( (0d0,-1d0)*Acomp_tr/cdabs(Acomp_tr))
+
+    !"|Aface|", &
+      call calc_face_compensator(Acomp_face,Umat,PhiMat,Geta_chi)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') cdabs(Acomp_face)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble(Acomp_face/cdabs(Acomp_face))
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble( (0d0,-1d0)*Acomp_face/cdabs(Acomp_face))
+
+    !"|Af-SF4_site|", &
+      call calc_calc_4fermi_in_CSFsite(CSF_site, Umat, Phimat, Geta_eta, Gchi_eta )
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') cdabs(CSF_site)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble(CSF_site/cdabs(CSF_site))
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble( (0d0,-1d0)*CSF_site/cdabs(CSF_site))
+
+
 
     !"|AYphi|", &
       call calc_Yphi_compensator(Acomp_face,PhiMat,Umat)
