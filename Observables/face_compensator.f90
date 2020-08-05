@@ -89,7 +89,7 @@ complex(kind(0d0)), intent(in) :: Gchi_eta(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_
 
 complex(kind(0d0)), allocatable :: SMAT(:,:,:,:,:,:,:) 
 complex(kind(0d0)), allocatable :: FMAT(:,:,:,:,:,:,:) 
-complex(kind(0d0)), allocatable :: phibar_p(:,:,:,:)
+complex(kind(0d0)), allocatable :: phibar_p(:,:,:)
 complex(kind(0d0)) :: DSmat(1:NMAT,1:NMAT,1:num_sites)
 complex(kind(0d0)) :: DFmat(1:NMAT,1:NMAT,1:num_sites)
 complex(kind(0d0)) :: Xi_eta(1:NMAT,1:NMAT,1:num_necessary_sites)
@@ -105,8 +105,7 @@ complex(kind(0d0)) :: tmp_CSF
 ratio = (NMAT*NMAT-1)*(global_num_sites-global_num_links+global_num_faces)/2
 allocate( SMAT(1:NMAT,1:NMAT,1:num_necessary_sites,1:NMAT,1:NMAT,0:ratio-1,1:global_num_faces) )
 allocate( FMAT(1:NMAT,1:NMAT,1:num_necessary_sites,1:NMAT,1:NMAT,0:ratio-1,1:global_num_faces) )
-allocate( phibar_p(1:NMAT,1:NMAT,0:ratio,1:global_num_faces) )
-allocate( tmpmat_p(1:NMAT, 1:NMAT,0:ratio) )
+allocate( phibar_p(1:NMAT,1:NMAT,0:ratio) )
 
 !! 
 SMAT=(0d0,0d0)
@@ -158,8 +157,8 @@ do gf=1,global_num_faces
           do b=1,NMAT
             do a=1,NMAT
               tmp_CSF=tmp_CSF &
-                + (-0.5d0,0d0) * SMAT(a,b,ls,i,j,p) * DFmat(b,a,ls) &
-                + (0.5d0,0d0) * FMAT(a,b,ls,i,j,ratio-p-1) * DSmat(b,a,ls) 
+                + (-0.5d0,0d0) * SMAT(a,b,ls,i,j,p,gf) * DFmat(b,a,ls) &
+                + (0.5d0,0d0) * FMAT(a,b,ls,i,j,ratio-p-1,gf) * DSmat(b,a,ls) 
             enddo
           enddo
         enddo
