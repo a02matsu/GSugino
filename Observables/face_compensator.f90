@@ -89,7 +89,7 @@ complex(kind(0d0)), intent(in) :: Gchi_eta(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_
 
 complex(kind(0d0)), allocatable :: SMAT(:,:,:,:,:,:,:) 
 complex(kind(0d0)), allocatable :: FMAT(:,:,:,:,:,:,:) 
-complex(kind(0d0)), allocatable :: phibar_p(:,:,:)
+complex(kind(0d0)), allocatable :: phibar_p(:,:,:,:)
 complex(kind(0d0)) :: DSmat(1:NMAT,1:NMAT,1:num_sites)
 complex(kind(0d0)) :: DFmat(1:NMAT,1:NMAT,1:num_sites)
 complex(kind(0d0)) :: Xi_eta(1:NMAT,1:NMAT,1:num_necessary_sites)
@@ -121,12 +121,12 @@ do gf=1,global_num_faces
   if( MYRANK==rank ) then
     !! phibar_p = \bar(\PhiMat)^p
     call make_unit_matrix(phibar_p(:,:,0))
-    call hermitian_conjugate(phibar_p(:,:,1, PhiMat(:,:,ls))
+    call hermitian_conjugate(phibar_p(:,:,1), PhiMat(:,:,ls))
     do k=2,ratio
-      call matrix_product(phibar_p(:,:,k),phibar_p(:,:,k-1),phibar_p(:,:,1)
+      call matrix_product(phibar_p(:,:,k),phibar_p(:,:,k-1),phibar_p(:,:,1))
     enddo
   endif
-  call MPI_BCAST(phibar_p:,NMAT*NMAT*(ratio+1),MPI_DOUBLE_COMPLEX,rank,MPI_COMM_WORLD,IERR)
+  call MPI_BCAST(phibar_p,NMAT*NMAT*(ratio+1),MPI_DOUBLE_COMPLEX,rank,MPI_COMM_WORLD,IERR)
 
 !! prepare SMAT and FMAT
   do p=0,ratio-1
@@ -145,8 +145,8 @@ do gf=1,global_num_faces
   enddo
 enddo
 
-tmp_CFS=(0d0,0d0)
-CFS=(0d0,0d0)
+tmp_CSF=(0d0,0d0)
+CSF=(0d0,0d0)
 !! (1) Dirac term
 do gf=1,global_num_faces
   do p=0,ratio-1
@@ -157,7 +157,7 @@ do gf=1,global_num_faces
         do ls=1,num_sites
           do b=1,NMAT
             do a=1,NMAT
-              tmp_CFS=tmp_CFS &
+              tmp_CSF=tmp_CSF &
                 + (-0.5d0,0d0) * SMAT(a,b,ls,i,j,p) * DFmat(b,a,ls) &
                 + (0.5d0,0d0) * FMAT(a,b,ls,i,j,ratio-p-1) * DSmat(b,a,ls) 
             enddo
@@ -167,7 +167,7 @@ do gf=1,global_num_faces
     enddo
   enddo
 enddo
-call MPI_REDUCE(tmp_CFS,CFS,1,MPI_DOUBLE_COMPLEX, &
+call MPI_REDUCE(tmp_CSF,CSF,1,MPI_DOUBLE_COMPLEX, &
   MPI_SUM,0,MPI_COMM_WORLD,IERR)
 
 !! (2) mass term
@@ -203,7 +203,7 @@ do gf=1,global_num_faces
             MPI_SUM,0,MPI_COMM_WORLD,IERR)
         enddo
         if( MYRANK==0 ) then
-          CFS=CFS&
+          CSF=CSF&
             -dcmplx( 0.5d0*mass_square_phi )*trace1*trace2 &
             +dcmplx( 0.5d0*mass_square_phi )*trace3*trace4
         endif
@@ -213,7 +213,7 @@ do gf=1,global_num_faces
 enddo
 
 if( MYRANK==0 ) then
-  CFS=CFS / dcmplx( NMAT * global_num_faces )
+  CSF=CSF / dcmplx( NMAT * global_num_faces )
 endif
 
 end subroutine calc_4fermi_in_CSFsite
