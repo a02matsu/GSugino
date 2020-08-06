@@ -617,10 +617,10 @@ do gf=1,global_num_faces
               tmp4=tmp4 + Xi_chi(a,b,lf)*Fchi(b,a,lf,j,i,ratio-p-1,gf)
             enddo
           enddo
-          call MPI_REDUCE(tmp3,ttmp3,1,MPI_DOUBLE_COMPLEX, &
-            MPI_SUM,0,MPI_COMM_WORLD,IERR)
-          call MPI_REDUCE(tmp4,ttmp4,1,MPI_DOUBLE_COMPLEX, &
-            MPI_SUM,0,MPI_COMM_WORLD,IERR)
+          call MPI_ALLREDUCE(tmp3,ttmp3,1,MPI_DOUBLE_COMPLEX, &
+            MPI_SUM,MPI_COMM_WORLD,IERR)
+          call MPI_ALLREDUCE(tmp4,ttmp4,1,MPI_DOUBLE_COMPLEX, &
+            MPI_SUM,MPI_COMM_WORLD,IERR)
           if( MYRANK==0 ) then 
             trace3=trace3+ttmp3
             trace4=trace4+ttmp4
