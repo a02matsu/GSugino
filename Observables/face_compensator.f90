@@ -225,7 +225,7 @@ use global_parameters
 use parallel
 implicit none
 
-complex(kind(0d0)), intent(in) :: phibar_p(:,:,:)
+complex(kind(0d0)), intent(in) :: phibar_p(1:NMAT,1:NMAT,1:ratio)
 complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_necessary_sites)
 integer, intent(in) :: ratio
 
