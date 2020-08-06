@@ -510,14 +510,14 @@ do gf=1,global_num_faces
           call matrix_product(Fchi(:,:,lf2,i,j,p,gf),&
             phibar_p(:,:,p), Gchi_chi(:,:,i,j,gf,lf2))
         enddo !lf2
+        call syncronize_faces(Schi(:,:,:,i,j,p,gf))
+        call syncronize_faces(Fchi(:,:,:,i,j,p,gf))
         do ll=1,num_links
           call matrix_product(Slambda(:,:,ll,i,j,p,gf),&
             phibar_p(:,:,p), Geta_lambda(:,:,i,j,gs,ll))
           call matrix_product(Flambda(:,:,ll,i,j,p,gf),&
             phibar_p(:,:,p), Gchi_lambda(:,:,i,j,gf,ll))
         enddo !ll
-        call syncronize_faces(Schi(:,:,:,i,j,p,gf))
-        call syncronize_faces(Fchi(:,:,:,i,j,p,gf))
         call syncronize_links(Slambda(:,:,:,i,j,p,gf))
         call syncronize_links(Flambda(:,:,:,i,j,p,gf))
       enddo
@@ -588,26 +588,40 @@ do gf=1,global_num_faces
         trace2=(0d0,0d0) ! Phi.Fchi
         trace3=(0d0,0d0) ! Xi.Schi
         trace4=(0d0,0d0) ! Xi.Fchi   
+        ttmp1=(0d0,0d0)
+        ttmp2=(0d0,0d0)
         do ls=1,num_sites
           tmp1=(0d0,0d0)
           tmp2=(0d0,0d0)
-          ttmp1=(0d0,0d0)
-          ttmp2=(0d0,0d0)
           do b=1,NMAT
             do a=1,NMAT
               tmp1=tmp1 + Phimat(a,b,ls)*Seta(b,a,ls,i,j,p,gf)
               tmp2=tmp2 + Phimat(a,b,ls)*Feta(b,a,ls,j,i,ratio-p-1,gf)
             enddo
           enddo
-          call MPI_ALLREDUCE(tmp1,ttmp1,1,MPI_DOUBLE_COMPLEX, &
-            MPI_SUM,MPI_COMM_WORLD,IERR)
-          call MPI_ALLREDUCE(tmp2,ttmp2,1,MPI_DOUBLE_COMPLEX, &
-            MPI_SUM,MPI_COMM_WORLD,IERR)
-          if( MYRANK==0 ) then 
-            trace1=trace1+ttmp1
-            trace2=trace2+ttmp2
-          endif
+          !call MPI_REDUCE(tmp1,ttmp1,1,MPI_DOUBLE_COMPLEX, &
+            !MPI_SUM,0,MPI_COMM_WORLD,IERR)
+          !call MPI_REDUCE(tmp2,ttmp2,1,MPI_DOUBLE_COMPLEX, &
+            !MPI_SUM,0,MPI_COMM_WORLD,IERR)
+          !if( MYRANK==0 ) then 
+            !trace1=trace1+ttmp1
+            !trace2=trace2+ttmp2
+          !endif
+          ttmp1=ttmp1+tmp1
+          ttmp2=ttmp2+tmp2
         enddo
+        tmp1=(0d0,0d0)
+        tmp2=(0d0,0d0)
+        call MPI_REDUCE(ttmp1,tmp1,1,MPI_DOUBLE_COMPLEX, &
+          MPI_SUM,0,MPI_COMM_WORLD,IERR)
+        call MPI_REDUCE(ttmp2,tmp2,1,MPI_DOUBLE_COMPLEX, &
+          MPI_SUM,0,MPI_COMM_WORLD,IERR)
+        if ( MYRANK==0 ) then 
+          trace1=trace1+tmp1
+          trace2=trace2+tmp2
+        endif
+        ttmp3=(0d0,0d0)
+        ttmp4=(0d0,0d0)
         do lf=1,num_faces
           tmp3=(0d0,0d0)
           tmp4=(0d0,0d0)
@@ -617,15 +631,19 @@ do gf=1,global_num_faces
               tmp4=tmp4 + Xi_chi(a,b,lf)*Fchi(b,a,lf,j,i,ratio-p-1,gf)
             enddo
           enddo
-          call MPI_ALLREDUCE(tmp3,ttmp3,1,MPI_DOUBLE_COMPLEX, &
-            MPI_SUM,MPI_COMM_WORLD,IERR)
-          call MPI_ALLREDUCE(tmp4,ttmp4,1,MPI_DOUBLE_COMPLEX, &
-            MPI_SUM,MPI_COMM_WORLD,IERR)
-          if( MYRANK==0 ) then 
-            trace3=trace3+ttmp3
-            trace4=trace4+ttmp4
-          endif
+          ttmp3=ttmp3+tmp3
+          ttmp4=ttmp4+tmp4
         enddo
+        tmp3=(0d0,0d0)
+        tmp4=(0d0,0d0)
+        call MPI_REDUCE(ttmp3,tmp3,1,MPI_DOUBLE_COMPLEX, &
+          MPI_SUM,0,MPI_COMM_WORLD,IERR)
+        call MPI_REDUCE(ttmp4,tmp4,1,MPI_DOUBLE_COMPLEX, &
+          MPI_SUM,0,MPI_COMM_WORLD,IERR)
+        if( MYRANK==0 ) then 
+          trace3=trace3+tmp3
+          trace4=trace4+tmp4
+        endif
         if( MYRANK==0 ) then
           CSF=CSF&
             -dcmplx( 0.5d0*mass_square_phi )*trace3*trace2 &
