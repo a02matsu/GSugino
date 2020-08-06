@@ -13,7 +13,7 @@ character(128), parameter :: PARAFILE="parameters_calcobs.dat"
 character(128) :: MEDFILE
 character(128) :: DinvFILE
 character(128) :: EigenFILE
-integer, parameter :: num_calcobs=58 ! 考えているobservableの数
+integer, parameter :: num_calcobs=61 ! 考えているobservableの数
 character(128) :: name_obs(1:num_calcobs) = (/ &
   "Re(phase Pf)",  &
   "Im(phase Pf)", &
@@ -29,6 +29,9 @@ character(128) :: name_obs(1:num_calcobs) = (/ &
   "|Af-SF4 link|", &
   "Re(phase Af-SF4 link)", &
   "Im(phase Af-SF4 link)", &
+  "|Af-SF4 face|", &
+  "Re(phase Af-SF4 face)", &
+  "Im(phase Af-SF4 face)", &
   "|AYphi|", &
   "Re(phase AYphi)", &
   "Im(phase AYphi)", &
@@ -373,6 +376,12 @@ do
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') cdabs(CSF_link)
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble(CSF_link/cdabs(CSF_link))
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble( (0d0,-1d0)*CSF_link/cdabs(CSF_link))
+
+    !"|Af-SF4_face|", &
+      call calc_4fermi_in_CSFface(CSF_face, Umat, Phimat, Geta_eta, Gchi_eta, Geta_lambda, Gchi_lambda )
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') cdabs(CSF_face)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble(CSF_face/cdabs(CSF_face))
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble( (0d0,-1d0)*CSF_face/cdabs(CSF_face))
 
 
     !"|AYphi|", &
