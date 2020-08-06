@@ -332,8 +332,8 @@ do gf=1,global_num_faces
           do b=1,NMAT
             do a=1,NMAT
               tmp_CSF=tmp_CSF &
-                + (0.5d0,0d0) * Slambda(a,b,ll,i,j,p,gf) * DFlambda(b,a,ll) &
-                - (0.5d0,0d0) * Flambda(a,b,ll,i,j,ratio-p-1,gf) * DSlambda(b,a,ll) 
+                - (0.5d0,0d0) * Slambda(a,b,ll,i,j,p,gf) * DFlambda(b,a,ll) &
+                + (0.5d0,0d0) * Flambda(a,b,ll,i,j,ratio-p-1,gf) * DSlambda(b,a,ll) 
             enddo
           enddo
         enddo !ll
