@@ -472,6 +472,7 @@ integer :: ratio
 complex(kind(0d0)) :: tmp_CSF
 integer :: ccc
 
+ccc=0
 
 ratio = (NMAT*NMAT-1)*(global_num_sites-global_num_links+global_num_faces)/2
 allocate( Seta(1:NMAT,1:NMAT,1:num_necessary_sites,1:NMAT,1:NMAT,0:ratio-1,1:global_num_faces) )
