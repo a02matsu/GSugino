@@ -523,7 +523,7 @@ do gf=1,global_num_faces
         call prod_Dirac_Omega_adm(DFchi,DFlambda,Umat,&
           Schi(:,:,:,j,i,p,gf), Flambda(:,:,:,j,i,ratio-p-1,gf) )
         call prod_Dirac_Omega_adm(DSchi,DSlambda,Umat,&
-          Fchi(:,:,:,j,i,ratio-p-1), Slambda(:,:,:,j,i,p,gf)) 
+          Fchi(:,:,:,j,i,ratio-p-1,gf), Slambda(:,:,:,j,i,p,gf)) 
         do lf=1,num_faces
           do b=1,NMAT
             do a=1,NMAT
