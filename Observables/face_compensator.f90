@@ -219,4 +219,34 @@ endif
 
 end subroutine calc_4fermi_in_CSFsite
 
+!!!!
+subroutine make_phibar_p(phibar_p,PhiMat,ratio)
+use global_parameters
+use parallel
+implicit none
 
+complex(kind(0d0)), intent(in) :: phibar_p(:,:,:)
+complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_necessary_sites)
+integer, intent(in) :: ratio
+
+integer :: gf,gs,lf,ls,rank,k
+
+do gf=1,global_num_faces
+  rank=local_face_of_global(gf)%rank_
+  lf=local_face_of_global(gf)%label_
+  ls=sites_in_f(lf)%label_(1)
+  gs=global_sites_in_f(gf)%label_(1)
+
+  !! phibar_p = phibar^{0...r}(:,:,gf)
+  if( MYRANK==rank ) then
+    !! phibar_p = \bar(\PhiMat)^p
+    call make_unit_matrix(phibar_p(:,:,0))
+    call hermitian_conjugate(phibar_p(:,:,1), PhiMat(:,:,ls))
+    do k=2,ratio
+      call matrix_product(phibar_p(:,:,k),phibar_p(:,:,k-1),phibar_p(:,:,1))
+    enddo
+  endif
+  call MPI_BCAST(phibar_p,NMAT*NMAT*(ratio+1),MPI_DOUBLE_COMPLEX,rank,MPI_COMM_WORLD,IERR)
+enddo
+
+subroutine make_phibar_p
