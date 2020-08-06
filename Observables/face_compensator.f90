@@ -316,8 +316,8 @@ do gf=1,global_num_faces
           do b=1,NMAT
             do a=1,NMAT
               tmp_CSF=tmp_CSF &
-                + Slambda(a,b,ll,i,j,p,gf) * DFlambda(b,a,ll) &
-                - Flambda(a,b,ll,i,j,ratio-p-1,gf) * DSlambda(b,a,ll) 
+                - Slambda(a,b,ll,i,j,p,gf) * DFlambda(b,a,ll) &
+                + Flambda(a,b,ll,i,j,ratio-p-1,gf) * DSlambda(b,a,ll) 
             enddo
           enddo
         enddo !ll
@@ -328,7 +328,7 @@ do gf=1,global_num_faces
           Slambda(:,:,:,j,i,p,gf))
         call prod_Dirac_link2(DFlambda,PhiMat,Umat,&
           Flambda(:,:,:,j,i,ratio-p-1,gf))
-        do ll=1,num_links
+        do lf=1,num_links
           do b=1,NMAT
             do a=1,NMAT
               tmp_CSF=tmp_CSF &
@@ -399,181 +399,197 @@ end subroutine calc_4fermi_in_CSFlink
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! 4-fermio terms in C_face SF_face
-!subroutine calc_4fermi_in_CSFface(CSF, Umat, Phimat, &
-!    Geta_chi, Gchi_chi, Geta_lambda, Gchi_lambda )
-!use parallel
-!use global_parameters
-!use Dirac_operator , only : prod_Dirac_link1, prod_Dirac_link2
-!use matrix_functions, only : hermitian_conjugate, matrix_power, trace_mm, make_unit_matrix, matrix_product, matrix_3_product, matrix_commutator
-!implicit none
-!
-!complex(kind(0d0)), intent(out) :: CSF
-!complex(kind(0d0)), intent(in) :: Umat(1:NMAT,1:NMAT,1:num_necessary_links)
-!complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_necessary_sites)
-!complex(kind(0d0)), intent(in) :: Geta_eta(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_sites,1:num_sites) 
-!complex(kind(0d0)), intent(in) :: Gchi_eta(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_faces,1:num_sites) 
-!complex(kind(0d0)), intent(in) :: Geta_lambda(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_sites,1:num_links) 
-!complex(kind(0d0)), intent(in) :: Gchi_lambda(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_faces,1:num_links) 
-!
-!complex(kind(0d0)), allocatable :: Seta(:,:,:,:,:,:,:) 
-!complex(kind(0d0)), allocatable :: Feta(:,:,:,:,:,:,:) 
-!complex(kind(0d0)), allocatable :: Slambda(:,:,:,:,:,:,:) 
-!complex(kind(0d0)), allocatable :: Flambda(:,:,:,:,:,:,:) 
-!complex(kind(0d0)), allocatable :: phibar_p(:,:,:)
-!complex(kind(0d0)) :: DSeta(1:NMAT,1:NMAT,1:num_sites)
-!complex(kind(0d0)) :: DFeta(1:NMAT,1:NMAT,1:num_sites)
-!complex(kind(0d0)) :: DSlambda(1:NMAT,1:NMAT,1:num_links)
-!complex(kind(0d0)) :: DFlambda(1:NMAT,1:NMAT,1:num_links)
-!complex(kind(0d0)) :: Xi_lambda(1:NMAT,1:NMAT,1:num_necessary_links)
-!complex(kind(0d0)) :: trace1, trace2, trace3, trace4
-!complex(kind(0d0)) :: tmp1, tmp2, tmp3, tmp4
-!
-!integer :: ls,ll,lf,gs,gf
-!integer :: tag, rank
-!integer :: i,j,k,l,p,a,b
-!integer :: ratio
-!complex(kind(0d0)) :: tmp_CSF
-!
-!ratio = (NMAT*NMAT-1)*(global_num_sites-global_num_links+global_num_faces)/2
-!allocate( Seta(1:NMAT,1:NMAT,1:num_necessary_sites,1:NMAT,1:NMAT,0:ratio-1,1:global_num_faces) )
-!allocate( Feta(1:NMAT,1:NMAT,1:num_necessary_sites,1:NMAT,1:NMAT,0:ratio-1,1:global_num_faces) )
-!allocate( Slambda(1:NMAT,1:NMAT,1:num_necessary_links,1:NMAT,1:NMAT,0:ratio-1,1:global_num_faces) )
-!allocate( Flambda(1:NMAT,1:NMAT,1:num_necessary_links,1:NMAT,1:NMAT,0:ratio-1,1:global_num_faces) )
-!allocate( phibar_p(1:NMAT,1:NMAT,0:ratio) )
-!
-!!! 
-!Seta=(0d0,0d0)
-!Feta=(0d0,0d0)
-!Slambda=(0d0,0d0)
-!Flambda=(0d0,0d0)
-!do gf=1,global_num_faces
-!  rank=local_face_of_global(gf)%rank_
-!  lf=local_face_of_global(gf)%label_
-!  ls=sites_in_f(lf)%label_(1)
-!  gs=global_sites_in_f(gf)%label_(1)
-!
-!  !! phibar_p = phibar^{0...r}(:,:,gf)
-!  call make_phibar_p(phibar_p,PhiMat,ratio,gf)
-!
-!  !! prepare SMAT and FMAT
-!  do p=0,ratio-1
-!    do j=1,NMAT
-!      do i=1,NMAT
-!        do ls=1,num_sites
-!          call matrix_product(Seta(:,:,ls,i,j,p,gf),&
-!            phibar_p(:,:,p), Geta_eta(:,:,i,j,gs,ls))
-!          call matrix_product(Feta(:,:,ls,i,j,p,gf),&
-!            phibar_p(:,:,p), Gchi_eta(:,:,i,j,gf,ls))
-!        enddo !ls
-!        do ll=1,num_links
-!          call matrix_product(Slambda(:,:,ll,i,j,p,gf),&
-!            phibar_p(:,:,p), Geta_lambda(:,:,i,j,gs,ll))
-!          call matrix_product(Flambda(:,:,ll,i,j,p,gf),&
-!            phibar_p(:,:,p), Gchi_lambda(:,:,i,j,gf,ll))
-!        enddo !ll
-!        call syncronize_sites(Seta(:,:,:,i,j,p,gf))
-!        call syncronize_sites(Feta(:,:,:,i,j,p,gf))
-!        call syncronize_links(Slambda(:,:,:,i,j,p,gf))
-!        call syncronize_links(Flambda(:,:,:,i,j,p,gf))
-!      enddo
-!    enddo
-!  enddo
-!enddo
-!
-!tmp_CSF=(0d0,0d0)
-!CSF=(0d0,0d0)
-!!! (1) Dirac term
-!do gf=1,global_num_faces
-!  do p=0,ratio-1
-!    do i=1,NMAT
-!      do j=1,NMAT
-!        !! link1
-!        call prod_Dirac_link1(DFeta,DFlambda,PhiMat,Umat,&
-!          Feta(:,:,:,j,i,ratio-p-1,gf),Slambda(:,:,:,j,i,p,gf))
-!        call prod_Dirac_link1(DSeta,DSlambda,PhiMat,Umat,&
-!          Seta(:,:,:,j,i,p,gf),Flambda(:,:,:,j,i,ratio-p-1,gf))
-!        do ll=1,num_links
-!          do b=1,NMAT
-!            do a=1,NMAT
-!              tmp_CSF=tmp_CSF &
-!                - Slambda(a,b,ll,i,j,p,gf) * DFlambda(b,a,ll) &
-!                + Flambda(a,b,ll,i,j,ratio-p-1,gf) * DSlambda(b,a,ll) 
-!            enddo
-!          enddo
-!        enddo !ll
-!        !! link2
-!        call prod_Dirac_link2(DSlambda,PhiMat,Umat,&
-!          Slambda(:,:,:,j,i,p,gf))
-!        call prod_Dirac_link2(DFlambda,PhiMat,Umat,&
-!          Flambda(:,:,:,j,i,ratio-p-1,gf))
-!        do ll=1,num_links
-!          do b=1,NMAT
-!            do a=1,NMAT
-!              tmp_CSF=tmp_CSF &
-!                - (0.5d0,0d0) * Slambda(a,b,ll,i,j,p,gf) * DFlambda(b,a,ll) &
-!                + (0.5d0,0d0) * Flambda(a,b,ll,i,j,ratio-p-1,gf) * DSlambda(b,a,ll) 
-!            enddo
-!          enddo
-!        enddo !ll
-!      enddo
-!    enddo
-!  enddo
-!enddo
-!call MPI_REDUCE(tmp_CSF,CSF,1,MPI_DOUBLE_COMPLEX, &
-!  MPI_SUM,0,MPI_COMM_WORLD,IERR)
-!
-!!! (2) mass term
-!call make_XiVec_link(Xi_lambda,Umat,PhiMat)
-!do gf=1,global_num_faces
-!  do p=0,ratio-1
-!    do j=1,NMAT
-!      do i=1,NMAT
-!        trace1=(0d0,0d0) ! Phi.Seta
-!        trace2=(0d0,0d0) ! Phi.Feta
-!        trace3=(0d0,0d0) ! Xi.Slambda
-!        trace4=(0d0,0d0) ! Xi.Flambda
-!        do ls=1,num_sites
-!          tmp1=(0d0,0d0)
-!          tmp2=(0d0,0d0)
-!          do b=1,NMAT
-!            do a=1,NMAT
-!              tmp1=tmp1 + Phimat(a,b,ls)*Seta(b,a,ls,i,j,p,gf)
-!              tmp2=tmp2 + Phimat(a,b,ls)*Feta(b,a,ls,j,i,ratio-p-1,gf)
-!            enddo
-!          enddo
-!          call MPI_REDUCE(tmp1,trace1,1,MPI_DOUBLE_COMPLEX, &
-!            MPI_SUM,0,MPI_COMM_WORLD,IERR)
-!          call MPI_REDUCE(tmp2,trace2,1,MPI_DOUBLE_COMPLEX, &
-!            MPI_SUM,0,MPI_COMM_WORLD,IERR)
-!        enddo
-!        do ll=1,num_links
-!          tmp3=(0d0,0d0)
-!          tmp4=(0d0,0d0)
-!          do b=1,NMAT
-!            do a=1,NMAT
-!              tmp3=tmp3 + Xi_lambda(a,b,ll)*Slambda(b,a,ls,i,j,p,gf)
-!              tmp4=tmp4 + Xi_lambda(a,b,ll)*Flambda(b,a,ls,j,i,ratio-p-1,gf)
-!            enddo
-!          enddo
-!          call MPI_REDUCE(tmp3,trace3,1,MPI_DOUBLE_COMPLEX, &
-!            MPI_SUM,0,MPI_COMM_WORLD,IERR)
-!          call MPI_REDUCE(tmp4,trace4,1,MPI_DOUBLE_COMPLEX, &
-!            MPI_SUM,0,MPI_COMM_WORLD,IERR)
-!        enddo
-!        if( MYRANK==0 ) then
-!          CSF=CSF&
-!            -dcmplx( 0.5d0*mass_square_phi )*trace3*trace2 &
-!            +dcmplx( 0.5d0*mass_square_phi )*trace4*trace1
-!        endif
-!      enddo
-!    enddo
-!  enddo
-!enddo
-!
-!if( MYRANK==0 ) then
-!  CSF=CSF / dcmplx( NMAT * global_num_faces )
-!endif
-!end subroutine calc_4fermi_in_CSFlink
+subroutine calc_4fermi_in_CSFface(CSF, Umat, Phimat, &
+    Geta_chi, Gchi_chi, Geta_lambda, Gchi_lambda )
+use parallel
+use global_parameters
+use Dirac_operator , only : prod_Dirac_link1, prod_Dirac_link2
+use matrix_functions, only : hermitian_conjugate, matrix_power, trace_mm, make_unit_matrix, matrix_product, matrix_3_product, matrix_commutator
+implicit none
+
+complex(kind(0d0)), intent(out) :: CSF
+complex(kind(0d0)), intent(in) :: Umat(1:NMAT,1:NMAT,1:num_necessary_links)
+complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_necessary_sites)
+complex(kind(0d0)), intent(in) :: Geta_chi(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_sites,1:num_faces) 
+complex(kind(0d0)), intent(in) :: Gchi_chi(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_faces,1:num_faces) 
+complex(kind(0d0)), intent(in) :: Geta_lambda(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_sites,1:num_links) 
+complex(kind(0d0)), intent(in) :: Gchi_lambda(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_faces,1:num_links) 
+
+complex(kind(0d0)), allocatable :: Seta(:,:,:,:,:,:,:) 
+complex(kind(0d0)), allocatable :: Feta(:,:,:,:,:,:,:) 
+complex(kind(0d0)), allocatable :: Schi(:,:,:,:,:,:,:) 
+complex(kind(0d0)), allocatable :: Fchi(:,:,:,:,:,:,:) 
+complex(kind(0d0)), allocatable :: Slambda(:,:,:,:,:,:,:) 
+complex(kind(0d0)), allocatable :: Flambda(:,:,:,:,:,:,:) 
+complex(kind(0d0)), allocatable :: phibar_p(:,:,:)
+complex(kind(0d0)) :: DSchi(1:NMAT,1:NMAT,1:num_faces)
+complex(kind(0d0)) :: DFchi(1:NMAT,1:NMAT,1:num_faces)
+complex(kind(0d0)) :: DSlambda(1:NMAT,1:NMAT,1:num_links)
+complex(kind(0d0)) :: DFlambda(1:NMAT,1:NMAT,1:num_links)
+complex(kind(0d0)) :: Xi_chi(1:NMAT,1:NMAT,1:num_necessary_faces)
+complex(kind(0d0)) :: trace1, trace2, trace3, trace4
+complex(kind(0d0)) :: tmp1, tmp2, tmp3, tmp4
+
+integer :: ls,ll,lf,gs,gf,lf2
+integer :: tag, rank
+integer :: i,j,k,l,p,a,b
+integer :: ratio
+complex(kind(0d0)) :: tmp_CSF
+
+ratio = (NMAT*NMAT-1)*(global_num_sites-global_num_links+global_num_faces)/2
+allocate( Seta(1:NMAT,1:NMAT,1:num_necessary_sites,1:NMAT,1:NMAT,0:ratio-1,1:global_num_faces) )
+allocate( Feta(1:NMAT,1:NMAT,1:num_necessary_sites,1:NMAT,1:NMAT,0:ratio-1,1:global_num_faces) )
+allocate( Schi(1:NMAT,1:NMAT,1:num_necessary_faces,1:NMAT,1:NMAT,0:ratio-1,1:global_num_faces) )
+allocate( Fchi(1:NMAT,1:NMAT,1:num_necessary_faces,1:NMAT,1:NMAT,0:ratio-1,1:global_num_faces) )
+allocate( Slambda(1:NMAT,1:NMAT,1:num_necessary_links,1:NMAT,1:NMAT,0:ratio-1,1:global_num_faces) )
+allocate( Flambda(1:NMAT,1:NMAT,1:num_necessary_links,1:NMAT,1:NMAT,0:ratio-1,1:global_num_faces) )
+allocate( phibar_p(1:NMAT,1:NMAT,0:ratio) )
+
+!! 
+Seta=(0d0,0d0)
+Feta=(0d0,0d0)
+Slambda=(0d0,0d0)
+Flambda=(0d0,0d0)
+do gf=1,global_num_faces
+  rank=local_face_of_global(gf)%rank_
+  lf=local_face_of_global(gf)%label_
+  ls=sites_in_f(lf)%label_(1)
+  gs=global_sites_in_f(gf)%label_(1)
+
+  !! phibar_p = phibar^{0...r}(:,:,gf)
+  call make_phibar_p(phibar_p,PhiMat,ratio,gf)
+
+  !! prepare SMAT and FMAT
+  do p=0,ratio-1
+    do j=1,NMAT
+      do i=1,NMAT
+        do ls=1,num_sites
+          call matrix_product(Seta(:,:,ls,i,j,p,gf),&
+            phibar_p(:,:,p), Geta_eta(:,:,i,j,gs,ls))
+          call matrix_product(Feta(:,:,ls,i,j,p,gf),&
+            phibar_p(:,:,p), Gchi_eta(:,:,i,j,gf,ls))
+        enddo !ls
+        do lf2=1,num_faces
+          call matrix_product(Schi(:,:,lf2,i,j,p,gf),&
+            phibar_p(:,:,p), Geta_chi(:,:,i,j,gs,lf2))
+          call matrix_product(Fchi(:,:,lf2,i,j,p,gf),&
+            phibar_p(:,:,p), Gchi_chi(:,:,i,j,gf,lf2))
+        enddo !lf2
+        do ll=1,num_links
+          call matrix_product(Slambda(:,:,ll,i,j,p,gf),&
+            phibar_p(:,:,p), Geta_lambda(:,:,i,j,gs,ll))
+          call matrix_product(Flambda(:,:,ll,i,j,p,gf),&
+            phibar_p(:,:,p), Gchi_lambda(:,:,i,j,gf,ll))
+        enddo !ll
+        call syncronize_faces(Schi(:,:,:,i,j,p,gf))
+        call syncronize_faces(Fchi(:,:,:,i,j,p,gf))
+        call syncronize_links(Slambda(:,:,:,i,j,p,gf))
+        call syncronize_links(Flambda(:,:,:,i,j,p,gf))
+      enddo
+    enddo
+  enddo
+enddo
+
+tmp_CSF=(0d0,0d0)
+CSF=(0d0,0d0)
+!! (1) Dirac term
+do gf=1,global_num_faces
+  do p=0,ratio-1
+    do i=1,NMAT
+      do j=1,NMAT
+        !! face1
+        DSchi=(0d0,0d0)
+        DFchi=(0d0,0d0)
+        call prod_Dirac_face1(DFchi,PhiMat,&
+          Fchi(:,:,:,j,i,ratio-p-1,gf))
+        call prod_Dirac_face1(DSchi,PhiMat,&
+          Schi(:,:,:,j,i,p,gf))
+        do lf=1,num_faces
+          do b=1,NMAT
+            do a=1,NMAT
+              tmp_CSF=tmp_CSF &
+                - (0.5d0,0d0) * Schi(a,b,lf,i,j,p,gf) * DFchi(b,a,lf) &
+                + (0.5d0,0d0) * Fchi(a,b,lf,i,j,ratio-p-1,gf) * DSchi(b,a,lf) 
+            enddo
+          enddo
+        enddo !lf
+        !! face2
+        DSchi=(0d0,0d0)
+        DFchi=(0d0,0d0)
+        DSlambda=(0d0,0d0)
+        DFlambda=(0d0,0d0)
+        call prod_Dirac_Omega_adm(DFchi,DFlambda,Umat,&
+          Schi(:,:,:,j,i,p,gf), Flambda(:,:,:,j,i,ratio-p-1,gf) )
+        call prod_Dirac_Omega_adm(DSchi,DSlambda,Umat,&
+          Fchi(:,:,:,j,i,ratio-p-1), Slambda(:,:,:,j,i,p,gf)) 
+        do lf=1,num_faces
+          do b=1,NMAT
+            do a=1,NMAT
+              tmp_CSF=tmp_CSF &
+                -  Schi(a,b,lf,i,j,p,gf) * DFchi(b,a,lf) &
+                +  Fchi(a,b,lf,i,j,ratio-p-1,gf) * DSchi(b,a,ll) 
+            enddo
+          enddo
+        enddo !lf
+      enddo
+    enddo
+  enddo
+enddo
+call MPI_REDUCE(tmp_CSF,CSF,1,MPI_DOUBLE_COMPLEX, &
+  MPI_SUM,0,MPI_COMM_WORLD,IERR)
+
+!! (2) mass term
+call make_XiVec_face(Xi_chi,Umat)
+do gf=1,global_num_faces
+  do p=0,ratio-1
+    do j=1,NMAT
+      do i=1,NMAT
+        trace1=(0d0,0d0) ! Phi.Schi
+        trace2=(0d0,0d0) ! Phi.Fchi
+        trace3=(0d0,0d0) ! Xi.Schi
+        trace4=(0d0,0d0) ! Xi.Fchi   
+        do ls=1,num_sites
+          tmp1=(0d0,0d0)
+          tmp2=(0d0,0d0)
+          do b=1,NMAT
+            do a=1,NMAT
+              tmp1=tmp1 + Phimat(a,b,ls)*Seta(b,a,ls,i,j,p,gf)
+              tmp2=tmp2 + Phimat(a,b,ls)*Feta(b,a,ls,j,i,ratio-p-1,gf)
+            enddo
+          enddo
+          call MPI_REDUCE(tmp1,trace1,1,MPI_DOUBLE_COMPLEX, &
+            MPI_SUM,0,MPI_COMM_WORLD,IERR)
+          call MPI_REDUCE(tmp2,trace2,1,MPI_DOUBLE_COMPLEX, &
+            MPI_SUM,0,MPI_COMM_WORLD,IERR)
+        enddo
+        do lf=1,num_faces
+          tmp3=(0d0,0d0)
+          tmp4=(0d0,0d0)
+          do b=1,NMAT
+            do a=1,NMAT
+              tmp3=tmp3 + Xi_chi(a,b,lf)*Schi(b,a,lf,i,j,p,gf)
+              tmp4=tmp4 + Xi_chi(a,b,lf)*Fchi(b,a,lf,j,i,ratio-p-1,gf)
+            enddo
+          enddo
+          call MPI_REDUCE(tmp3,trace3,1,MPI_DOUBLE_COMPLEX, &
+            MPI_SUM,0,MPI_COMM_WORLD,IERR)
+          call MPI_REDUCE(tmp4,trace4,1,MPI_DOUBLE_COMPLEX, &
+            MPI_SUM,0,MPI_COMM_WORLD,IERR)
+        enddo
+        if( MYRANK==0 ) then
+          CSF=CSF&
+            -dcmplx( 0.5d0*mass_square_phi )*trace3*trace2 &
+            +dcmplx( 0.5d0*mass_square_phi )*trace4*trace1
+        endif
+      enddo
+    enddo
+  enddo
+enddo
+
+if( MYRANK==0 ) then
+  CSF=CSF / dcmplx( NMAT * global_num_faces )
+endif
+end subroutine calc_4fermi_in_CSFface
 
 
 
