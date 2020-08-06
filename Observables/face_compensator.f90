@@ -470,9 +470,6 @@ integer :: tag, rank
 integer :: i,j,k,l,p,a,b
 integer :: ratio
 complex(kind(0d0)) :: tmp_CSF
-integer :: ccc
-
-ccc=0
 
 ratio = (NMAT*NMAT-1)*(global_num_sites-global_num_links+global_num_faces)/2
 allocate( Seta(1:NMAT,1:NMAT,1:num_necessary_sites,1:NMAT,1:NMAT,0:ratio-1,1:global_num_faces) )
@@ -523,7 +520,6 @@ do gf=1,global_num_faces
         call syncronize_faces(Fchi(:,:,:,i,j,p,gf))
         call syncronize_links(Slambda(:,:,:,i,j,p,gf))
         call syncronize_links(Flambda(:,:,:,i,j,p,gf))
-        call mpi_barrier(MPI_COMM_WORLD,IERR) !!! here
       enddo
     enddo
   enddo
@@ -580,14 +576,15 @@ call MPI_REDUCE(tmp_CSF,tmp,1,MPI_DOUBLE_COMPLEX, &
 if( MYRANK==0 ) then
   CSF=CSF+tmp
 endif
-call mpi_barrier(MPI_COMM_WORLD,IERR) !!! here
 
+call mpi_barrier(MPI_COMM_WORLD,IERR) !!! here
 !! (2) mass term
 call make_XiVec_face(Xi_chi,Umat)
 do gf=1,global_num_faces
   do p=0,ratio-1
     do j=1,NMAT
       do i=1,NMAT
+        call mpi_barrier(MPI_COMM_WORLD,IERR) !!! here
         trace1=(0d0,0d0) ! Phi.Schi
         trace2=(0d0,0d0) ! Phi.Fchi
         trace3=(0d0,0d0) ! Xi.Schi
@@ -611,7 +608,6 @@ do gf=1,global_num_faces
             trace1=trace1+ttmp1
             trace2=trace2+ttmp2
           endif
-          call mpi_barrier(MPI_COMM_WORLD,IERR) !!! here
         enddo
         do lf=1,num_faces
           tmp3=(0d0,0d0)
@@ -630,15 +626,12 @@ do gf=1,global_num_faces
             trace3=trace3+ttmp3
             trace4=trace4+ttmp4
           endif
-          call mpi_barrier(MPI_COMM_WORLD,IERR) !!! here
         enddo
         if( MYRANK==0 ) then
           CSF=CSF&
             -dcmplx( 0.5d0*mass_square_phi )*trace3*trace2 &
             +dcmplx( 0.5d0*mass_square_phi )*trace4*trace1
         endif
-        ccc=ccc+1
-        write(*,*) MYRANK, ccc
       enddo
     enddo
   enddo
