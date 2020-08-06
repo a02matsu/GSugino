@@ -118,16 +118,16 @@ do gf=1,global_num_faces
   gs=global_sites_in_f(gf)%label_(1)
 
   !! phibar_p = phibar^{0...r}(:,:,gf)
-  !call make_phibar_p(phibar_p,PhiMat,ratio,gf)
-  if( MYRANK==rank ) then
-    !! phibar_p = \bar(\PhiMat)^p
-    call make_unit_matrix(phibar_p(:,:,0))
-    call hermitian_conjugate(phibar_p(:,:,1), PhiMat(:,:,ls))
-    do k=2,ratio
-      call matrix_product(phibar_p(:,:,k),phibar_p(:,:,k-1),phibar_p(:,:,1))
-    enddo
-  endif
-  call MPI_BCAST(phibar_p,NMAT*NMAT*(ratio+1),MPI_DOUBLE_COMPLEX,rank,MPI_COMM_WORLD,IERR)
+  call make_phibar_p(phibar_p,PhiMat,ratio,gf)
+!  if( MYRANK==rank ) then
+!    !! phibar_p = \bar(\PhiMat)^p
+!    call make_unit_matrix(phibar_p(:,:,0))
+!    call hermitian_conjugate(phibar_p(:,:,1), PhiMat(:,:,ls))
+!    do k=2,ratio
+!      call matrix_product(phibar_p(:,:,k),phibar_p(:,:,k-1),phibar_p(:,:,1))
+!    enddo
+!  endif
+!  call MPI_BCAST(phibar_p,NMAT*NMAT*(ratio+1),MPI_DOUBLE_COMPLEX,rank,MPI_COMM_WORLD,IERR)
 
 !! prepare SMAT and FMAT
   do p=0,ratio-1
