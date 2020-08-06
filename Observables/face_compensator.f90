@@ -395,7 +395,6 @@ do gf=1,global_num_faces
             trace4=trace4+ttmp4
           endif
         enddo
-        enddo
         if( MYRANK==0 ) then
           CSF=CSF&
             -dcmplx( 0.5d0*mass_square_phi )*trace3*trace2 &
