@@ -249,4 +249,4 @@ do gf=1,global_num_faces
   call MPI_BCAST(phibar_p,NMAT*NMAT*(ratio+1),MPI_DOUBLE_COMPLEX,rank,MPI_COMM_WORLD,IERR)
 enddo
 
-subroutine make_phibar_p
+end subroutine make_phibar_p
