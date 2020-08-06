@@ -152,8 +152,8 @@ do gf=1,global_num_faces
   do p=0,ratio-1
     do i=1,NMAT
       do j=1,NMAT
-        call prod_Dirac_site(DFmat,PhiMat,FMAT(:,:,:,i,j,ratio-p-1,gf))
-        call prod_Dirac_site(DSmat,PhiMat,SMAT(:,:,:,i,j,p,gf))
+        call prod_Dirac_site(DFmat,PhiMat,FMAT(:,:,:,j,i,ratio-p-1,gf))
+        call prod_Dirac_site(DSmat,PhiMat,SMAT(:,:,:,j,i,p,gf))
         do ls=1,num_sites
           do b=1,NMAT
             do a=1,NMAT
@@ -188,9 +188,10 @@ do gf=1,global_num_faces
           do b=1,NMAT
             do a=1,NMAT
               tmp1=tmp1 + Xi_eta(a,b,ls)*Smat(b,a,ls,i,j,p,gf)
-              tmp2=tmp2 + Phimat(a,b,ls)*Fmat(b,a,ls,i,j,ratio-p-1,gf)
+              tmp2=tmp2 + Phimat(a,b,ls)*Fmat(b,a,ls,j,i,ratio-p-1,gf)
+              !!
               tmp3=tmp3 + Xi_eta(a,b,ls)*Fmat(b,a,ls,i,j,p,gf)
-              tmp4=tmp4 + Phimat(a,b,ls)*Smat(b,a,ls,i,j,ratio-p-1,gf)
+              tmp4=tmp4 + Phimat(a,b,ls)*Smat(b,a,ls,j,i,ratio-p-1,gf)
             enddo
           enddo
           call MPI_REDUCE(tmp1,trace1,1,MPI_DOUBLE_COMPLEX, &
