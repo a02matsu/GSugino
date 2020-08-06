@@ -337,7 +337,7 @@ call MPI_REDUCE(tmp_CSF,CSF,1,MPI_DOUBLE_COMPLEX, &
   MPI_SUM,0,MPI_COMM_WORLD,IERR)
 
 !! (2) mass term
-call make_XiVec_site(Xi_eta,PhiMat)
+call make_XiVec_link(Xi_lambda,Umat,PhiMat)
 do gf=1,global_num_faces
   do p=0,ratio-1
     do j=1,NMAT
