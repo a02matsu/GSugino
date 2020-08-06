@@ -328,7 +328,7 @@ do gf=1,global_num_faces
           Slambda(:,:,:,j,i,p,gf))
         call prod_Dirac_link2(DFlambda,PhiMat,Umat,&
           Flambda(:,:,:,j,i,ratio-p-1,gf))
-        do lf=1,num_links
+        do ll=1,num_links
           do b=1,NMAT
             do a=1,NMAT
               tmp_CSF=tmp_CSF &
