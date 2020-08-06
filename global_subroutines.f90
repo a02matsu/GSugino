@@ -3100,11 +3100,11 @@ do s_recv=1,num_recv_sites
   call MPI_IRECV(eta(:,:,local),NMAT*NMAT,MPI_DOUBLE_COMPLEX,rank,tag,MPI_COMM_WORLD,IRECV(s_recv),IERR)
 enddo
 
-do s_send=1,num_send_sites
-  call MPI_WAIT(ISEND(s_send),ISTATUS,IERR)
-enddo
 do s_recv=1,num_recv_sites
   call MPI_WAIT(IRECV(s_recv),ISTATUS,IERR)
+enddo
+do s_send=1,num_send_sites
+  call MPI_WAIT(ISEND(s_send),ISTATUS,IERR)
 enddo
 
 deallocate(ISEND, IRECV)
