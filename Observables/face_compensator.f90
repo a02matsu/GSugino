@@ -227,7 +227,7 @@ use matrix_functions, only : hermitian_conjugate, make_unit_matrix, matrix_produ
 implicit none
 
 integer, intent(in) :: ratio
-complex(kind(0d0)), intent(in) :: phibar_p(1:NMAT,1:NMAT,0:ratio)
+complex(kind(0d0)), intent(out) :: phibar_p(1:NMAT,1:NMAT,0:ratio)
 complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_necessary_sites)
 
 integer :: gf,gs,lf,ls,rank,k
