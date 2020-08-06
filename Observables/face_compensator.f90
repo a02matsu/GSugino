@@ -95,7 +95,8 @@ complex(kind(0d0)) :: DSmat(1:NMAT,1:NMAT,1:num_sites)
 complex(kind(0d0)) :: DFmat(1:NMAT,1:NMAT,1:num_sites)
 complex(kind(0d0)) :: Xi_eta(1:NMAT,1:NMAT,1:num_necessary_sites)
 complex(kind(0d0)) :: trace1, trace2, trace3, trace4
-complex(kind(0d0)) :: tmp1, tmp2, tmp3, tmp4
+complex(kind(0d0)) :: tmp1, tmp2, tmp3, tmp4,tmp
+complex(kind(0d0)) :: ttmp1, ttmp2, ttmp3, ttmp4
 
 integer :: ls,lf,gs,gf
 integer :: tag, rank
@@ -161,8 +162,12 @@ do gf=1,global_num_faces
     enddo
   enddo
 enddo
-call MPI_REDUCE(tmp_CSF,CSF,1,MPI_DOUBLE_COMPLEX, &
+tmp=(0d0,0d0)
+call MPI_REDUCE(tmp_CSF,tmp,1,MPI_DOUBLE_COMPLEX, &
   MPI_SUM,0,MPI_COMM_WORLD,IERR)
+if( MYRANK==0 ) then
+  CSF=CSF+tmp
+endif
 
 !! (2) mass term
 call make_XiVec_site(Xi_eta,PhiMat)
@@ -188,14 +193,24 @@ do gf=1,global_num_faces
               tmp4=tmp4 + Phimat(a,b,ls)*Smat(b,a,ls,j,i,ratio-p-1,gf)
             enddo
           enddo
-          call MPI_REDUCE(tmp1,trace1,1,MPI_DOUBLE_COMPLEX, &
+          ttmp1=(0d0,0d0)
+          ttmp2=(0d0,0d0)
+          ttmp3=(0d0,0d0)
+          ttmp4=(0d0,0d0)
+          call MPI_REDUCE(tmp1,ttmp1,1,MPI_DOUBLE_COMPLEX, &
             MPI_SUM,0,MPI_COMM_WORLD,IERR)
-          call MPI_REDUCE(tmp2,trace2,1,MPI_DOUBLE_COMPLEX, &
+          call MPI_REDUCE(tmp2,ttmp2,1,MPI_DOUBLE_COMPLEX, &
             MPI_SUM,0,MPI_COMM_WORLD,IERR)
-          call MPI_REDUCE(tmp3,trace3,1,MPI_DOUBLE_COMPLEX, &
+          call MPI_REDUCE(tmp3,ttmp3,1,MPI_DOUBLE_COMPLEX, &
             MPI_SUM,0,MPI_COMM_WORLD,IERR)
-          call MPI_REDUCE(tmp4,trace4,1,MPI_DOUBLE_COMPLEX, &
+          call MPI_REDUCE(tmp4,ttmp4,1,MPI_DOUBLE_COMPLEX, &
             MPI_SUM,0,MPI_COMM_WORLD,IERR)
+          if( MYRANK==0 ) then
+            trace1=trace1+ttmp1
+            trace2=trace2+ttmp2
+            trace3=trace3+ttmp3
+            trace4=trace4+ttmp4
+          endif
         enddo
         if( MYRANK==0 ) then
           CSF=CSF&
@@ -242,7 +257,7 @@ complex(kind(0d0)) :: DSlambda(1:NMAT,1:NMAT,1:num_links)
 complex(kind(0d0)) :: DFlambda(1:NMAT,1:NMAT,1:num_links)
 complex(kind(0d0)) :: Xi_lambda(1:NMAT,1:NMAT,1:num_necessary_links)
 complex(kind(0d0)) :: trace1, trace2, trace3, trace4
-complex(kind(0d0)) :: tmp1, tmp2, tmp3, tmp4
+complex(kind(0d0)) :: tmp1, tmp2, tmp3, tmp4,tmp
 complex(kind(0d0)) :: ttmp1, ttmp2, ttmp3, ttmp4
 
 integer :: ls,ll,lf,gs,gf
@@ -342,8 +357,12 @@ do gf=1,global_num_faces
     enddo
   enddo
 enddo
-call MPI_REDUCE(tmp_CSF,CSF,1,MPI_DOUBLE_COMPLEX, &
+tmp=(0d0,0d0)
+call MPI_REDUCE(tmp_CSF,tmp,1,MPI_DOUBLE_COMPLEX, &
   MPI_SUM,0,MPI_COMM_WORLD,IERR)
+if( MYRANK==0 ) then
+  CSF=CSF+tmp
+endif
 
 !! (2) mass term
 call make_XiVec_link(Xi_lambda,Umat,PhiMat)
@@ -443,7 +462,7 @@ complex(kind(0d0)) :: DSlambda(1:NMAT,1:NMAT,1:num_links)
 complex(kind(0d0)) :: DFlambda(1:NMAT,1:NMAT,1:num_links)
 complex(kind(0d0)) :: Xi_chi(1:NMAT,1:NMAT,1:num_necessary_faces)
 complex(kind(0d0)) :: trace1, trace2, trace3, trace4
-complex(kind(0d0)) :: tmp1, tmp2, tmp3, tmp4
+complex(kind(0d0)) :: tmp1, tmp2, tmp3, tmp4, tmp
 complex(kind(0d0)) :: ttmp1, ttmp2, ttmp3, ttmp4
 
 integer :: ls,ll,lf,gs,gf,lf2
@@ -551,8 +570,12 @@ do gf=1,global_num_faces
     enddo
   enddo
 enddo
-call MPI_REDUCE(tmp_CSF,CSF,1,MPI_DOUBLE_COMPLEX, &
+tmp=(0d0,0d0)
+call MPI_REDUCE(tmp_CSF,tmp,1,MPI_DOUBLE_COMPLEX, &
   MPI_SUM,0,MPI_COMM_WORLD,IERR)
+if( MYRANK==0 ) then
+  CSF=CSF+tmp
+endif
 
 !! (2) mass term
 call make_XiVec_face(Xi_chi,Umat)
@@ -575,7 +598,6 @@ do gf=1,global_num_faces
               tmp2=tmp2 + Phimat(a,b,ls)*Feta(b,a,ls,j,i,ratio-p-1,gf)
             enddo
           enddo
-          call mpi_barrier(MPI_COMM_WORLD,IERR)
           call MPI_REDUCE(tmp1,ttmp1,1,MPI_DOUBLE_COMPLEX, &
             MPI_SUM,0,MPI_COMM_WORLD,IERR)
           call MPI_REDUCE(tmp2,ttmp2,1,MPI_DOUBLE_COMPLEX, &
@@ -594,7 +616,6 @@ do gf=1,global_num_faces
               tmp4=tmp4 + Xi_chi(a,b,lf)*Fchi(b,a,lf,j,i,ratio-p-1,gf)
             enddo
           enddo
-          call mpi_barrier(MPI_COMM_WORLD,IERR)
           call MPI_REDUCE(tmp3,ttmp3,1,MPI_DOUBLE_COMPLEX, &
             MPI_SUM,0,MPI_COMM_WORLD,IERR)
           call MPI_REDUCE(tmp4,ttmp4,1,MPI_DOUBLE_COMPLEX, &
