@@ -575,6 +575,7 @@ do gf=1,global_num_faces
               tmp2=tmp2 + Phimat(a,b,ls)*Feta(b,a,ls,j,i,ratio-p-1,gf)
             enddo
           enddo
+          call mpi_barrier(MPI_COMM_WORLD,IERR)
           call MPI_REDUCE(tmp1,ttmp1,1,MPI_DOUBLE_COMPLEX, &
             MPI_SUM,0,MPI_COMM_WORLD,IERR)
           call MPI_REDUCE(tmp2,ttmp2,1,MPI_DOUBLE_COMPLEX, &

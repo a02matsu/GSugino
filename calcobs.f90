@@ -378,7 +378,7 @@ do
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble( (0d0,-1d0)*CSF_link/cdabs(CSF_link))
 
     !"|Af-SF4_face|", &
-      !call calc_4fermi_in_CSFface(CSF_face, Umat, Phimat, Geta_eta, Gchi_eta, Geta_chi, Gchi_chi, Geta_lambda, Gchi_lambda )
+      call calc_4fermi_in_CSFface(CSF_face, Umat, Phimat, Geta_eta, Gchi_eta, Geta_chi, Gchi_chi, Geta_lambda, Gchi_lambda )
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') cdabs(CSF_face)
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble(CSF_face/cdabs(CSF_face))
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble( (0d0,-1d0)*CSF_face/cdabs(CSF_face))
