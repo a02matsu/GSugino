@@ -91,6 +91,7 @@ complex(kind(0d0)), intent(in) :: Gchi_eta(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_
 complex(kind(0d0)), allocatable :: SMAT(:,:,:,:,:,:,:) 
 complex(kind(0d0)), allocatable :: FMAT(:,:,:,:,:,:,:) 
 complex(kind(0d0)), allocatable :: phibar_p(:,:,:)
+complex(kind(0d0)), allocatable :: phibar_p2(:,:,:)
 complex(kind(0d0)) :: DSmat(1:NMAT,1:NMAT,1:num_sites)
 complex(kind(0d0)) :: DFmat(1:NMAT,1:NMAT,1:num_sites)
 complex(kind(0d0)) :: Xi_eta(1:NMAT,1:NMAT,1:num_necessary_sites)
