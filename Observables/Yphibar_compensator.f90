@@ -106,6 +106,7 @@ QC_Xi_face=(0d0,0d0)
 tmp_QC_Xi_site=(0d0,0d0)
 tmp_QC_Xi_link=(0d0,0d0)
 tmp_QC_Xi_face=(0d0,0d0)
+write(*,*) MYRANK
 call make_XiVec(Xi_eta,Xi_lambda,Xi_chi,Umat,PhiMat)
 !!!
 !! gf=gs
