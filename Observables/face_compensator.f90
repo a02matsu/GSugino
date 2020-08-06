@@ -470,6 +470,9 @@ integer :: tag, rank
 integer :: i,j,k,l,p,a,b
 integer :: ratio
 complex(kind(0d0)) :: tmp_CSF
+integer :: ccc
+
+ccc=0
 
 ratio = (NMAT*NMAT-1)*(global_num_sites-global_num_links+global_num_faces)/2
 allocate( Seta(1:NMAT,1:NMAT,1:num_necessary_sites,1:NMAT,1:NMAT,0:ratio-1,1:global_num_faces) )
@@ -630,6 +633,8 @@ do gf=1,global_num_faces
             -dcmplx( 0.5d0*mass_square_phi )*trace3*trace2 &
             +dcmplx( 0.5d0*mass_square_phi )*trace4*trace1
         endif
+        ccc=ccc+1
+        write(*,*) MYRANK, ccc
       enddo
     enddo
   enddo
