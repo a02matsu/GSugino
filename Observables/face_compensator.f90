@@ -584,7 +584,6 @@ do gf=1,global_num_faces
   do p=0,ratio-1
     do j=1,NMAT
       do i=1,NMAT
-        call mpi_barrier(MPI_COMM_WORLD,IERR) !!! here
         trace1=(0d0,0d0) ! Phi.Schi
         trace2=(0d0,0d0) ! Phi.Fchi
         trace3=(0d0,0d0) ! Xi.Schi
