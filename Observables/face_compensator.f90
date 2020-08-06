@@ -120,6 +120,8 @@ do gf=1,global_num_faces
   gs=global_sites_in_f(gf)%label_(1)
 
   !! phibar_p = phibar^{0...r}(:,:,gf)
+  phibar_p=(0d0,0d0)
+  phibar_p2=(0d0,0d0)
   call make_phibar_p(phibar_p2,PhiMat,ratio,gf)
   if( MYRANK==rank ) then
     !! phibar_p = \bar(\PhiMat)^p
