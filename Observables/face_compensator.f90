@@ -431,6 +431,7 @@ complex(kind(0d0)) :: DFlambda(1:NMAT,1:NMAT,1:num_links)
 complex(kind(0d0)) :: Xi_chi(1:NMAT,1:NMAT,1:num_necessary_faces)
 complex(kind(0d0)) :: trace1, trace2, trace3, trace4
 complex(kind(0d0)) :: tmp1, tmp2, tmp3, tmp4
+complex(kind(0d0)) :: ttmp1, ttmp2, ttmp3, ttmp4
 
 integer :: ls,ll,lf,gs,gf,lf2
 integer :: tag, rank
@@ -553,6 +554,8 @@ do gf=1,global_num_faces
         do ls=1,num_sites
           tmp1=(0d0,0d0)
           tmp2=(0d0,0d0)
+          ttmp1=(0d0,0d0)
+          ttmp2=(0d0,0d0)
           do b=1,NMAT
             do a=1,NMAT
               tmp1=tmp1 + Phimat(a,b,ls)*Seta(b,a,ls,i,j,p,gf)
@@ -560,10 +563,14 @@ do gf=1,global_num_faces
             enddo
           enddo
           write(*,*) gf,p, MYRANK
-          call MPI_REDUCE(tmp1,trace1,1,MPI_DOUBLE_COMPLEX, &
+          call MPI_REDUCE(tmp1,ttmp1,1,MPI_DOUBLE_COMPLEX, &
             MPI_SUM,0,MPI_COMM_WORLD,IERR)
-          call MPI_REDUCE(tmp2,trace2,1,MPI_DOUBLE_COMPLEX, &
+          call MPI_REDUCE(tmp2,ttmp2,1,MPI_DOUBLE_COMPLEX, &
             MPI_SUM,0,MPI_COMM_WORLD,IERR)
+          if( MYRANK==0 ) then 
+            trace1=trace1+ttmp1
+            trace2=trace2+ttmp2
+          endif
         enddo
         do lf=1,num_faces
           tmp3=(0d0,0d0)
