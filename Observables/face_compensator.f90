@@ -223,6 +223,7 @@ end subroutine calc_4fermi_in_CSFsite
 subroutine make_phibar_p(phibar_p,PhiMat,ratio)
 use global_parameters
 use parallel
+use matrix_functions, only : hermitian_conjugate, make_unit_matrix, matrix_product
 implicit none
 
 integer, intent(in) :: ratio
