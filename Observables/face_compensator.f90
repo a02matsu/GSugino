@@ -91,7 +91,6 @@ complex(kind(0d0)), intent(in) :: Gchi_eta(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_
 complex(kind(0d0)), allocatable :: SMAT(:,:,:,:,:,:,:) 
 complex(kind(0d0)), allocatable :: FMAT(:,:,:,:,:,:,:) 
 complex(kind(0d0)), allocatable :: phibar_p(:,:,:)
-complex(kind(0d0)), allocatable :: phibar_p2(:,:,:)
 complex(kind(0d0)) :: DSmat(1:NMAT,1:NMAT,1:num_sites)
 complex(kind(0d0)) :: DFmat(1:NMAT,1:NMAT,1:num_sites)
 complex(kind(0d0)) :: Xi_eta(1:NMAT,1:NMAT,1:num_necessary_sites)
@@ -108,7 +107,6 @@ ratio = (NMAT*NMAT-1)*(global_num_sites-global_num_links+global_num_faces)/2
 allocate( SMAT(1:NMAT,1:NMAT,1:num_necessary_sites,1:NMAT,1:NMAT,0:ratio-1,1:global_num_faces) )
 allocate( FMAT(1:NMAT,1:NMAT,1:num_necessary_sites,1:NMAT,1:NMAT,0:ratio-1,1:global_num_faces) )
 allocate( phibar_p(1:NMAT,1:NMAT,0:ratio) )
-allocate( phibar_p2(1:NMAT,1:NMAT,0:ratio) )
 
 !! 
 SMAT=(0d0,0d0)
@@ -121,18 +119,16 @@ do gf=1,global_num_faces
 
   !! phibar_p = phibar^{0...r}(:,:,gf)
   phibar_p=(0d0,0d0)
-  phibar_p2=(0d0,0d0)
-  call make_phibar_p(phibar_p2,PhiMat,ratio,gf)
-  if( MYRANK==rank ) then
-    !! phibar_p = \bar(\PhiMat)^p
-    call make_unit_matrix(phibar_p(:,:,0))
-    call hermitian_conjugate(phibar_p(:,:,1), PhiMat(:,:,ls))
-    do k=2,ratio
-      call matrix_product(phibar_p(:,:,k),phibar_p(:,:,k-1),phibar_p(:,:,1))
-    enddo
-  endif
-  call MPI_BCAST(phibar_p,NMAT*NMAT*(ratio+1),MPI_DOUBLE_COMPLEX,rank,MPI_COMM_WORLD,IERR)
-  write(*,*) phibar_p-phibar_p2
+  call make_phibar_p(phibar_p,PhiMat,ratio,gf)
+!  if( MYRANK==rank ) then
+!    !! phibar_p = \bar(\PhiMat)^p
+!    call make_unit_matrix(phibar_p(:,:,0))
+!    call hermitian_conjugate(phibar_p(:,:,1), PhiMat(:,:,ls))
+!    do k=2,ratio
+!      call matrix_product(phibar_p(:,:,k),phibar_p(:,:,k-1),phibar_p(:,:,1))
+!    enddo
+!  endif
+!  call MPI_BCAST(phibar_p,NMAT*NMAT*(ratio+1),MPI_DOUBLE_COMPLEX,rank,MPI_COMM_WORLD,IERR)
 
 !! prepare SMAT and FMAT
   do p=0,ratio-1
