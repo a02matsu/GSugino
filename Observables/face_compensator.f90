@@ -529,7 +529,7 @@ do gf=1,global_num_faces
             do a=1,NMAT
               tmp_CSF=tmp_CSF &
                 -  Schi(a,b,lf,i,j,p,gf) * DFchi(b,a,lf) &
-                +  Fchi(a,b,lf,i,j,ratio-p-1,gf) * DSchi(b,a,ll) 
+                +  Fchi(a,b,lf,i,j,ratio-p-1,gf) * DSchi(b,a,lf) 
             enddo
           enddo
         enddo !lf
