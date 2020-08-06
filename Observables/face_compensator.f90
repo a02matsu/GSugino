@@ -219,7 +219,7 @@ subroutine calc_4fermi_in_CSFlink(CSF, Umat, Phimat, &
     Geta_eta, Gchi_eta, Geta_lambda, Gchi_lambda )
 use parallel
 use global_parameters
-use Dirac_operator , only : prod_Dirac_face1, Dirac_omega_adm
+use Dirac_operator , only : prod_Dirac_link1, prod_dirac_link2
 use matrix_functions, only : hermitian_conjugate, matrix_power, trace_mm, make_unit_matrix, matrix_product, matrix_3_product, matrix_commutator
 implicit none
 
@@ -403,7 +403,7 @@ subroutine calc_4fermi_in_CSFface(CSF, Umat, Phimat, &
     Geta_eta, Gchi_eta, Geta_chi, Gchi_chi, Geta_lambda, Gchi_lambda )
 use parallel
 use global_parameters
-use Dirac_operator , only : prod_Dirac_link1, prod_Dirac_link2
+use Dirac_operator , only : prod_Dirac_face1, Dirac_omega_adm
 use matrix_functions, only : hermitian_conjugate, matrix_power, trace_mm, make_unit_matrix, matrix_product, matrix_3_product, matrix_commutator
 implicit none
 
