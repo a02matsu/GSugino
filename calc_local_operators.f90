@@ -107,7 +107,7 @@ endif
 do 
   !! read configuration
   call read_config_from_medfile(Umat,PhiMat,ite,N_MEDFILE,control)
-write(*,*) "test"
+write(*,*) "test2"
   call MPI_BCAST(control, 1, MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
   if( control == 1 ) exit
 
