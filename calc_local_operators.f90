@@ -33,9 +33,10 @@ complex(kind(0d0)), allocatable :: phi_face(:), phi_site(:) !! for (2)
 complex(kind(0d0)), allocatable :: Yphibar(:) !! for (3) 
 complex(kind(0d0)), allocatable :: Yphi(:) !! for (4) 
 complex(kind(0d0)), allocatable :: Dinv(:,:)
-complex(kind(0d0)) :: tmpmat(1:NMAT,1:NMAT)
-complex(kind(0d0)) :: tmpmat2(1:NMAT,1:NMAT)
-complex(kind(0d0)) :: Uf(1:NMAT,1:NMAT), Ymat(1:NMAT,1:NMAT)
+complex(kind(0d0)), allocatable :: tmpmat(:,:) !tmpmat(1:NMAT,1:NMAT)
+complex(kind(0d0)), allocatable :: tmpmat2(:,:) !tmpmat2(1:NMAT,1:NMAT)
+complex(kind(0d0)), allocatable :: Uf(:,:) !Uf(1:NMAT,1:NMAT), Ymat(1:NMAT,1:NMAT)
+complex(kind(0d0)), allocatable :: Ymat(:,:) !Uf(1:NMAT,1:NMAT), Ymat(1:NMAT,1:NMAT)
 integer :: num_fermion
 integer :: eular, ratio
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -65,6 +66,10 @@ call getarg(1,MEDFILE)
 DinvFILE=trim("MEDCONF/Dinv"//MEDFILE(18:))
 INPUT_FILE_NAME="inputfile"
 
+allocate(tmpmat(1:NMAT,1:NMAT))
+allocate(tmpmat2(1:NMAT,1:NMAT))
+allocate(Uf(1:NMAT,1:NMAT))
+allocate(Ymat(1:NMAT,1:NMAT))
 !! for 1) tr(\phibar^2)^{r/2}(f)
 operatorFILE(1)=trim("OBS/trphibar_"//MEDFILE(18:))
 allocate( phibar(1:num_faces) )
@@ -159,8 +164,8 @@ do
       radius=cdabs(ctmp)
       phase=atan2(dble(ctmp),dble(ctmp*(0d0,-1d0)))
 
-      phi_site(ls)=dcmplx(radius**(-dble(ratio)/2d0) &
-        * cdexp( (0d0,1d0)*dcmplx(phase*dble(-ratio/2d0)) )
+      phi_site(ls)=dcmplx(radius**(-dble(ratio)/2d0)) &
+        * cdexp( (0d0,1d0)*dcmplx(phase*dble(-ratio/2d0)) ) 
     enddo
     phi_face=(0d0,0d0)
     do lf=1,num_faces
@@ -229,7 +234,7 @@ contains
   implicit none
   
   complex(kind(0d0)), intent(in) :: obs(1:num_faces)
-  integer, intent(in) ::: NFILE
+  integer, intent(in) :: NFILE
   
   integer :: gf, lf, rank, tag
   complex(kind(0d0)) :: ctmp
