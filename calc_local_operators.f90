@@ -196,7 +196,6 @@ do
       ls=sites_in_f(lf)%label_(1)
       call hermitian_conjugate(tmpmat2,phimat(:,:,ls))
       call matrix_power(tmpmat,tmpmat2,ratio)
-      write(*,*) "in ", size(tmpmat2,1)
       call trace_mm(Yphibar(lf), Ymat, tmpmat)
       !! Yphi
       tmpmat2=phimat(:,:,ls)
