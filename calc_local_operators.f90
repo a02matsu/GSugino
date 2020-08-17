@@ -3,16 +3,21 @@ program main
 use global_parameters
 use initialization_calcobs
 use simulation
+use matrix_functions, only : trace_mm
 use parallel
 implicit none
 
-!! 1) tr(\phibar^2)^r(f)
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 integer :: iarg
 character(128) :: config_file
 
-integer, parameter :: num_operators=1
+integer, parameter :: num_operators=4
+!! 1) tr(\phibar^2)^{r/2}(f)
+!! 2) tr(\phi^2)^{-r/2}(f)
+!! 3) tr(Y\phibar^r)
+!! 4) tr(Y\phi^{-r})
+
 integer :: control
 character(128) :: MEDFILE
 character(128) :: DinvFILE
@@ -23,9 +28,16 @@ integer :: N_operatorFILE(1:num_operators) !=102
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! Observables
-complex(kind(0d0)), allocatable :: phibar(:), phibar_site(:)
+complex(kind(0d0)), allocatable :: phibar(:), phibar_site(:) !! for (1)
+complex(kind(0d0)), allocatable :: phi_face(:), phi_site(:) !! for (2) 
+complex(kind(0d0)), allocatable :: Yphibar(:) !! for (3) 
+complex(kind(0d0)), allocatable :: Yphi(:) !! for (4) 
 complex(kind(0d0)), allocatable :: Dinv(:,:)
+complex(kind(0d0)) :: tmpmat(1:NMAT,1:NMAT)
+complex(kind(0d0)) :: tmpmat2(1:NMAT,1:NMAT)
+complex(kind(0d0)) :: Uf(1:NMAT,1:NMAT), Ymat(1:NMAT,1:NMAT)
 integer :: num_fermion
+integer :: eular, ratio
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! misc
 integer :: ite, ite2
@@ -35,6 +47,8 @@ integer :: jj,j,i,k,ios
 double precision :: rtmp, itmp
 complex(kind(0d0)) :: ctmp
 complex(kind(0d0)) :: phase_pf
+double precision :: radius, phase
+
 
 
 do i=1,num_operators
@@ -51,20 +65,34 @@ call getarg(1,MEDFILE)
 DinvFILE=trim("MEDCONF/Dinv"//MEDFILE(18:))
 INPUT_FILE_NAME="inputfile"
 
-!! op1=tr(phibar^2)^r
-operatorFILE(1)=trim("OBS/phibar"//MEDFILE(18:))
+!! for 1) tr(\phibar^2)^{r/2}(f)
+operatorFILE(1)=trim("OBS/trphibar_"//MEDFILE(18:))
 allocate( phibar(1:num_faces) )
 allocate( phibar_site(1:num_necessary_sites) )
+!! for 2) tr(\phi^2)^{-r/2}(f)
+operatorFILE(2)=trim("OBS/trphi_"//MEDFILE(18:))
+allocate( phi_face(1:num_faces) )
+allocate( phi_site(1:num_necessary_sites) )
+!! for 3) tr(Y\phibar^r)
+operatorFILE(3)=trim("OBS/Yphibar_"//MEDFILE(18:))
+allocate( Yphibar(1:num_faces) )
+!! for 4) tr(Y\phi^{-r})
+operatorFILE(4)=trim("OBS/Yphi_"//MEDFILE(18:))
+allocate( Yphi(1:num_faces) )
 
 call initialization 
 
+eular=global_num_sites-global_num_links+global_num_faces 
+ratio=(NMAT*NMAT-1)*eular/2
 num_fermion=(global_num_sites+global_num_links+global_num_faces)*(NMAT*NMAT-1)
 allocate( Dinv(1:num_fermion, 1:num_fermion) )
 
 if( MYRANK==0 ) then
   open(N_MEDFILE, file=MEDFILE, status='OLD',action='READ',form='unformatted')
   open(N_DinvFILE, file=DinvFILE, status='OLD',action='READ')
-  open(N_operatorFILE(1), file=operatorFILE(1), status='REPLACE')
+  do i=1,num_operators
+    open(N_operatorFILE(i), file=operatorFILE(i), status='REPLACE')
+  enddo
 endif
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
@@ -72,8 +100,9 @@ endif
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! output measurements 
 do 
+  !! read configuration
   call read_config_from_medfile(Umat,PhiMat,ite,N_MEDFILE,control)
-  
+  !! read Dirac inverse
   if( MYRANK==0 ) then
     read(N_DinvFILE,'(I10,2X)',advance='no',iostat=ios) ite2
     if( ios == -1) control=1
@@ -91,7 +120,7 @@ do
   endif
   call MPI_BCAST(control, 1, MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
   if( control == 1 ) exit
-
+  !! make Dinv
   call make_fermion_correlation_from_Dinv(&
       Geta_eta, Glambda_eta, Gchi_eta, &
       Geta_lambda, Glambda_lambda, Gchi_lambda, &
@@ -100,12 +129,15 @@ do
 
   if( control == 0 ) then 
     if( MYRANK == 0 ) then
-      write(N_operatorFILE(1),'(I7,2X)',advance='no') ite
+      do i=1,num_operators
+        write(N_operatorFILE(i),'(I7,2X)',advance='no') ite
+      enddo
     endif
     !!!!!!!!!!!!!!!!
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    !! write phibar
+    !! 1) tr(\phibar^2)^{r/2}(f)
+    phibar_site=(0d0,0d0)
     call calc_phibar_compensator_site(phibar_site,PhiMat)
     phibar=(0d0,0d0)
     do lf=1,num_faces
@@ -115,27 +147,60 @@ do
       enddo
       phibar(lf)=phibar(lf)/dcmplx( sites_in_f(lf)%num_ )
     enddo
-    do gf=1,global_num_faces
-      lf=local_face_of_global(gf)%label_
-      rank=local_face_of_global(gf)%rank_
-      tag=gf
+    call write_operator(phibar, N_operatorFILE(1))
 
-      if( MYRANK == rank ) then
-        ctmp=phibar(lf)
-        if( MYRANK /= 0 ) then 
-          call MPI_SEND(ctmp,1,MPI_DOUBLE_COMPLEX,0,tag,MPI_COMM_WORLD,IERR)
-        endif
-      endif
-      if( MYRANK == 0 .and. rank /= 0 ) then
-        call MPI_RECV(ctmp,1,MPI_DOUBLE_COMPLEX,rank,tag,MPI_COMM_WORLD,ISTATUS,IERR)
-      endif
-      if( MYRANK==0 ) then
-        write(N_operatorFILE(1),'(E23.16,2X,E23.16,2X)',advance='no') &
-          dble(ctmp), dble( (0d0,-1d0)*ctmp )
-      endif
-      call MPI_BARRIER(MPI_COMM_WORLD,IERR)
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !! 2) tr(\phi^2)^{-r/2}(f)
+    phi_site=(0d0,0d0)
+    do ls=1,num_necessary_sites
+      ctmp=(0d0,0d0)
+      call trace_MM(ctmp, phimat(:,:,ls),phimat(:,:,ls))
+      ctmp=ctmp/dcmplx(NMAT)
+      radius=cdabs(ctmp)
+      phase=atan2(dble(ctmp),dble(ctmp*(0d0,-1d0)))
+
+      phi_site(ls)=dcmplx(radius**(-dble(ratio)/2d0) &
+        * cdexp( (0d0,1d0)*dcmplx(phase*dble(-ratio/2d0)) )
     enddo
+    phi_face=(0d0,0d0)
+    do lf=1,num_faces
+      do k=1,sites_in_f(lf)%num_
+        ls=sites_in_f(lf)%label_(k)
+        phi_face(lf)=phi_face(lf)+phi_site(ls)
+      enddo
+      phi_face(lf)=phi_face(lf)/dcmplx( sites_in_f(lf)%num_ )
+    enddo
+    call write_operator(phi_face, N_operatorFILE(2))
 
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !! 3) tr(Y\phibar^r)
+    !! 4) tr(Y\phi^{-r})
+    Yphibar=(0d0,0d0)
+    Yphi=(0d0,0d0)
+    do lf=1,num_faces
+      !! Omega
+      call Make_face_variable(Uf,lf,UMAT)
+      call Make_moment_map_adm(Ymat,Uf)
+      Ymat = Ymat * (0d0,0.5d0)*beta_f(lf)*Ymat
+      !! Yphibar
+      ls=sites_in_f(lf)%label_(1)
+      call hermitian_conjugate(tmpmat2,phimat(:,:,ls))
+      call matrix_power(tmpmat,tmpmat2,ratio)
+      call trace_mm(Yphibar(lf), Ymat, tmpmat)
+      !! Yphi
+      tmpmat2=phimat(:,:,ls)
+      call matrix_inverse(tmpmat2)
+      call matrix_power(tmpmat,tmpmat2,ratio)
+      call trace_mm(Yphi(lf), Ymat, tmpmat)
+    enddo
+    Yphibar=Yphibar/dcmplx(NMAT)
+    Yphi=Yphi/dcmplx(NMAT)
+    
+    call write_operator(Yphibar, N_operatorFILE(3))
+    call write_operator(Yphi, N_operatorFILE(4))
+
+
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     if( MYRANK==0 ) then
       do i=1,num_operators
         write(N_operatorFILE(i),*)
@@ -156,6 +221,40 @@ endif
 !write(*,*) MYRANK, control
 !stop
 call stop_for_test
+
+contains
+  subroutine write_operator(obs, NFILE)
+  use global_parameters
+  use parallel
+  implicit none
+  
+  complex(kind(0d0)), intent(in) :: obs(1:num_faces)
+  integer, intent(in) ::: NFILE
+  
+  integer :: gf, lf, rank, tag
+  complex(kind(0d0)) :: ctmp
+
+  do gf=1,global_num_faces
+    lf=local_face_of_global(gf)%label_
+    rank=local_face_of_global(gf)%rank_
+    tag=gf
+
+    if( MYRANK == rank ) then
+      ctmp=obs(lf)
+      if( MYRANK /= 0 ) then 
+        call MPI_SEND(ctmp,1,MPI_DOUBLE_COMPLEX,0,tag,MPI_COMM_WORLD,IERR)
+      endif
+    endif
+    if( MYRANK == 0 .and. rank /= 0 ) then
+      call MPI_RECV(ctmp,1,MPI_DOUBLE_COMPLEX,rank,tag,MPI_COMM_WORLD,ISTATUS,IERR)
+    endif
+    if( MYRANK==0 ) then
+      write(NFILE,'(E23.16,2X,E23.16,2X)',advance='no') &
+        dble(ctmp), dble( (0d0,-1d0)*ctmp )
+    endif
+    call MPI_BARRIER(MPI_COMM_WORLD,IERR)
+  enddo
+  end subroutine write_operator
 end program main
 
 #include  "Measurement/FermionCorrelation_from_Dinv.f90"
