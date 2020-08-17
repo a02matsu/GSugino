@@ -195,7 +195,7 @@ do
       ls=sites_in_f(lf)%label_(1)
       call hermitian_conjugate(tmpmat2,phimat(:,:,ls))
       call matrix_power(tmpmat,tmpmat2,ratio)
-      write(*,*) tmpmat
+      write(*,*) "in ", size(tmpmat2,1)
       call trace_mm(Yphibar(lf), Ymat, tmpmat)
       !! Yphi
       tmpmat2=phimat(:,:,ls)
@@ -208,7 +208,6 @@ do
     
     call write_operator(Yphibar, N_operatorFILE(3))
     call write_operator(Yphi, N_operatorFILE(4))
-write(*,*) "test6"
 
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
