@@ -157,7 +157,6 @@ do
     enddo
     call write_operator(phibar, N_operatorFILE(1))
 
-write(*,*) "test4"
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !! 2) tr(\phi^2)^{-r/2}(f)
     phi_site=(0d0,0d0)
@@ -181,6 +180,7 @@ write(*,*) "test4"
     enddo
     call write_operator(phi_face, N_operatorFILE(2))
 
+write(*,*) "test5"
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !! 3) tr(Y\phibar^r)
     !! 4) tr(Y\phi^{-r})
@@ -207,6 +207,7 @@ write(*,*) "test4"
     
     call write_operator(Yphibar, N_operatorFILE(3))
     call write_operator(Yphi, N_operatorFILE(4))
+write(*,*) "test6"
 
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
