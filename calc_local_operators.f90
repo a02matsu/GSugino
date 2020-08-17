@@ -107,6 +107,9 @@ endif
 do 
   !! read configuration
   call read_config_from_medfile(Umat,PhiMat,ite,N_MEDFILE,control)
+  call MPI_BCAST(control, 1, MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
+  if( control == 1 ) exit
+
   !! read Dirac inverse
   if( MYRANK==0 ) then
     read(N_DinvFILE,'(I10,2X)',advance='no',iostat=ios) ite2
