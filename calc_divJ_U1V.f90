@@ -62,6 +62,8 @@ if( MYRANK==0 ) then
   open(N_MEDFILE, file=MEDFILE, status='OLD',action='READ',form='unformatted')
   open(N_DinvFILE, file=DinvFILE, status='OLD',action='READ')
   open(N_divJFILE, file=divJFILE, status='REPLACE')
+
+  write(N_divJFILE,*) "ite, Re(rot(J1)), Im(rot(J1), Re(div(J2)), Im(div(J2)), Re(DJ), Im(DJ)"
 endif
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -110,11 +112,13 @@ do
       rank=local_face_of_global(gf)%rank_
       tag=gf
 
-      do jj=1,2
+      do jj=1,3
         if( jj==1 ) then 
           divJ=divJ1
-        else
+        elseif( jj==2 ) then
           divJ=divJ2
+        else
+          divJ=divJ1-divJ2
         endif
 
         if( MYRANK == rank ) then

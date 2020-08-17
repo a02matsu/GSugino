@@ -50,7 +50,7 @@ do lf=1,num_faces
   DJ1(lf)=DJ1(lf)*beta_f(lf)
 enddo
 
-!! 
+!! DJ2 ~ div Tr(\lambda(l) \chi(f))
 DJ2=(0d0,0d0)
 do lf=1,num_faces
   do kk=1,sites_in_f(lf)%num_
