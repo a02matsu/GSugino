@@ -107,7 +107,6 @@ endif
 do 
   !! read configuration
   call read_config_from_medfile(Umat,PhiMat,ite,N_MEDFILE,control)
-write(*,*) "test2"
   call MPI_BCAST(control, 1, MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
   if( control == 1 ) exit
 
@@ -136,6 +135,7 @@ write(*,*) "test2"
       Geta_chi, Glambda_chi, Gchi_chi, &
       Dinv,num_fermion)
 
+write(*,*) "test3"
   if( control == 0 ) then 
     if( MYRANK == 0 ) then
       do i=1,num_operators
