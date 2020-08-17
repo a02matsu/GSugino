@@ -195,13 +195,13 @@ do
       ls=sites_in_f(lf)%label_(1)
       call hermitian_conjugate(tmpmat2,phimat(:,:,ls))
       call matrix_power(tmpmat,tmpmat2,ratio)
+      write(*,*) tmpmat
       call trace_mm(Yphibar(lf), Ymat, tmpmat)
       !! Yphi
       tmpmat2=phimat(:,:,ls)
       call matrix_inverse(tmpmat2)
       call matrix_power(tmpmat,tmpmat2,ratio)
       call trace_mm(Yphi(lf), Ymat, tmpmat)
-      write(*,*) tmpmat
     enddo
     Yphibar=Yphibar/dcmplx(NMAT)
     Yphi=Yphi/dcmplx(NMAT)
