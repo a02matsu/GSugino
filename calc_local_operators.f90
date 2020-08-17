@@ -85,7 +85,6 @@ allocate( Yphibar(1:num_faces) )
 operatorFILE(4)=trim("OBS/Yphi"//MEDFILE(18:))
 allocate( Yphi(1:num_faces) )
 
-write(*,*) operatorFILE(4)
 
 call initialization 
 
@@ -182,7 +181,6 @@ do
     enddo
     call write_operator(phi_face, N_operatorFILE(2))
 
-write(*,*) "test5"
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !! 3) tr(Y\phibar^r)
     !! 4) tr(Y\phi^{-r})
@@ -206,6 +204,7 @@ write(*,*) "test5"
     enddo
     Yphibar=Yphibar/dcmplx(NMAT)
     Yphi=Yphi/dcmplx(NMAT)
+    write(*,*) Yphi
     
     call write_operator(Yphibar, N_operatorFILE(3))
     call write_operator(Yphi, N_operatorFILE(4))
