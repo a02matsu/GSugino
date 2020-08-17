@@ -135,7 +135,6 @@ do
       Geta_chi, Glambda_chi, Gchi_chi, &
       Dinv,num_fermion)
 
-write(*,*) "test3"
   if( control == 0 ) then 
     if( MYRANK == 0 ) then
       do i=1,num_operators
@@ -158,6 +157,7 @@ write(*,*) "test3"
     enddo
     call write_operator(phibar, N_operatorFILE(1))
 
+write(*,*) "test4"
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !! 2) tr(\phi^2)^{-r/2}(f)
     phi_site=(0d0,0d0)
