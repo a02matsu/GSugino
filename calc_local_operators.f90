@@ -66,6 +66,8 @@ call getarg(1,MEDFILE)
 DinvFILE=trim("MEDCONF/Dinv"//MEDFILE(18:))
 INPUT_FILE_NAME="inputfile"
 
+call initialization 
+
 allocate(tmpmat(1:NMAT,1:NMAT))
 allocate(tmpmat2(1:NMAT,1:NMAT))
 allocate(Uf(1:NMAT,1:NMAT))
@@ -86,7 +88,6 @@ operatorFILE(4)=trim("OBS/Yphi"//MEDFILE(18:))
 allocate( Yphi(1:num_faces) )
 
 
-call initialization 
 
 eular=global_num_sites-global_num_links+global_num_faces 
 ratio=(NMAT*NMAT-1)*eular/2
