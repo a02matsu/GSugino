@@ -85,6 +85,8 @@ allocate( Yphibar(1:num_faces) )
 operatorFILE(4)=trim("OBS/Yphi"//MEDFILE(18:))
 allocate( Yphi(1:num_faces) )
 
+write(*,*) operatorFILE(4)
+
 call initialization 
 
 eular=global_num_sites-global_num_links+global_num_faces 
