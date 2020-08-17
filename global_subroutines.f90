@@ -1080,6 +1080,11 @@ end subroutine calc_diffdiff_Uf
 !! caluculate product of Ul's from l1 to l2 in the face f.
 !!  n1: place of l1 in f
 !!  n2: place of l2 in f
+!! In other words, ProdU connects n1's site and (n2+1)'s site in the face f
+!! For example: 
+!!   n1=3, n2=3 => ProdU = (U3)^dir3
+!!   n1=1, n2=2 => ProdU = (U1)^dir1.(U2)^dir2 
+!!   n1=2, n2=4 => ProdU = (U2)^dir2.(U3)^dir3.(U4)^dir4
 subroutine calc_prodUl_from_n1_to_n2_in_Uf(ProdU,f,n1,n2,UMAT)
 use matrix_functions, only : make_unit_matrix
 implicit none

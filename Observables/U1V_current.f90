@@ -56,18 +56,12 @@ do lf=1,num_faces
   do kk=1,sites_in_f(lf)%num_
     ls=sites_in_f(lf)%label_(kk)
     gs=global_site_of_local(ls)
-    call calc_prodUl_from_n1_to_n2_in_Uf(U_fs,lf,1,kk,Umat)
-    !call make_face_variable(Uf,lf,Umat)
-    !call matrix_product(U_sf,U_fs,Uf,'C','N')
+    call calc_prodUl_from_n1_to_n2_in_Uf(U_fs,lf,1,kk-1,Umat) ! 4's argument must be kk-1 
     call hermitian_conjugate(U_sf,U_fs)
+    !! contribution of [link FROM gs]
     do a=1,global_linktip_from_s(gs)%num_
       tmp=(0d0,0d0)
-      !ll=linktip_from_s(ls)%labels_(a)
-      !gl=global_link_of_local(ll)
       gl=global_linktip_from_s(gs)%labels_(a)
-      !do ll=1,num_necessary_links
-        !if( global_link_of_local(ll) == gl ) exit
-      !enddo
       do l=1,NMAT
         do k=1,NMAT
           do j=1,NMAT
@@ -79,11 +73,9 @@ do lf=1,num_faces
       enddo
       DJ2(lf) = DJ2(lf) + tmp * dcmplx(global_alpha_l(gl))/dcmplx( num_faces_in_s(ls) )
     enddo
-    !!!
+    !! contribution of [link TO gs]
     do a=1,global_linkorg_to_s(gs)%num_
       tmp=(0d0,0d0)
-      !ll=linkorg_to_s(ls)%labels_(a)
-      !gl=global_link_of_local(ll)
       gl=global_linkorg_to_s(gs)%labels_(a)
       do ll=1,num_necessary_links
         if( global_link_of_local(ll) == gl ) exit
