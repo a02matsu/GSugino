@@ -248,7 +248,7 @@ integer :: NMAT
 integer i
 
 NMAT=size(MAT,1)
-  write(*,*) NMAT
+  write(*,*) "p ",NMAT
 allocate( tmpMAT(1:NMAT,1:NMAT) )
 if( m < 0 ) then 
   write(*,*) "input positive power"
