@@ -20,10 +20,10 @@ integer, parameter :: num_operators=4
 
 integer :: control
 character(128) :: MEDFILE
-character(128) :: DinvFILE
+!character(128) :: DinvFILE
 character(128) :: operatorFILE(1:num_operators)
 integer, parameter :: N_MEDFILE=100
-integer, parameter :: N_DinvFILE=101
+!integer, parameter :: N_DinvFILE=101
 integer :: N_operatorFILE(1:num_operators) !=102
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -32,7 +32,7 @@ complex(kind(0d0)), allocatable :: phibar(:), phibar_site(:) !! for (1)
 complex(kind(0d0)), allocatable :: phi_face(:), phi_site(:) !! for (2) 
 complex(kind(0d0)), allocatable :: Yphibar(:) !! for (3) 
 complex(kind(0d0)), allocatable :: Yphi(:) !! for (4) 
-complex(kind(0d0)), allocatable :: Dinv(:,:)
+!complex(kind(0d0)), allocatable :: Dinv(:,:)
 complex(kind(0d0)), allocatable :: tmpmat(:,:) !tmpmat(1:NMAT,1:NMAT)
 complex(kind(0d0)), allocatable :: tmpmat2(:,:) !tmpmat2(1:NMAT,1:NMAT)
 complex(kind(0d0)), allocatable :: Uf(:,:) !Uf(1:NMAT,1:NMAT)
@@ -63,7 +63,7 @@ if( iarg < 1 ) then
   stop
 endif
 call getarg(1,MEDFILE)
-DinvFILE=trim("MEDCONF/Dinv"//MEDFILE(18:))
+!DinvFILE=trim("MEDCONF/Dinv"//MEDFILE(18:))
 INPUT_FILE_NAME="inputfile"
 
 call initialization 
@@ -92,11 +92,11 @@ allocate( Yphi(1:num_faces) )
 eular=global_num_sites-global_num_links+global_num_faces 
 ratio=(NMAT*NMAT-1)*eular/2
 num_fermion=(global_num_sites+global_num_links+global_num_faces)*(NMAT*NMAT-1)
-allocate( Dinv(1:num_fermion, 1:num_fermion) )
+!allocate( Dinv(1:num_fermion, 1:num_fermion) )
 
 if( MYRANK==0 ) then
   open(N_MEDFILE, file=MEDFILE, status='OLD',action='READ',form='unformatted')
-  open(N_DinvFILE, file=DinvFILE, status='OLD',action='READ')
+  !open(N_DinvFILE, file=DinvFILE, status='OLD',action='READ')
   do i=1,num_operators
     open(N_operatorFILE(i), file=operatorFILE(i), status='REPLACE')
   enddo
@@ -222,7 +222,7 @@ do
 enddo
 if( MYRANK == 0 ) then
   close(N_MEDFILE)
-  close(N_DinvFILE)
+  !close(N_DinvFILE)
   do i=1,num_operators
     close(N_operatorFILE(i))
   enddo
