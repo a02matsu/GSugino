@@ -248,6 +248,7 @@ integer :: NMAT
 integer i
 
 NMAT=size(MAT,1)
+  write(*,*) NMAT
 allocate( tmpMAT(1:NMAT,1:NMAT) )
 if( m < 0 ) then 
   write(*,*) "input positive power"
@@ -384,7 +385,6 @@ SUBROUTINE Matrix_Inverse(MAT)
   complex(kind(0d0)), allocatable :: WORK(:)
 
   NMAT=size(MAT,1)
-  write(*,*) NMAT
   lwork=16*(NMAT)
   allocate( ipiv(1:NMAT) )
   allocate( WORK( 16*NMAT ) )
