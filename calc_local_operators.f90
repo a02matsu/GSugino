@@ -35,8 +35,8 @@ complex(kind(0d0)), allocatable :: Yphi(:) !! for (4)
 complex(kind(0d0)), allocatable :: Dinv(:,:)
 complex(kind(0d0)), allocatable :: tmpmat(:,:) !tmpmat(1:NMAT,1:NMAT)
 complex(kind(0d0)), allocatable :: tmpmat2(:,:) !tmpmat2(1:NMAT,1:NMAT)
-complex(kind(0d0)), allocatable :: Uf(:,:) !Uf(1:NMAT,1:NMAT), Ymat(1:NMAT,1:NMAT)
-complex(kind(0d0)), allocatable :: Ymat(:,:) !Uf(1:NMAT,1:NMAT), Ymat(1:NMAT,1:NMAT)
+complex(kind(0d0)), allocatable :: Uf(:,:) !Uf(1:NMAT,1:NMAT)
+complex(kind(0d0)), allocatable :: Ymat(:,:) !Ymat(1:NMAT,1:NMAT)
 integer :: num_fermion
 integer :: eular, ratio
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -201,10 +201,10 @@ do
       call matrix_inverse(tmpmat2)
       call matrix_power(tmpmat,tmpmat2,ratio)
       call trace_mm(Yphi(lf), Ymat, tmpmat)
+      write(*,*) tmpmat
     enddo
     Yphibar=Yphibar/dcmplx(NMAT)
     Yphi=Yphi/dcmplx(NMAT)
-    write(*,*) Yphi
     
     call write_operator(Yphibar, N_operatorFILE(3))
     call write_operator(Yphi, N_operatorFILE(4))
