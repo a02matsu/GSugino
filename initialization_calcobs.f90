@@ -16,7 +16,7 @@ implicit none
 !! variables
 complex(kind(0d0)), allocatable :: UMAT(:,:,:) ! unitary link variables
 complex(kind(0d0)), allocatable :: PHIMAT(:,:,:) ! complex scalar at sites
-complex(kind(0d0)), allocatable :: tmpMAT(:,:) 
+!complex(kind(0d0)), allocatable :: tmpMAT(:,:) 
 !!!
 complex(kind(0d0)), allocatable :: Geta_eta(:,:,:,:,:,:)
 !(1:dimG,1:num_global_sites,1:dimG,1:num_sites)
@@ -107,7 +107,7 @@ call set_local_data(local_site_list)
 
 allocate( UMAT(1:NMAT,1:NMAT,1:num_necessary_links) )
 allocate( PHIMAT(1:NMAT,1:NMAT, 1:num_necessary_sites) )
-allocate( tmpMAT(1:NMAT,1:NMAT) )
+!allocate( tmpMAT(1:NMAT,1:NMAT) )
 
 !!!
 allocate( Geta_eta(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_sites,1:num_necessary_sites) )
