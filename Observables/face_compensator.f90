@@ -504,6 +504,8 @@ do gf=1,global_num_faces
           call matrix_product(Feta(:,:,ls,i,j,p,gf),&
             phibar_p(:,:,p), Gchi_eta(:,:,i,j,gf,ls))
         enddo !ls
+        call syncronize_sites(Seta(:,:,:,i,j,p,gf))
+        call syncronize_sites(Feta(:,:,:,i,j,p,gf))
         do lf2=1,num_faces
           call matrix_product(Schi(:,:,lf2,i,j,p,gf),&
             phibar_p(:,:,p), Geta_chi(:,:,i,j,gs,lf2))
