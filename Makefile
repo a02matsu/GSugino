@@ -73,6 +73,10 @@ SRC_U1R=calc_exact_U1R.f90
 OBJ_U1R=calc_exact_U1R.o
 PROG_U1R=calc_exact_U1R.exe
 #########################
+SRC_WriteDinv=writeDinv.f90  
+OBJ_WriteDinv=writeDinv.o
+PROG_WriteDinv=writeDinv.exe
+#########################
 SRC_WriteConf=writeconfig.f90  
 OBJ_WriteConf=writeconfig.o
 PROG_WriteConf=writeconfig.exe
@@ -83,7 +87,7 @@ DIR_OBSERVABLES=Observables
 #.SUFFIXES : .o .f90 # .oを作るときは必ず.f90から作るよ
 .SUFFIXES : .f90 # .oを作るときは必ず.f90から作るよ
  
-all:$(PROG) 
+all:$(PROG) obs U1V lops writedinv writeconf
 
 $(PROG): $(OBJS) $(OBJ_MAIN)
 	$(FC) $(FLAGS_CLUSTER) -o $@  $(OBJS) $(OBJ_MAIN) $(LIB)
@@ -106,13 +110,18 @@ $(OBJ_localops): $(MEASUREMENT)/FermionCorrelation_from_Dinv.f90 simulation.o $(
 $(PROG_localops): $(OBJ_localops) $(OBJS) $(OBJ_CALCOBSMAIN) 
 	 $(FC) $(FLAGS_CLUSTER) -o $@ $(OBJ_CALCOBSCOMM) $(OBJS) $(OBJ_localops) $(LIB)
 
+###############################
+writedinv:$(PROG_WriteDinv)
 
+$(OBJ_WriteDinv): $(MEASUREMENT)/FermionCorrelation_from_Dinv.f90 simulation.o $(OBJ_CALCOBSCOMM)
+$(PROG_WriteDinv): $(OBJ_WriteDinv) $(OBJS) $(OBJ_CALCOBSCOMM) 
+	$(FC) $(FLAGS_CLUSTER) -o $@ $(OBJ_CALCOBSCOMM) $(OBJS) $(OBJ_WriteDinv) $(LIB)
+
+#########################################
 writeconf:$(PROG_WriteConf)
 
-$(PROG_WriteConf): $(OBJ_WriteConf)  $(OBJS) $(OBJ_CALCOBSCOMM) 
+$(PROG_WriteConf): $(OBJ_WriteConf) $(OBJS) $(OBJ_CALCOBSCOMM) 
 	$(FC) $(FLAGS_CLUSTER) -o $@ $(OBJ_CALCOBSCOMM) $(OBJS) $(OBJ_WriteConf) $(LIB)
-
-
 
 #########################################
 # moduleをコンパイルするときの依存性を解消
@@ -235,6 +244,7 @@ $(OBJ_WriteConf): \
   global_parameters.o \
   simulation.o \
   initialization_calcobs.o \
+  $(MEASUREMENT)/construct_Dirac.f90 \
   parallel.o 
 (PROG_Dinv): \
   $(SRC_Dinv)

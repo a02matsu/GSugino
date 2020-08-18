@@ -313,6 +313,7 @@ do
       write(N_EigenFILE,'(E23.15,2X,E23.15,2X)',advance='no') &
         dble(eigenvals(i)), dble(eigenvals(i)*(0d0,-1d0))
     enddo
+    write(N_EigenFILE,*)
   endif
 
   call make_fermion_correlation_from_Dinv(&
