@@ -3191,15 +3191,16 @@ do s_recv=1,num_recv_faces
   rank=recv_faces(s_recv)%rank_
   tag=10000*MYRANK + global_face_of_local(local)
 
-  call MPI_IRECV(chi(:,:,local),NMAT*NMAT,MPI_DOUBLE_COMPLEX,rank,tag,MPI_COMM_WORLD,IRECV(s_recv),IERR)
+  call MPI_RECV(chi(:,:,local),NMAT*NMAT,MPI_DOUBLE_COMPLEX,rank,tag,MPI_COMM_WORLD,ISTATUS,IERR)
+  !call MPI_IRECV(chi(:,:,local),NMAT*NMAT,MPI_DOUBLE_COMPLEX,rank,tag,MPI_COMM_WORLD,IRECV(s_recv),IERR)
 enddo
 
 do s_send=1,num_send_faces
   call MPI_WAIT(ISEND(s_send),ISTATUS,IERR)
 enddo
-do s_recv=1,num_recv_faces
-  call MPI_WAIT(IRECV(s_recv),ISTATUS,IERR)
-enddo
+!do s_recv=1,num_recv_faces
+  !call MPI_WAIT(IRECV(s_recv),ISTATUS,IERR)
+!enddo
 
 deallocate(ISEND, IRECV)
 end subroutine syncronize_faces
