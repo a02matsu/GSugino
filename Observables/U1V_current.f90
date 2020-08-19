@@ -86,13 +86,13 @@ do lf=1,num_faces
         do k=1,NMAT
           do j=1,NMAT
             do i=1,NMAT
-              tmp=tmp + Glambda_chi(i,j,k,l,gl,lf)*mat1(j,k)*mat2(l,i)
+              tmp=tmp + Glambda_chi(i,j,k,l,gl,lf)*mat1(j,k)*mat2(l,i)*dcmplx(alpha_l(ll))
             enddo
           enddo
         enddo
       enddo
     enddo
-    DJ2(lf) = DJ2(lf) - tmp * dcmplx(alpha_l(ll))/dcmplx( num_faces_in_s(ls) )
+    DJ2(lf) = DJ2(lf) - tmp / dcmplx( num_faces_in_s(ls) )
   enddo
 enddo
 
