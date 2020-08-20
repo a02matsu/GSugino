@@ -33,6 +33,7 @@ complex(kind(0d0)) :: tmp
 complex(kind(0d0)) :: tmpmat(1:NMAT,1:NMAT)
 integer :: ls,ll,lf,gs,gl,gf,kk,dir
 integer :: i,j,k,l,a,b
+integer :: info
 
 
 !!  DJ1 ~ 1/2 rot Tr(\lambda(l) \eta(s))
@@ -77,16 +78,24 @@ do lf=1,num_faces
     do a=1,global_linkorg_to_s(gs)%num_
       tmp=(0d0,0d0)
       gl=global_linkorg_to_s(gs)%labels_(a)
+      info=1
       do ll=1,num_necessary_links
-        if( global_link_of_local(ll) == gl ) exit
+        if( global_link_of_local(ll) == gl ) then 
+          info=0
+          exit
+        endif
       enddo
+      if( info==1 ) then
+        write(*,*) "no global link", gl, "in rank", MYRANK
+        stop
+      endif
       call matrix_product(mat1,Umat(:,:,ll),U_sf)
       call matrix_product(mat2,U_fs,Umat(:,:,ll),'N','C')
       do l=1,NMAT
         do k=1,NMAT
           do j=1,NMAT
             do i=1,NMAT
-              tmp=tmp + Glambda_chi(i,j,k,l,gl,lf)*mat1(j,k)*mat2(l,i)*dcmplx(alpha_l(ll))
+              tmp=tmp + Glambda_chi(i,j,k,l,gl,lf)*mat1(j,k)*mat2(l,i)*dcmplx(global_alpha_l(gl))
             enddo
           enddo
         enddo
