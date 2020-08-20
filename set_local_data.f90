@@ -700,8 +700,8 @@ enddo
 do f=1,global_num_faces
   do k=1,global_sites_in_f(f)%num_
     s=global_sites_in_f(f)%label_(k)
-    do i=1,global_linkorg_to_s(s)%num_
-      ll=global_linkorg_to_s(s)%labels_(i)
+    do j=1,global_linkorg_to_s(s)%num_
+      ll=global_linkorg_to_s(s)%labels_(j)
       if( local_face_of_global(f)%rank_ /= local_link_of_global(ll)%rank_ ) then 
         if( local_link_of_global(ll)%rank_ == MYRANK ) then
           !! 重複チェック
