@@ -86,7 +86,7 @@ do lf=1,num_faces
         do k=1,NMAT
           do j=1,NMAT
             do i=1,NMAT
-              tmp=tmp + Glambda_chi(i,j,k,l,gl,lf)*mat1(j,k)*mat2(l,i)*dcmplx(alpha_l(ll))
+              tmp=tmp + Glambda_chi(i,j,k,l,gl,lf)*mat1(j,k)*mat2(l,i)*dcmplx(global_alpha_l(gl))
             enddo
           enddo
         enddo
@@ -130,6 +130,7 @@ do ll=1,num_links
 enddo
 call syncronize_linkval(trvec1)
 end subroutine make_trV1
+
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

@@ -557,6 +557,7 @@ enddo
 !!   (1) 担当するsiteをtipとするlink
 !!   (2) 担当するfaceを構成するlink
 !!   (3) 担当するlinkを共有するfaceに含まれる全link
+!!   (4) 担当するfaceに含まれるsiteに入る全link
 !! 重複があり得るので、逐一チェックしながら進める
 
 !!   (1) 担当するsiteをtipとするlink
@@ -694,6 +695,56 @@ do l=1,global_num_links
     enddo
   enddo
 enddo
+
+!!   (4) 担当するfaceに含まれるsiteに入る全link
+do f=1,global_num_faces
+  do k=1,global_sites_in_f(f)%num_
+    s=global_sites_in_f(f)%label_(k)
+    do i=1,global_linkorg_to_s(s)%num_
+      ll=global_linkorg_to_s(s)%labels_(i)
+      if( local_face_of_global(f)%rank_ /= local_link_of_global(ll)%rank_ ) then 
+        if( local_link_of_global(ll)%rank_ == MYRANK ) then
+          !! 重複チェック
+          info=0
+          do i=1,nsend
+            if( tmp_send_links(i)%rank_ == local_link_of_global(l)%rank_ &
+                .and. &
+                tmp_send_links(i)%label_ == ll ) then 
+              info=1
+              exit
+            endif
+          enddo
+          if (info == 0 ) then
+            nsend=nsend+1
+            tmp_send_links(nsend)%rank_ = local_link_of_global(l)%rank_ 
+            tmp_send_links(nsend)%label_ = ll
+            !write(*,*) MYRANK,tmp_send_links(nsend)%rank_,tmp_send_links(nsend)%label_
+          endif
+        !!!!!!!!!!!
+        elseif( local_face_of_global(f)%rank_ == MYRANK ) then
+          !! 重複チェック
+          info=0
+          do i=1,nrecv
+            if( tmp_recv_links(i)%rank_ == local_link_of_global(ll)%rank_ &
+                .and. &
+                tmp_recv_links(i)%label_ == ll ) then 
+              info=1
+              exit
+            endif
+          enddo
+          if (info == 0 ) then
+            nrecv=nrecv+1
+            tmp_recv_links(nrecv)%rank_ = local_link_of_global(ll)%rank_ 
+            tmp_recv_links(nrecv)%label_ = ll
+            tmp_global_link_of_local(num_links+nrecv)=ll
+          endif
+        endif
+      endif
+    enddo
+  enddo
+enddo
+
+
 
 !! 重複度を除いて配列を定義
 num_send_links=nsend
