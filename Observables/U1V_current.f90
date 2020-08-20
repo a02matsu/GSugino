@@ -140,6 +140,7 @@ enddo
 call syncronize_linkval(trvec1)
 end subroutine make_trV1
 
+
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! calculate 
