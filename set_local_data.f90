@@ -707,7 +707,7 @@ do f=1,global_num_faces
           !! 重複チェック
           info=0
           do i=1,nsend
-            if( tmp_send_links(i)%rank_ == local_link_of_global(l)%rank_ &
+            if( tmp_send_links(i)%rank_ == local_face_of_global(f)%rank_ &
                 .and. &
                 tmp_send_links(i)%label_ == ll ) then 
               info=1
@@ -716,7 +716,7 @@ do f=1,global_num_faces
           enddo
           if (info == 0 ) then
             nsend=nsend+1
-            tmp_send_links(nsend)%rank_ = local_link_of_global(l)%rank_ 
+            tmp_send_links(nsend)%rank_ = local_face_of_global(f)%rank_ 
             tmp_send_links(nsend)%label_ = ll
             !write(*,*) MYRANK,tmp_send_links(nsend)%rank_,tmp_send_links(nsend)%label_
           endif
