@@ -579,8 +579,8 @@ else ! PARATEST==0 case
       PhiMat(i,i,s)=PhiMat(i,i,s)-trace/dcmplx(dble(NMAT))
     enddo
   enddo
-
   PhiMat=(0d0,0d0)
+
   
   ! random number must be sufficiently small
   if( m_omega == 0 .or. m_omega == -1 ) then 
@@ -595,7 +595,7 @@ else ! PARATEST==0 case
     enddo
   enddo
     
-  AMAT=(0d0,0d0)
+  Amat=(0d0,0d0)
   do l=1,num_links
     call matrix_exp(UMAT(:,:,l),(0d0,1d0)*AMAT(:,:,l))
   enddo
