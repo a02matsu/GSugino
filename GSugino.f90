@@ -595,6 +595,7 @@ else ! PARATEST==0 case
     enddo
   enddo
     
+  write(*,*) "test"
   Amat=(0d0,0d0)
   do l=1,num_links
     call matrix_exp(UMAT(:,:,l),(0d0,1d0)*AMAT(:,:,l))
