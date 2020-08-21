@@ -119,7 +119,7 @@ else
   call system(COMMAND)
 endif
 if( branch_mode==1 ) then
-  write(tmpc,*) branch_num
+  write(tmpc,*) new_branch_label
   DIRNAME="CONFIG"//trim(adjustl(tmpc))
   COMMAND='if [ ! -d '//trim(DIRNAME)//' ]; then mkdir -p '//trim(DIRNAME)//'; fi'
   call system(COMMAND)
@@ -278,9 +278,9 @@ endif
         write(Fmedconf, '("MEDCONF",i1.1,"/medconfig_", i6.6,"+",i6.6,".dat")') branch_use, total_ite,num_ite
       endif
     else !! branch mode
-      write(Fconfigout, '("CONFIG",i1.1,"/inputconf_", i4.4, ".dat")') branch_num, job_number
-      write(Foutput, '("OUTPUT",i1.1,"/output_",i4.4,":",i6.6,"+",i6.6,".dat")') branch_num, job_number,total_ite,num_ite
-      write(Fmedconf, '("MEDCONF",i1.1,"/medconfig_", i6.6,"+",i6.6,".dat")') branch_num, total_ite,num_ite
+      write(Fconfigout, '("CONFIG",i1.1,"/inputconf_", i4.4, ".dat")') new_branch_label, job_number
+      write(Foutput, '("OUTPUT",i1.1,"/output_",i4.4,":",i6.6,"+",i6.6,".dat")') new_branch_label, job_number,total_ite,num_ite
+      write(Fmedconf, '("MEDCONF",i1.1,"/medconfig_", i6.6,"+",i6.6,".dat")') new_branch_label, total_ite,num_ite
     endif
     call HybridMonteCarlo(UMAT,PhiMat,seed,total_ite)
   endif
