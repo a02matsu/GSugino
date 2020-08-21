@@ -138,6 +138,13 @@ elseif( new_config == 3 ) then
   elseif( fix_seed == 2 ) then
     write(output,*) "# random seed is determined by the system time"
   endif
+elseif( new_config == 4 ) then 
+  write(output,*) "# hot start(A,phi:random)"
+  if( fix_seed == 1 ) then
+    write(output,*) "# random seed is fixed to seed=",seed
+  else
+    write(output,*) "# random seed is determined by the system time"
+  endif
 endif
 
 write(output,'(a)') "#"
