@@ -36,6 +36,8 @@ integer IBLOCK2(1),IDISP2(1),ITYPE2(1)
 character(128) DIRNAME,COMMAND,CONFDIR0,CONFDIR1
 character(128) tmpc,tmpc2
 
+integer :: root
+
 iarg=iargc()
 if( iarg==0 ) then 
   INPUT_FILE_NAME ="inputfile" ! input file
@@ -204,43 +206,36 @@ endif
     eval_eigen=0
     call set_hot_config(UMAT,PhiMat)
   else ! read config from CONF directory
-    if( branch_mode == 0 ) then ! continuous simulation 
-      if( branch_use == 0 ) then
-        if( job_number <= 0 ) then
-          Fconfigin="CONFIG/latestconf"
-        else
-          write(Fconfigin, '("CONFIG/inputconf_", i4.4, ".dat")') job_number-1
-        endif
-      else
-        if( job_number <= 0 ) then
-          write(Fconfigin, '("CONFIG",i1.1,"/latestconf")') branch_use
-        else
-          write(Fconfigin, '("CONFIG",i1.1,"/inputconf_", i4.4, ".dat")') branch_use,job_number-1
-        endif
-      endif
-    else ! make branch from branch_root
-      !! set the configuration directries
-      write(tmpc,*) branch_num
-      if( job_number <= 0 ) then
-        if( branch_root==0 ) then
-          Fconfigin="CONFIG/latestconf"
-        else
-          write(tmpc,*) branch_root
-          Fconfigin="CONFIG"//trim(adjustl(tmpc))//'/latestconf'
-        endif
-      else
-        if( branch_root==0 ) then
-          write(Fconfigin, '("CONFIG/inputconf_", i4.4, ".dat")') job_number-1
-        else
-          !write(tmpc,*) branch_root
-          !write(tmpc2,*) job_number-1
-          !Fconfigin="CONFIG"//trim(adjustl(tmpc))//'/lastconf_'trim(adjustl(tmpc2)//'.dat'
-          write(Fconfigin, '("CONFIG",i1.1,"/inputconf_", i4.4, ".dat")') branch_root,job_number-1
-        endif
-      endif
-    endif
     call read_config(UMAT,PhiMat,state_mt95,seed)
   endif
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  !! branch modeによる読み込み先の分岐
+  !! branch_mode=0 : branchは作らず、"branch_use"上で継続的にシミュレーション
+  !!             1 : barnchを branch_root から作る
+  if( branch_mode == 0 ) then 
+    root=branch_use
+  else ! branch_mode /= 0
+    root=branch_root
+  endif
+  !!
+  if( root == 0 ) then
+    if( job_number <= 0 ) then
+      Fconfigin="CONFIG/latestconf"
+    else
+      write(Fconfigin, '("CONFIG/inputconf_", i4.4, ".dat")') job_number-1
+    endif
+  else
+    if( job_number <= 0 ) then
+      write(Fconfigin, '("CONFIG",i1.1,"/latestconf")') root
+    else
+      write(Fconfigin, '("CONFIG",i1.1,"/inputconf_", i4.4, ".dat")') root,job_number-1
+    endif
+  endif
+
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  !! fix_seedの値で乱数を再設定
   if( fix_seed == 0 ) then
     call genrand_init( put=state_mt95 )
   else
@@ -249,18 +244,19 @@ endif
   if( reset_ite == 1 ) then
     total_ite=0
   endif
-! set Remez data
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  !! set Remez data
     call set_Remez_data
-!! check unitaryty
+  !! check unitaryty
     !call check_unitary
-!! check mode expansion
+  !! check mode expansion
     !call check_Ta_expansion
     !stop
-!! check anti-symmetricity of Dirac and Hermiticity of D\dag D
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!do s=1,num_sites
-!call make_traceless_matrix_from_modes(PhiMat(:,:,s),NMAT,Phi(:,s))
-!enddo
+  !! check anti-symmetricity of Dirac and Hermiticity of D\dag D
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  !do s=1,num_sites
+  !call make_traceless_matrix_from_modes(PhiMat(:,:,s),NMAT,Phi(:,s))
+  !enddo
 
   !if (writedown_mode==1) then
     !call writedown_config_action_and_fores(UMAT,PhiMat,seed)
@@ -286,9 +282,6 @@ endif
       write(Foutput, '("OUTPUT",i1.1,"/output_",i4.4,":",i6.6,"+",i6.6,".dat")') branch_num, job_number,total_ite,num_ite
       write(Fmedconf, '("MEDCONF",i1.1,"/medconfig_", i6.6,"+",i6.6,".dat")') branch_num, total_ite,num_ite
     endif
-    !if( MYRANK == 0) then
-      !write(*,*) Fconfigin, Fconfigout, Foutput, Fmedconf
-    !endif
     call HybridMonteCarlo(UMAT,PhiMat,seed,total_ite)
   endif
 
