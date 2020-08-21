@@ -36,9 +36,9 @@ open(PAR_FILE, file=PAR_FILE_NAME, status='old',action='READ')
 !! branch_root ! make branch from this config. default:0
   read(PAR_FILE,'()') 
   read(PAR_FILE,*) branch_root
-!! branch_num !! number of branches to make
+!! new_branch_label !! label of branches to make
   read(PAR_FILE,'()') 
-  read(PAR_FILE,*) branch_num
+  read(PAR_FILE,*) new_branch_label
 !! force_measurement ; 1:measure forces  
   read(PAR_FILE,'()') 
   read(PAR_FILE,*) force_measurement
