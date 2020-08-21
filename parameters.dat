@@ -16,7 +16,7 @@ S2MisumiM8N8R10.dat
 0
 ## force_measurement ; 1:measure forces  
 1
-## new_config ; 0:Old Config 1:New Config 2:New config all accept 3:Old config all accept
+## new_config ; 0:Old Config 1:New Config(cold) 2:New config all accept 3:Old config all accept 4: New config(hot)
 0
 ## fix_seed ; 0:previous value 1:fix 2:system time 
 0
