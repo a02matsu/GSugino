@@ -662,8 +662,8 @@ end subroutine set_random_config
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 subroutine set_hot_config(UMAT,PhiMat)
 use SUN_generators, only : Make_SUN_generators
-use matrix_functions, only : matrix_exp,make_matrix_traceless
-use global_subroutines, only : BoxMuller2
+use matrix_functions, only : matrix_exp, make_unit_matrix,matrix_norm
+use global_subroutines, only : BoxMuller2, make_face_variable
 use global_parameters
 use mt95
 use parallel
