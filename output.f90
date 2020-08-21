@@ -36,13 +36,13 @@ output=6
 #ifdef PARALLEL
 if( MYRANK == 0 ) then
 #endif
-call write_header_to(output,min_eigen,max_eigen)
+call write_header_to(output,min_eigen,max_eigen,seed,Umat,Phimat)
 call write_observable_list(output)
 
 !!!!!!!!!!!!!!!!!!!!!!!!!
 !! for output file
 output=OUTPUT_FILE
-call write_header_to(output,min_eigen,max_eigen)
+call write_header_to(output,min_eigen,max_eigen,seed,Umat,Phimat)
 !!!
 !if( read_alpha == 0 ) then
 !  write(output,*) "# alpha and beta for SC are set to 1.0"
@@ -51,41 +51,6 @@ call write_header_to(output,min_eigen,max_eigen)
 !endif
 !write(output,*)
 !!!
-write(*,*) new_config
-if( new_config == 0 ) then
-  write(output,*) "# configs read from ", trim(Fconfigin)
-  if( fix_seed == 0 ) then
-    write(output,*) "# random seed is succeeded from the previous simulation"
-  elseif( fix_seed == 1 ) then
-    write(output,*) "# random seed is fixed to seed=",seed
-  elseif( fix_seed == 2 ) then
-    write(output,*) "# random seed is determined by the system time"
-  endif
-elseif( new_config == 1 ) then
-  write(output,*) "# cold start: A=0, phi=0"
-  if( fix_seed == 1 ) then
-    write(output,*) "# random seed is fixed to seed=",seed
-  else
-    write(output,*) "# random seed is determined by the system time"
-  endif
-  write(*,*) Phimat, Umat
-elseif( new_config == 2 ) then 
-  write(output,*) "# cold start(A=0,phi=0) and all accept"
-  if( fix_seed == 1 ) then
-    write(output,*) "# random seed is fixed to seed=",seed
-  else
-    write(output,*) "# random seed is determined by the system time"
-  endif
-elseif( new_config == 3 ) then 
-  write(output,*) "# configs read from ", trim(Fconfigin), "and all accept"
-  if( fix_seed == 0 ) then
-    write(output,*) "# random seed is succeeded from the previous simulation"
-  elseif( fix_seed == 1 ) then
-    write(output,*) "# random seed is fixed to seed=",seed
-  elseif( fix_seed == 2 ) then
-    write(output,*) "# random seed is determined by the system time"
-  endif
-endif
 !!!
 call write_observable_list(output)
 
@@ -95,11 +60,16 @@ endif
 end subroutine write_header
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-subroutine write_header_to(output,min_eigen,max_eigen)
+subroutine write_header_to(output,min_eigen,max_eigen,seed,Umat,Phimat)
 implicit none
 
 complex(kind(0d0)), intent(in) :: min_eigen,max_eigen
 integer, intent(in) :: output
+integer, intent(in) :: seed 
+complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_necessary_links)
+complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_necessary_sites)
+
+
 
 write(output,'(a,a)') "# simplicial complex : ",trim(SC_FILE_NAME)
 write(output,'(A,F6.4)') "# lattice spacing (\lambda=1)= ",LatticeSpacing
@@ -134,6 +104,43 @@ if( eval_eigen /= 0 ) then
 else
   write(output,'(A)') "# omitted the evaluation of the eigenvalues"
 endif
+write(output,'(a)') "#"
+
+if( new_config == 0 ) then
+  write(output,*) "# configs read from ", trim(Fconfigin)
+  if( fix_seed == 0 ) then
+    write(output,*) "# random seed is succeeded from the previous simulation"
+  elseif( fix_seed == 1 ) then
+    write(output,*) "# random seed is fixed to seed=",seed
+  elseif( fix_seed == 2 ) then
+    write(output,*) "# random seed is determined by the system time"
+  endif
+elseif( new_config == 1 ) then
+  write(output,*) "# cold start: A=0, phi=0"
+  if( fix_seed == 1 ) then
+    write(output,*) "# random seed is fixed to seed=",seed
+  else
+    write(output,*) "# random seed is determined by the system time"
+  endif
+  write(output,*) Phimat, Umat
+elseif( new_config == 2 ) then 
+  write(output,*) "# cold start(A=0,phi=0) and all accept"
+  if( fix_seed == 1 ) then
+    write(output,*) "# random seed is fixed to seed=",seed
+  else
+    write(output,*) "# random seed is determined by the system time"
+  endif
+elseif( new_config == 3 ) then 
+  write(output,*) "# configs read from ", trim(Fconfigin), "and all accept"
+  if( fix_seed == 0 ) then
+    write(output,*) "# random seed is succeeded from the previous simulation"
+  elseif( fix_seed == 1 ) then
+    write(output,*) "# random seed is fixed to seed=",seed
+  elseif( fix_seed == 2 ) then
+    write(output,*) "# random seed is determined by the system time"
+  endif
+endif
+
 write(output,'(a)') "#"
 
 end subroutine write_header_to
