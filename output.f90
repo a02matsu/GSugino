@@ -110,7 +110,7 @@ write(output,'(A,I5)') "# job_number= ",job_number
 if( branch_mode==0 ) then 
   write(output,'(A,I5)') "# branch= ",branch_use
 else
-  write(output,'(A,I5,A,I5)') "# make branch from ",branch_root," to ",branch_num
+  write(output,'(A,I5,A,I5)') "# make branch from ",branch_root," to ",new_branch_label
 endif
 write(output,'(a)') "#"
 write(output,'(A,F10.8)') "# Tau for A= ",Tau
@@ -580,7 +580,7 @@ if( branch_mode==0) then
   endif
 endif
 if( branch_mode==1 ) then
-  write(tmpc,*) branch_num
+  write(tmpc,*) new_branch_label
   COMMAND='cd CONFIG'//trim(adjustl(tmpc))//'; FILE=$(ls inputconf* | tail -1); &
     LINK="latestconf"; if [ -e "$LINK" ]; then /bin/rm $LINK; &
     fi; ln -s $FILE $LINK; cd ..' 
