@@ -60,21 +60,22 @@ if( new_config == 0 ) then
   elseif( fix_seed == 2 ) then
     write(output,*) "# random seed is determined by the system time"
   endif
-elseif( fix_seed == 1 ) then
-  write(output,*) "# new configs"
+elseif( new_config == 1 ) then
+  write(output,*) "# cold start: A=0, phi=0"
   if( fix_seed == 1 ) then
     write(output,*) "# random seed is fixed to seed=",seed
   else
     write(output,*) "# random seed is determined by the system time"
   endif
-elseif( fix_seed == 2 ) then 
-  write(output,*) "# new configs and all accept"
+  write(*,*) Phimat, Umat
+elseif( new_config == 2 ) then 
+  write(output,*) "# cold start(A=0,phi=0) and all accept"
   if( fix_seed == 1 ) then
     write(output,*) "# random seed is fixed to seed=",seed
   else
     write(output,*) "# random seed is determined by the system time"
   endif
-elseif( fix_seed == 3 ) then 
+elseif( new_config == 3 ) then 
   write(output,*) "# configs read from ", trim(Fconfigin), "and all accept"
   if( fix_seed == 0 ) then
     write(output,*) "# random seed is succeeded from the previous simulation"
