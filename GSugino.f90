@@ -677,7 +677,7 @@ complex(kind(0d0)) :: TMAT(1:NMAT,1:NMAT,1:NMAT**2-1)
 double precision :: g_rsite(1:2*dimG*global_num_sites) ! for PHI
 double precision :: g_rlink(1:2*dimG*global_num_links) ! for UMAT
 complex(kind(0d0)) :: AMAT(1:NMAT,1:NMAT,1:num_links)
-complex(kind(0d0)) :: unitmat(1:NMAT,1:NMAT)
+complex(kind(0d0)) :: unitmat(1:NMAT,1:NMAT),Uf(1:NMAT,1:NMAT)
 complex(kind(0d0)) :: phi_a, A_a
 integer :: s,l,f, a,i,j,num
 integer :: rank,gs,gl
