@@ -659,6 +659,80 @@ endif
 
 end subroutine set_random_config
 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+subroutine set_hot_config(UMAT,PhiMat)
+use SUN_generators, only : Make_SUN_generators
+use matrix_functions, only : matrix_exp,make_matrix_traceless
+use global_subroutines, only : BoxMuller2
+use global_parameters
+use mt95
+use parallel
+use global_subroutines, only : syncronize_bosons
+implicit none
+
+complex(kind(0d0)), intent(inout) :: UMAT(1:NMAT,1:NMAT,1:num_necessary_links)
+complex(kind(0d0)), intent(inout) :: PhiMat(1:NMAT,1:NMAT,1:num_necessary_sites)
+
+complex(kind(0d0)) :: TMAT(1:NMAT,1:NMAT,1:NMAT**2-1)
+double precision :: g_rsite(1:2*dimG*global_num_sites) ! for PHI
+double precision :: g_rlink(1:2*dimG*global_num_links) ! for UMAT
+complex(kind(0d0)) :: AMAT(1:NMAT,1:NMAT,1:num_links)
+complex(kind(0d0)) :: unitmat(1:NMAT,1:NMAT)
+complex(kind(0d0)) :: phi_a, A_a
+integer :: s,l,f, a,i,j,num
+integer :: rank,gs,gl
+double precision :: distance
+
+
+call make_SUN_generators(TMAT,NMAT)
+
+call BoxMuller2(g_rsite,global_num_sites*dimG)
+call BoxMuller2(g_rlink,global_num_links*dimG)
+
+Phimat=(0d0,0d0)
+do s=1,num_sites
+  gs=global_site_of_local(s)
+  do a=1,dimG
+    num=dimG*(gs-1)+a
+    phi_a=dcmplx(g_rsite(2*num-1))+(0d0,1d0)*dcmplx(g_rsite(2*num))
+    PHIMAT(:,:,s)=PhiMat(:,:,s)+phi_a*Tmat(:,:,a)
+  enddo
+enddo
+
+AMAT=(0d0,0d0)
+do l=1,num_links
+  gl=global_link_of_local(l)
+  do a=1,dimG
+    num=dimG*(gl-1)+a
+    A_a=g_rlink(2*num-1)
+    AMAT(:,:,l)=AMAT(:,:,l)+A_a*TMAT(:,:,a)
+  enddo
+  call matrix_exp(UMAT(:,:,l),(0d0,1d0)*AMAT(:,:,l))
+enddo
+call syncronize_bosons(UMAT,Phimat)
+
+!! check if Uf is in the allowed range
+call make_unit_matrix(unitmat)
+!do gf=1,global_num_faces
+  !rank=local_face_of_global(gf)%rank_
+  !f=local_facde_of_global(gf)%label_
+  !if( MYRANK==rank ) then
+do f=1,num_faces
+  call Make_face_variable(Uf,f,UMAT)
+  call matrix_norm(distance, unitmat-Uf)
+  do while( distance > maximal_dist )
+    l=links_in_f(f)%link_labels_(1)
+    Amat(:,:,l)=Amat(:,:,l)/(2d0,0d0)
+    call matrix_exp(UMAT(:,:,l),(0d0,1d0)*AMAT(:,:,l))
+    call Make_face_variable(Uf,f,UMAT)
+    call matrix_norm(distance, unitmat-Uf)
+  enddo
+enddo
+
+call syncronize_bosons(UMAT,Phimat)
+
+
+end subroutine set_hot_config
 
 !!!!!!!!!!!!!!!!!!!!!!!
 !! cold start
