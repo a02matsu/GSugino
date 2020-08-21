@@ -464,99 +464,99 @@ call make_SUN_generators(TMAT,NMAT)
 
 #ifdef PARALLEL
 !! テスト用に、シングルコアと同じconfigurationを用意する。
-if( PARATEST== 1 ) then 
-  !call genrand_real3(rsite)
-  if( MYRANK == 0 ) then 
-    call BoxMuller2(g_rsite,2*global_num_sites*NMAT*NMAT)
-    call genrand_real3(g_rlink)
-  
-    !g_rsite=g_rsite * 1d-8 !/ mass_square_phi
-    num=0
-    do s=1,global_num_sites
-      do i=1,NMAT
-        do j=1,NMAT
-          num=num+1
-          !if ( i.ne.NMAT .or. j.ne.NMAT ) then
-          if( i==j ) then
-            G_PHIMAT(i,j,s)=dcmplx(g_rsite(2*num-1))+(0d0,1d0)*dcmplx(g_rsite(2*num))
-          else
-            G_PHIMAT(i,j,s)=dcmplx(1d-2 *g_rsite(2*num-1))+(0d0,1d-2)*dcmplx(g_rsite(2*num))
-          endif
-          !endif
-        enddo
-      enddo
-      trace=(0d0,0d0)
-      do i=1,NMAT
-        trace=trace+G_PHIMAT(i,i,s)
-      enddo
-      do i=1,NMAT
-        G_PHIMAT(i,i,s)=G_PHIMAT(i,i,s)-trace/dcmplx(dble(NMAT))
-      enddo
-    enddo
-  
-    ! random number must be sufficiently small
-    if( m_omega == 0 .or. m_omega == -1 ) then 
-      !g_rlink=g_rlink * ( 1d0/dble(NMAT*NMAT) )
-      g_rlink=g_rlink * 1d-3
-    else
-      !g_rlink=g_rlink * ( 1d0/dble(NMAT*NMAT*m_omega) )
-      g_rlink=g_rlink * ( 1d-3/dble(m_omega) )
-    endif
-    G_AMAT=(0d0,0d0)
-    do l=1,global_num_links
-      do a=1,dimG
-        G_AMAT(:,:,l)=G_AMAT(:,:,l)+g_rlink(a,l)*TMAT(:,:,a)
-      enddo
-    enddo
-    
-    do l=1,global_num_links
-      call matrix_exp(G_UMAT(:,:,l),(0d0,1d0)*G_AMAT(:,:,l))
-    enddo
-  endif
-  
-  do s=1,global_num_sites
-    if( MYRANK == 0 ) then
-      tmp_PhiMat = g_PhiMat(:,:,s)
-    endif
-    rank=local_site_of_global(s)%rank_ 
-    ls=local_site_of_global(s)%label_
-    if( MYRANK == 0 ) then
-      if( rank == 0 ) then 
-        PhiMat(:,:,ls) = tmp_PhiMat
-      else
-        call MPI_SEND(tmp_PhiMat,NMAT*NMAT,MPI_DOUBLE_COMPLEX,rank,s,MPI_COMM_WORLD,IERR)
-      endif
-    else
-      if( MYRANK == rank ) then 
-        call MPI_RECV(PhiMat(:,:,ls),NMAT*NMAT,MPI_DOUBLE_COMPLEX,0,s,MPI_COMM_WORLD,ISTATUS,IERR)
-      endif
-    endif
-  enddo
-  
-  
-  do l=1,global_num_links
-    if( MYRANK == 0 ) then
-      tmp_UMat = g_UMat(:,:,l)
-    endif
-    rank=local_link_of_global(l)%rank_ 
-    ll=local_link_of_global(l)%label_
-    if( MYRANK == 0 ) then
-      if( rank == 0 ) then 
-        UMat(:,:,ll) = tmp_UMat
-      else
-        call MPI_SEND(tmp_UMat,NMAT*NMAT,MPI_DOUBLE_COMPLEX,rank,global_num_sites+l,MPI_COMM_WORLD,IERR)
-      endif
-    else
-      if( MYRANK == rank  ) then 
-        call MPI_RECV(UMat(:,:,ll),NMAT*NMAT,MPI_DOUBLE_COMPLEX,0,global_num_sites+l,MPI_COMM_WORLD,ISTATUS,IERR)
-      endif
-    endif
-  enddo
-        
-  call syncronize_bosons(UMAT,Phimat)
-  return
-
-else ! PARATEST==0 case
+!if( PARATEST== 1 ) then 
+!  !call genrand_real3(rsite)
+!  if( MYRANK == 0 ) then 
+!    call BoxMuller2(g_rsite,2*global_num_sites*NMAT*NMAT)
+!    call genrand_real3(g_rlink)
+!  
+!    !g_rsite=g_rsite * 1d-8 !/ mass_square_phi
+!    num=0
+!    do s=1,global_num_sites
+!      do i=1,NMAT
+!        do j=1,NMAT
+!          num=num+1
+!          !if ( i.ne.NMAT .or. j.ne.NMAT ) then
+!          if( i==j ) then
+!            G_PHIMAT(i,j,s)=dcmplx(g_rsite(2*num-1))+(0d0,1d0)*dcmplx(g_rsite(2*num))
+!          else
+!            G_PHIMAT(i,j,s)=dcmplx(1d-2 *g_rsite(2*num-1))+(0d0,1d-2)*dcmplx(g_rsite(2*num))
+!          endif
+!          !endif
+!        enddo
+!      enddo
+!      trace=(0d0,0d0)
+!      do i=1,NMAT
+!        trace=trace+G_PHIMAT(i,i,s)
+!      enddo
+!      do i=1,NMAT
+!        G_PHIMAT(i,i,s)=G_PHIMAT(i,i,s)-trace/dcmplx(dble(NMAT))
+!      enddo
+!    enddo
+!  
+!    ! random number must be sufficiently small
+!    if( m_omega == 0 .or. m_omega == -1 ) then 
+!      !g_rlink=g_rlink * ( 1d0/dble(NMAT*NMAT) )
+!      g_rlink=g_rlink * 1d-3
+!    else
+!      !g_rlink=g_rlink * ( 1d0/dble(NMAT*NMAT*m_omega) )
+!      g_rlink=g_rlink * ( 1d-3/dble(m_omega) )
+!    endif
+!    G_AMAT=(0d0,0d0)
+!    do l=1,global_num_links
+!      do a=1,dimG
+!        G_AMAT(:,:,l)=G_AMAT(:,:,l)+g_rlink(a,l)*TMAT(:,:,a)
+!      enddo
+!    enddo
+!    
+!    do l=1,global_num_links
+!      call matrix_exp(G_UMAT(:,:,l),(0d0,1d0)*G_AMAT(:,:,l))
+!    enddo
+!  endif
+!  
+!  do s=1,global_num_sites
+!    if( MYRANK == 0 ) then
+!      tmp_PhiMat = g_PhiMat(:,:,s)
+!    endif
+!    rank=local_site_of_global(s)%rank_ 
+!    ls=local_site_of_global(s)%label_
+!    if( MYRANK == 0 ) then
+!      if( rank == 0 ) then 
+!        PhiMat(:,:,ls) = tmp_PhiMat
+!      else
+!        call MPI_SEND(tmp_PhiMat,NMAT*NMAT,MPI_DOUBLE_COMPLEX,rank,s,MPI_COMM_WORLD,IERR)
+!      endif
+!    else
+!      if( MYRANK == rank ) then 
+!        call MPI_RECV(PhiMat(:,:,ls),NMAT*NMAT,MPI_DOUBLE_COMPLEX,0,s,MPI_COMM_WORLD,ISTATUS,IERR)
+!      endif
+!    endif
+!  enddo
+!  
+!  
+!  do l=1,global_num_links
+!    if( MYRANK == 0 ) then
+!      tmp_UMat = g_UMat(:,:,l)
+!    endif
+!    rank=local_link_of_global(l)%rank_ 
+!    ll=local_link_of_global(l)%label_
+!    if( MYRANK == 0 ) then
+!      if( rank == 0 ) then 
+!        UMat(:,:,ll) = tmp_UMat
+!      else
+!        call MPI_SEND(tmp_UMat,NMAT*NMAT,MPI_DOUBLE_COMPLEX,rank,global_num_sites+l,MPI_COMM_WORLD,IERR)
+!      endif
+!    else
+!      if( MYRANK == rank  ) then 
+!        call MPI_RECV(UMat(:,:,ll),NMAT*NMAT,MPI_DOUBLE_COMPLEX,0,global_num_sites+l,MPI_COMM_WORLD,ISTATUS,IERR)
+!      endif
+!    endif
+!  enddo
+!        
+!  call syncronize_bosons(UMAT,Phimat)
+!  return
+!
+!else ! PARATEST==0 case
   call BoxMuller2(g_rsite,2*num_sites*NMAT*NMAT)
   call genrand_real3(g_rlink)
   
@@ -595,7 +595,6 @@ else ! PARATEST==0 case
     enddo
   enddo
     
-  write(*,*) "test"
   Amat=(0d0,0d0)
   do l=1,num_links
     call matrix_exp(UMAT(:,:,l),(0d0,1d0)*AMAT(:,:,l))
@@ -603,7 +602,7 @@ else ! PARATEST==0 case
   
   !write(*,*) "test"
   call syncronize_bosons(UMAT,Phimat)
-endif
+!endif
 
 #else
   !call genrand_real3(rsite)
