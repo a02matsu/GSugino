@@ -198,6 +198,11 @@ endif
     eval_eigen=0
     call set_random_config(UMAT,PHIMAT) 
     !call set_cold_config(UMAT,PHIMAT)
+  elseif( new_config == 4 ) then
+    total_ite=0
+    job_number=1
+    eval_eigen=0
+    call set_hot_config(UMAT,PhiMat)
   else ! read config from CONF directory
     if( branch_mode == 0 ) then ! continuous simulation 
       if( branch_use == 0 ) then
