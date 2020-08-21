@@ -116,14 +116,14 @@ if( new_config == 0 ) then
     write(output,*) "# random seed is determined by the system time"
   endif
 elseif( new_config == 1 ) then
-  write(output,*) "# cold start: A=0, phi=0"
+  write(output,*) "# cold start: A=0, phi=tiny"
   if( fix_seed == 1 ) then
     write(output,*) "# random seed is fixed to seed=",seed
   else
     write(output,*) "# random seed is determined by the system time"
   endif
 elseif( new_config == 2 ) then 
-  write(output,*) "# cold start(A=0,phi=0) and all accept"
+  write(output,*) "# cold start(A=0,phi=tiny) and all accept"
   if( fix_seed == 1 ) then
     write(output,*) "# random seed is fixed to seed=",seed
   else
@@ -139,7 +139,6 @@ elseif( new_config == 3 ) then
     write(output,*) "# random seed is determined by the system time"
   endif
 endif
-  write(output,*) Phimat, Umat
 
 write(output,'(a)') "#"
 

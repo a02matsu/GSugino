@@ -560,7 +560,7 @@ call make_SUN_generators(TMAT,NMAT)
   call BoxMuller2(g_rsite,2*num_sites*NMAT*NMAT)
   call genrand_real3(g_rlink)
   
-  g_rsite=g_rsite * 0.01d0 !/ mass_square_phi
+  g_rsite=g_rsite * 0.001d0 !/ mass_square_phi
   num=0
   do s=1,num_sites
     do i=1,NMAT
@@ -582,19 +582,20 @@ call make_SUN_generators(TMAT,NMAT)
   !PhiMat=(0d0,0d0)
 
   
-  ! random number must be sufficiently small
-  if( m_omega == 0 .or. m_omega == -1 ) then 
-    g_rlink=g_rlink * ( 1d0/dble(NMAT*NMAT) )
-  else
-    g_rlink=g_rlink * ( 1d0/dble(NMAT*NMAT*m_omega) )
-  endif
-  AMAT=(0d0,0d0)
-  do l=1,num_links
-    do a=1,dimG
-      AMAT(:,:,l)=AMAT(:,:,l)+g_rlink(a,l)*TMAT(:,:,a)
-    enddo
-  enddo
+!  ! random number must be sufficiently small
+!  if( m_omega == 0 .or. m_omega == -1 ) then 
+!    g_rlink=g_rlink * ( 1d0/dble(NMAT*NMAT) )
+!  else
+!    g_rlink=g_rlink * ( 1d0/dble(NMAT*NMAT*m_omega) )
+!  endif
+!  AMAT=(0d0,0d0)
+!  do l=1,num_links
+!    do a=1,dimG
+!      AMAT(:,:,l)=AMAT(:,:,l)+g_rlink(a,l)*TMAT(:,:,a)
+!    enddo
+!  enddo
     
+  !! Ul=1
   Amat=(0d0,0d0)
   do l=1,num_links
     call matrix_exp(UMAT(:,:,l),(0d0,1d0)*AMAT(:,:,l))
