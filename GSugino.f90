@@ -198,7 +198,7 @@ endif
     job_number=1
     !!! when cold start, evaluation of Dirac is time-consuming
     eval_eigen=0
-    call set_random_config(UMAT,PHIMAT) 
+    call set_cold_config(UMAT,PHIMAT) 
     !call set_cold_config(UMAT,PHIMAT)
   elseif( new_config == 4 ) then
     total_ite=0
@@ -426,7 +426,7 @@ end subroutine read_config
 !! Thus the random number must satisfy 
 !!   <\theta^2> < 2\pi/N
 !! 
-subroutine set_random_config(UMAT,PhiMat)
+subroutine set_cold_config(UMAT,PhiMat)
 use SUN_generators, only : Make_SUN_generators
 use matrix_functions, only : matrix_exp,make_matrix_traceless
 use global_subroutines, only : BoxMuller2
@@ -579,6 +579,8 @@ else ! PARATEST==0 case
       PhiMat(i,i,s)=PhiMat(i,i,s)-trace/dcmplx(dble(NMAT))
     enddo
   enddo
+
+  PhiMat=(0d0,0d0)
   
   ! random number must be sufficiently small
   if( m_omega == 0 .or. m_omega == -1 ) then 
@@ -655,7 +657,7 @@ endif
 !  call matrix_exp(Umat(:,:,l),(0d0,1d0) * Bmat )! * dcmplx(global_link_of_local(l)))
 !enddo
 
-end subroutine set_random_config
+end subroutine set_cold_config
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 subroutine set_hot_config(UMAT,PhiMat)
@@ -679,7 +681,7 @@ complex(kind(0d0)) :: unitmat(1:NMAT,1:NMAT),Uf(1:NMAT,1:NMAT)
 complex(kind(0d0)) :: phi_a, A_a
 integer :: s,l,f, a,i,j,num
 integer :: rank,gs,gl
-double precision :: distance
+double precision :: distance,info
 
 
 call make_SUN_generators(TMAT,NMAT)
