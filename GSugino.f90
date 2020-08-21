@@ -232,6 +232,7 @@ endif
       write(Fconfigin, '("CONFIG",i1.1,"/inputconf_", i4.4, ".dat")') root,job_number-1
     endif
   endif
+  write(*,*) Fconfigin
 
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
