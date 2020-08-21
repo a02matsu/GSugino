@@ -206,33 +206,32 @@ endif
     eval_eigen=0
     call set_hot_config(UMAT,PhiMat)
   else ! read config from CONF directory
+ 
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !! branch modeによる読み込み先の分岐
+    !! branch_mode=0 : branchは作らず、"branch_use"上で継続的にシミュレーション
+    !!             1 : barnchを branch_root から作る
+    if( branch_mode == 0 ) then 
+      root=branch_use
+    else ! branch_mode /= 0
+      root=branch_root
+    endif
+    !!
+    if( root == 0 ) then
+      if( job_number <= 0 ) then
+        Fconfigin="CONFIG/latestconf"
+      else
+        write(Fconfigin, '("CONFIG/inputconf_", i4.4, ".dat")') job_number-1
+      endif
+    else
+      if( job_number <= 0 ) then
+        write(Fconfigin, '("CONFIG",i1.1,"/latestconf")') root
+      else
+        write(Fconfigin, '("CONFIG",i1.1,"/inputconf_", i4.4, ".dat")') root,job_number-1
+      endif
+   endif
     call read_config(UMAT,PhiMat,state_mt95,seed)
   endif
-
-  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  !! branch modeによる読み込み先の分岐
-  !! branch_mode=0 : branchは作らず、"branch_use"上で継続的にシミュレーション
-  !!             1 : barnchを branch_root から作る
-  if( branch_mode == 0 ) then 
-    root=branch_use
-  else ! branch_mode /= 0
-    root=branch_root
-  endif
-  !!
-  if( root == 0 ) then
-    if( job_number <= 0 ) then
-      Fconfigin="CONFIG/latestconf"
-    else
-      write(Fconfigin, '("CONFIG/inputconf_", i4.4, ".dat")') job_number-1
-    endif
-  else
-    if( job_number <= 0 ) then
-      write(Fconfigin, '("CONFIG",i1.1,"/latestconf")') root
-    else
-      write(Fconfigin, '("CONFIG",i1.1,"/inputconf_", i4.4, ".dat")') root,job_number-1
-    endif
-  endif
-  write(*,*) Fconfigin
 
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
