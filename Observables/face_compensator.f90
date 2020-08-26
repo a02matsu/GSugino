@@ -720,13 +720,13 @@ contains
   end subroutine make_phibar_p
   
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  subroutine syncronize_sites_large(eta,power)
+  subroutine syncronize_sites_large(eta,pekepeke)
   use global_parameters
   use parallel
-  complex(kind(0d0)), intent(inout) :: eta(1:NMAT,1:NMAT,1:num_necessary_sites,1:NMAT,1:NMAT,0:power-1,1:global_num_faces) 
-  integer, intent(in) :: power
+  complex(kind(0d0)), intent(inout) :: eta(1:NMAT,1:NMAT,1:num_necessary_sites,1:NMAT,1:NMAT,0:pekepeke-1,1:global_num_faces) 
+  integer, intent(in) :: pekepeke
   
-  complex(kind(0d0)) :: tmp_eta(1:NMAT,1:NMAT,1:NMAT,1:NMAT,0:power-1,1:global_num_faces,num_necessary_sites)
+  complex(kind(0d0)) :: tmp_eta(1:NMAT,1:NMAT,1:NMAT,1:NMAT,0:pekepeke-1,1:global_num_faces,num_necessary_sites)
   integer :: s_send
   integer :: s_recv
   integer :: local, rank, tag
@@ -734,12 +734,12 @@ contains
   
   integer :: ls, gf, r, i,j, num
   
-  num=NMAT**4*power*global_num_faces
+  num=NMAT**4*pekepeke*global_num_faces
   !! prepare tmp_lambda
   tmp_eta=(0d0,0d0)
   do ls=1,num_sites
     do gf=1,global_num_faces
-      do r=0, power-1
+      do r=0, pekepeke-1
         do j=1,NMAT
           do i=1,NMAT
             tmp_eta(:,:,i,j,r,gf,ls)=eta(:,:,ls,i,j,r,gf)
@@ -779,7 +779,7 @@ contains
   !! from tmp_eta to eta
   do ls=1,num_necessary_sites
     do gf=1,global_num_faces
-      do r=0, power-1
+      do r=0, pekepeke-1
         do j=1,NMAT
           do i=1,NMAT
             eta(:,:,ls,i,j,r,gf)=tmp_eta(:,:,i,j,r,gf,ls)
@@ -793,13 +793,13 @@ contains
   
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  subroutine syncronize_links_large(lambda,power)
+  subroutine syncronize_links_large(lambda,pekepeke)
   use global_parameters
   use parallel
-  complex(kind(0d0)), intent(inout) :: lambda(1:NMAT,1:NMAT,1:num_necessary_links,1:NMAT,1:NMAT,0:power-1,1:global_num_faces) 
-  integer, intent(in) :: power
+  complex(kind(0d0)), intent(inout) :: lambda(1:NMAT,1:NMAT,1:num_necessary_links,1:NMAT,1:NMAT,0:pekepeke-1,1:global_num_faces) 
+  integer, intent(in) :: pekepeke
   
-  complex(kind(0d0)) :: tmp_lambda(1:NMAT,1:NMAT,1:NMAT,1:NMAT,0:power-1,1:global_num_faces, 1:num_necessary_links)
+  complex(kind(0d0)) :: tmp_lambda(1:NMAT,1:NMAT,1:NMAT,1:NMAT,0:pekepeke-1,1:global_num_faces, 1:num_necessary_links)
   integer :: s_send
   integer :: s_recv
   integer :: local, rank, tag
@@ -808,12 +808,12 @@ contains
   
   integer :: ll, gf, r, i,j, num
   
-  num=NMAT**4*power*global_num_faces
+  num=NMAT**4*pekepeke*global_num_faces
   !! prepare tmp_lambda
   tmp_lambda=(0d0,0d0)
   do ll=1,num_links
     do gf=1,global_num_faces
-      do r=0, power-1
+      do r=0, pekepeke-1
         do j=1,NMAT
           do i=1,NMAT
             tmp_lambda(:,:,i,j,r,gf,ll)=lambda(:,:,ll,i,j,r,gf)
@@ -854,7 +854,7 @@ contains
   !! from tmp_lambda to tmp
   do ll=1,num_necessary_links
     do gf=1,global_num_faces
-      do r=0, power-1
+      do r=0, pekepeke-1
         do j=1,NMAT
           do i=1,NMAT
             lambda(:,:,ll,i,j,r,gf)=tmp_lambda(:,:,i,j,r,gf,ll)
@@ -866,13 +866,13 @@ contains
   end subroutine syncronize_links_large
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  subroutine syncronize_faces_large(chi,power)
+  subroutine syncronize_faces_large(chi,pekepeke)
   use global_parameters
   use parallel
-  complex(kind(0d0)), intent(inout) :: chi(1:NMAT,1:NMAT,1:num_necessary_faces,1:NMAT,1:NMAT,0:power-1,1:global_num_faces) 
-  integer, intent(in) :: power
+  complex(kind(0d0)), intent(inout) :: chi(1:NMAT,1:NMAT,1:num_necessary_faces,1:NMAT,1:NMAT,0:pekepeke-1,1:global_num_faces) 
+  integer, intent(in) :: pekepeke
   
-  complex(kind(0d0)) :: tmp_chi(1:NMAT,1:NMAT,1:NMAT,1:NMAT,0:power-1,1:global_num_faces, 1:num_necessary_faces)
+  complex(kind(0d0)) :: tmp_chi(1:NMAT,1:NMAT,1:NMAT,1:NMAT,0:pekepeke-1,1:global_num_faces, 1:num_necessary_faces)
   integer :: s_send
   integer :: s_recv
   integer :: local, rank, tag
@@ -881,12 +881,12 @@ contains
   
   integer :: lf, gf, r, i,j, num
   
-  num=NMAT**4*power*global_num_faces
+  num=NMAT**4*pekepeke*global_num_faces
   !! prepare tmp_chi
   tmp_chi=(0d0,0d0)
   do lf=1,num_faces
     do gf=1,global_num_faces
-      do r=0, power-1
+      do r=0, pekepeke-1
         do j=1,NMAT
           do i=1,NMAT
             tmp_chi(:,:,i,j,r,gf,lf)=chi(:,:,lf,i,j,r,gf)
@@ -927,7 +927,7 @@ contains
   !! from tmp_chi to tmp
   do lf=1,num_necessary_faces
     do gf=1,global_num_faces
-      do r=0, power-1
+      do r=0, pekepeke-1
         do j=1,NMAT
           do i=1,NMAT
             chi(:,:,lf,i,j,r,gf)=tmp_chi(:,:,i,j,r,gf,lf)
