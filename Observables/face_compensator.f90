@@ -390,7 +390,6 @@ contains
     CSF=CSF+tmp
   endif
 
-  write(*,*) MYRANK
   
   !! (2) mass term
   call make_XiVec_link(Xi_lambda,Umat,PhiMat)
@@ -422,6 +421,7 @@ contains
               trace2=trace2+ttmp2
             endif
           enddo
+       write(*,*) MYRANK
           do ll=1,num_links
             tmp3=(0d0,0d0)
             tmp4=(0d0,0d0)
