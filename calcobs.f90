@@ -417,17 +417,18 @@ do
     !! mass contribution in WT_site
       call mass_contribution_site(mass_cont_site,Geta_eta,PhiMat)
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble(mass_cont)
-      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble((0d0,-1d0)*mass_cont)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble((0d0,-1d0)*mass_cont_site
+      )
 
     !! mass contribution in WT_link
       call  mass_contribution_link(mass_cont_link,Glambda_eta,Umat,PhiMat)
-      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble(mass_cont)
-      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble((0d0,-1d0)*mass_cont)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble(mass_cont_link)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble((0d0,-1d0)*mass_cont_link)
 
     !! mass contribution in WT_face
       call mass_contribution_face(mass_cont_face,Gchi_eta,Umat,PhiMat)
-       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble(mass_cont)
-       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble((0d0,-1d0)*mass_cont)
+       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble(mass_cont_face)
+       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble((0d0,-1d0)*mass_cont_face)
 
     !! WT identity site
        WT_site=dcmplx(SbS)+Sf1+mass_cont_site
