@@ -902,29 +902,29 @@ contains
     enddo
   enddo
   !!!!!!!!
-  allocate(ISEND(1:num_send_links))
-  allocate(IRECV(1:num_recv_links))
-  do s_send=1,num_send_links
-    local=send_links(s_send)%label_
-    rank=send_links(s_send)%rank_
-    tag=10000*rank + global_link_of_local(local)
+  allocate(ISEND(1:num_send_faces))
+  allocate(IRECV(1:num_recv_faces))
+  do s_send=1,num_send_faces
+    local=send_faces(s_send)%label_
+    rank=send_faces(s_send)%rank_
+    tag=10000*rank + global_face_of_local(local)
   
     call MPI_ISEND(tmp_chi(:,:,:,:,:,:,local),num,MPI_DOUBLE_COMPLEX,rank,tag,MPI_COMM_WORLD,ISEND(s_send),IERR)
   enddo
   
-  do s_recv=1,num_recv_links
-    local=recv_links(s_recv)%label_
-    rank=recv_links(s_recv)%rank_
-    tag=10000*MYRANK + global_link_of_local(local)
+  do s_recv=1,num_recv_faces
+    local=recv_faces(s_recv)%label_
+    rank=recv_faces(s_recv)%rank_
+    tag=10000*MYRANK + global_face_of_local(local)
   
     !call MPI_RECV(chi(:,:,local),NMAT*NMAT,MPI_DOUBLE_COMPLEX,rank,tag,MPI_COMM_WORLD,ISTATUS,IERR)
     call MPI_IRECV(tmp_chi(:,:,:,:,:,:,local),num,MPI_DOUBLE_COMPLEX,rank,tag,MPI_COMM_WORLD,IRECV(s_recv),IERR)
   enddo
   
-  do s_send=1,num_send_links
+  do s_send=1,num_send_faces
     call MPI_WAIT(ISEND(s_send),ISTATUS,IERR)
   enddo
-  do s_recv=1,num_recv_links
+  do s_recv=1,num_recv_faces
     call MPI_WAIT(IRECV(s_recv),ISTATUS,IERR)
   enddo
   
