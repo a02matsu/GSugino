@@ -731,7 +731,7 @@ contains
   integer :: local, rank, tag
   integer, allocatable :: ISEND(:), IRECV(:) ! for MPI_WAIT 
   
-  integer :: ls, gl, r, i,j, num
+  integer :: ls, gf, r, i,j, num
   
   num=NMAT**4*ratio*global_num_faces
   !! prepare tmp_lambda
@@ -805,7 +805,7 @@ contains
   integer, allocatable :: ISEND(:), IRECV(:) ! for MPI_WAIT 
   complex(kind(0d0)) :: tmpmat(1:NMAT,1:NMAT)
   
-  integer :: ll, gl, r, i,j, num
+  integer :: ll, gf, r, i,j, num
   
   num=NMAT**4*ratio*global_num_faces
   !! prepare tmp_lambda
@@ -878,7 +878,7 @@ contains
   integer, allocatable :: ISEND(:), IRECV(:) ! for MPI_WAIT 
   complex(kind(0d0)) :: tmpmat(1:NMAT,1:NMAT)
   
-  integer :: lf, gl, r, i,j, num
+  integer :: lf, gf, r, i,j, num
   
   num=NMAT**4*ratio*global_num_faces
   !! prepare tmp_chi
