@@ -359,27 +359,29 @@ do
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') cdabs(Acomp_tr)
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble(Acomp_tr/cdabs(Acomp_tr))
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble( (0d0,-1d0)*Acomp_tr/cdabs(Acomp_tr))
-
-    !"|Aface|", &
-      call calc_face_compensator(Acomp_face,Umat,PhiMat,Geta_chi)
+      call calc_face_compensator(&
+        Acomp,CSF_site,CSF_link,CSF_face,&
+        Umat,PhiMat,&
+        Geta_eta, Geta_lambda, Geta_chi, Gchi_eta, Gchi_lambda, Gchi_chi) 
+     !call calc_face_compensator(Acomp_face,Umat,PhiMat,Geta_chi)
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') cdabs(Acomp_face)
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble(Acomp_face/cdabs(Acomp_face))
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble( (0d0,-1d0)*Acomp_face/cdabs(Acomp_face))
 
     !"|Af-SF4_site|", &
-      call calc_4fermi_in_CSFsite(CSF_site, Umat, Phimat, Geta_eta, Gchi_eta )
+      !call calc_4fermi_in_CSFsite(CSF_site, Umat, Phimat, Geta_eta, Gchi_eta )
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') cdabs(CSF_site)
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble(CSF_site/cdabs(CSF_site))
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble( (0d0,-1d0)*CSF_site/cdabs(CSF_site))
 
     !"|Af-SF4_link|", &
-      call calc_4fermi_in_CSFlink(CSF_link, Umat, Phimat, Geta_eta, Gchi_eta, Geta_lambda, Gchi_lambda )
+      !call calc_4fermi_in_CSFlink(CSF_link, Umat, Phimat, Geta_eta, Gchi_eta, Geta_lambda, Gchi_lambda )
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') cdabs(CSF_link)
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble(CSF_link/cdabs(CSF_link))
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble( (0d0,-1d0)*CSF_link/cdabs(CSF_link))
 
     !"|Af-SF4_face|", &
-      call calc_4fermi_in_CSFface(CSF_face, Umat, Phimat, Geta_eta, Gchi_eta, Geta_chi, Gchi_chi, Geta_lambda, Gchi_lambda )
+      !call calc_4fermi_in_CSFface(CSF_face, Umat, Phimat, Geta_eta, Gchi_eta, Geta_chi, Gchi_chi, Geta_lambda, Gchi_lambda )
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') cdabs(CSF_face)
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble(CSF_face/cdabs(CSF_face))
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble( (0d0,-1d0)*CSF_face/cdabs(CSF_face))

@@ -36,6 +36,7 @@ contains
 #include "Observables/Yphi_compensator.f90"
 #include "Observables/Yphibar_compensator.f90"
 #include "Observables/face_compensator.f90"
+#include "Observables/regularized_compensator.f90"
 #include "Observables/bosonic_action.f90"
 #include "Observables/U1V_current.f90"
 #include "Observables/fermion_action_site.f90"

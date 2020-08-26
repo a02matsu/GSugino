@@ -212,6 +212,7 @@ simulation.o: \
   $(DIR_OBSERVABLES)/Yphi_compensator.f90 \
   $(DIR_OBSERVABLES)/Yphibar_compensator.f90 \
   $(DIR_OBSERVABLES)/face_compensator.f90 \
+  $(DIR_OBSERVABLES)/regularized_compensators.f90 \
   $(DIR_OBSERVABLES)/phichi.f90 \
   $(DIR_OBSERVABLES)/checkFF.f90 \
   $(DIR_OBSERVABLES)/trphi2.f90 \
