@@ -360,7 +360,7 @@ do
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble(Acomp_tr/cdabs(Acomp_tr))
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble( (0d0,-1d0)*Acomp_tr/cdabs(Acomp_tr))
       call calc_face_compensator(&
-        Acomp,CSF_site,CSF_link,CSF_face,&
+        Acomp_face,CSF_site,CSF_link,CSF_face,&
         Umat,PhiMat,&
         Geta_eta, Geta_lambda, Geta_chi, Gchi_eta, Gchi_lambda, Gchi_chi) 
      !call calc_face_compensator(Acomp_face,Umat,PhiMat,Geta_chi)
