@@ -334,10 +334,10 @@ contains
       enddo
     enddo
   enddo
-  syncronize_sites_large(Seta,ratio)
-  syncronize_sites_large(Feta,ratio)
-  syncronize_links_large(Slambda,ratio)
-  syncronize_links_large(Flambda,ratio)
+  call syncronize_sites_large(Seta,ratio)
+  call syncronize_sites_large(Feta,ratio)
+  call syncronize_links_large(Slambda,ratio)
+  call syncronize_links_large(Flambda,ratio)
   
   tmp_CSF=(0d0,0d0)
   CSF=(0d0,0d0)
