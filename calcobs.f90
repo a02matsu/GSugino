@@ -416,9 +416,8 @@ do
 
     !! mass contribution in WT_site
       call mass_contribution_site(mass_cont_site,Geta_eta,PhiMat)
-      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble(mass_cont)
-      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble((0d0,-1d0)*mass_cont_site
-      )
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble(mass_cont_site)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble((0d0,-1d0)*mass_cont_site)
 
     !! mass contribution in WT_link
       call  mass_contribution_link(mass_cont_link,Glambda_eta,Umat,PhiMat)
