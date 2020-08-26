@@ -389,6 +389,8 @@ contains
   if( MYRANK==0 ) then
     CSF=CSF+tmp
   endif
+
+  write(*,*) MYRANK
   
   !! (2) mass term
   call make_XiVec_link(Xi_lambda,Umat,PhiMat)
