@@ -8,7 +8,7 @@ use parallel
 use global_parameters
 implicit none
 
-complex(kind(0d0)), intent(out) :: Acomp
+complex(kind(0d0)), intent(out) :: Acomp, CSF_site, CSF_link, CSF_face
 complex(kind(0d0)), intent(in) :: Umat(1:NMAT,1:NMAT,1:num_necessary_links)
 complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_necessary_sites)
 complex(kind(0d0)), intent(in) :: Geta_eta(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_sites,1:num_sites) 
@@ -18,7 +18,7 @@ complex(kind(0d0)), intent(in) :: Gchi_eta(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_
 complex(kind(0d0)), intent(in) :: Gchi_lambda(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_faces,1:num_links) 
 complex(kind(0d0)), intent(in) :: Gchi_chi(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_faces,1:num_faces) 
 
-call calc_face_compensator(Acomp_face,Umat,PhiMat,Geta_chi)
+call calc_face_compensator_main(Acomp_face,Umat,PhiMat,Geta_chi)
 call calc_4fermi_in_CSFsite(CSF_site, Umat, Phimat, Geta_eta, Gchi_eta )
 call calc_4fermi_in_CSFlink(CSF_link, Umat, Phimat, Geta_eta, Gchi_eta, Geta_lambda, Gchi_lambda )
 call calc_4fermi_in_CSFface(CSF_face, Umat, Phimat, Geta_eta, Gchi_eta, Geta_chi, Gchi_chi, Geta_lambda, Gchi_lambda )
@@ -95,7 +95,7 @@ contains
     
   Acomp=Acomp/dcmplx(dble(global_num_faces * NMAT))
   
-  end subroutine calc_face_compensator
+  end subroutine calc_face_compensator_main
   
   
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -776,7 +776,7 @@ contains
   deallocate(ISEND, IRECV)
   
   !! from tmp_eta to eta
-  do ls=1,num_necessary_eta
+  do ls=1,num_necessary_sites
     do gf=1,global_num_faces
       do r=0, power-1
         do j=1,NMAT
