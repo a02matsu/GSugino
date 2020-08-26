@@ -723,6 +723,8 @@ contains
   subroutine syncronize_sites_large(eta,pekepeke)
   use global_parameters
   use parallel
+  implicit none
+
   complex(kind(0d0)), intent(inout) :: eta(1:NMAT,1:NMAT,1:num_necessary_sites,1:NMAT,1:NMAT,0:pekepeke-1,1:global_num_faces) 
   integer, intent(in) :: pekepeke
   
@@ -796,6 +798,8 @@ contains
   subroutine syncronize_links_large(lambda,pekepeke)
   use global_parameters
   use parallel
+  implicit none
+
   complex(kind(0d0)), intent(inout) :: lambda(1:NMAT,1:NMAT,1:num_necessary_links,1:NMAT,1:NMAT,0:pekepeke-1,1:global_num_faces) 
   integer, intent(in) :: pekepeke
   
@@ -869,6 +873,8 @@ contains
   subroutine syncronize_faces_large(chi,pekepeke)
   use global_parameters
   use parallel
+  implicit none
+
   complex(kind(0d0)), intent(inout) :: chi(1:NMAT,1:NMAT,1:num_necessary_faces,1:NMAT,1:NMAT,0:pekepeke-1,1:global_num_faces) 
   integer, intent(in) :: pekepeke
   
