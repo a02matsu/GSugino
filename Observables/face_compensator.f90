@@ -800,8 +800,8 @@ contains
   use parallel
   implicit none
 
-  complex(kind(0d0)), intent(inout) :: lambda(1:NMAT,1:NMAT,1:num_necessary_links,1:NMAT,1:NMAT,0:pekepeke-1,1:global_num_faces) 
   integer, intent(in) :: pekepeke
+  complex(kind(0d0)), intent(inout) :: lambda(1:NMAT,1:NMAT,1:num_necessary_links,1:NMAT,1:NMAT,0:pekepeke-1,1:global_num_faces) 
   
   complex(kind(0d0)) :: tmp_lambda(1:NMAT,1:NMAT,1:NMAT,1:NMAT,0:pekepeke-1,1:global_num_faces, 1:num_necessary_links)
   integer :: s_send
@@ -875,8 +875,8 @@ contains
   use parallel
   implicit none
 
-  complex(kind(0d0)), intent(inout) :: chi(1:NMAT,1:NMAT,1:num_necessary_faces,1:NMAT,1:NMAT,0:pekepeke-1,1:global_num_faces) 
   integer, intent(in) :: pekepeke
+  complex(kind(0d0)), intent(inout) :: chi(1:NMAT,1:NMAT,1:num_necessary_faces,1:NMAT,1:NMAT,0:pekepeke-1,1:global_num_faces) 
   
   complex(kind(0d0)) :: tmp_chi(1:NMAT,1:NMAT,1:NMAT,1:NMAT,0:pekepeke-1,1:global_num_faces, 1:num_necessary_faces)
   integer :: s_send
