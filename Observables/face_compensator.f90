@@ -292,7 +292,7 @@ contains
   complex(kind(0d0)) :: DSlambda(1:NMAT,1:NMAT,1:num_links)
   complex(kind(0d0)) :: DFlambda(1:NMAT,1:NMAT,1:num_links)
   complex(kind(0d0)) :: Xi_lambda(1:NMAT,1:NMAT,1:num_necessary_links)
-  complex(kind(0d0)) :: trace
+  complex(kind(0d0)) :: trace,tmp
   complex(kind(0d0)), allocatable :: tmp1(:,:,:,:)
   complex(kind(0d0)), allocatable :: tmp2(:,:,:,:)
   complex(kind(0d0)), allocatable :: tmp3(:,:,:,:)
@@ -510,7 +510,7 @@ contains
   complex(kind(0d0)) :: DSlambda(1:NMAT,1:NMAT,1:num_links)
   complex(kind(0d0)) :: DFlambda(1:NMAT,1:NMAT,1:num_links)
   complex(kind(0d0)) :: Xi_chi(1:NMAT,1:NMAT,1:num_necessary_faces)
-  complex(kind(0d0)) :: trace
+  complex(kind(0d0)) :: trace, tmp
   complex(kind(0d0)), allocatable :: tmp1(:,:,:,:)
   complex(kind(0d0)), allocatable :: tmp2(:,:,:,:)
   complex(kind(0d0)), allocatable :: tmp3(:,:,:,:)
