@@ -13,12 +13,11 @@ character(128), parameter :: PARAFILE="parameters_calcobs.dat"
 character(128) :: MEDFILE
 character(128) :: DinvFILE
 character(128) :: EigenFILE
-integer, parameter :: num_calcobs=76 ! 考えているobservableの数
+integer, parameter :: num_calcobs=75 ! 考えているobservableの数
 character(128) :: name_obs(1:num_calcobs) = (/ &
   "SbS", &
   "SbL", &
   "SbF", &
-  "dimG*(NS+NL)/2", &
   "dimG*NF/2", &
   "Re(Sf_site)", &
   "Im(Sf_site)", &
@@ -375,10 +374,6 @@ do
     !! SbF
       call calc_bosonic_action_face(SbF,Umat)
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  SbF
-
-    !! fermion number in trivial WT
-      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') &
-        0.5d0*dble( (NMAT*NMAT-1)*(global_num_sites+global_num_links) ) 
 
     !! fermion number in (5.8)
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  &
