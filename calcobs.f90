@@ -730,25 +730,11 @@ do
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble((0d0,-1d0)*tmp_obs)
 
 
-
     if(MYRANK==0) write(*,*)
   else
     exit
 
 
-    if(MYRANK==0) write(*,*)
-  else
-    exit
-
-
-    if(MYRANK==0) write(*,*)
-  else
-    exit
-
-    if(MYRANK==0) write(*,*)
-  else
-    exit
-  endif
 enddo
 
 if( MYRANK == 0 ) then
