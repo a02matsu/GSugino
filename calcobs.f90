@@ -494,23 +494,30 @@ do
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble(Acomp_tr/cdabs(Acomp_tr))
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble( (0d0,-1d0)*Acomp_tr/cdabs(Acomp_tr))
 
+    !"|Areg(2.0)|", &
+      call calc_regularized_compensator(Acomp_reg2,PhiMat,2d0)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') cdabs(Acomp_reg2)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble(Acomp_reg2/cdabs(Acomp_reg2))
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble( (0d0,-1d0)*Acomp_reg2/cdabs(Acomp_reg2))
+
     !"|Areg(1.0)|", &
       call calc_regularized_compensator(Acomp_reg1,PhiMat,1d0)
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') cdabs(Acomp_reg1)
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble(Acomp_reg1/cdabs(Acomp_reg1))
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble( (0d0,-1d0)*Acomp_reg1/cdabs(Acomp_reg1))
 
+    !"|Areg(0.5)|", &
+      call calc_regularized_compensator(Acomp_reg05,PhiMat,5d-1)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') cdabs(Acomp_reg05)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble(Acomp_reg05/cdabs(Acomp_reg05))
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble( (0d0,-1d0)*Acomp_reg05/cdabs(Acomp_reg05))
+
+
     !"|Areg(0.1)|", &
       call calc_regularized_compensator(Acomp_reg01,PhiMat,1d-1)
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') cdabs(Acomp_reg01)
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble(Acomp_reg01/cdabs(Acomp_reg01))
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble( (0d0,-1d0)*Acomp_reg01/cdabs(Acomp_reg01))
-
-    !"|Areg(0.01)|", &
-      call calc_regularized_compensator(Acomp_reg001,PhiMat,1d-2)
-      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') cdabs(Acomp_reg001)
-      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble(Acomp_reg001/cdabs(Acomp_reg001))
-      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble( (0d0,-1d0)*Acomp_reg001/cdabs(Acomp_reg001))
 
     !! Face compensator
       call calc_face_compensator(&
