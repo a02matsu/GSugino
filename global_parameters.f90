@@ -247,7 +247,7 @@ integer, save :: branch_use !! in which branch simulation is performed
 !! branch
 integer, save :: branch_mode !! 0: normal, 1: make branch
 integer, save :: branch_root !! make branch from this config. default:0
-integer, save :: branch_num !! number of branches to make (active iff branch_mode=1)
+integer, save :: new_branch_label !! label of branches to make (active iff branch_mode=1)
 
 
 !integer :: read_alpha !! 0: alpha,beta=1 1: read ALPHA_BETA_FILE

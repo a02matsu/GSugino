@@ -36,6 +36,8 @@ integer IBLOCK2(1),IDISP2(1),ITYPE2(1)
 character(128) DIRNAME,COMMAND,CONFDIR0,CONFDIR1
 character(128) tmpc,tmpc2
 
+integer :: root
+
 iarg=iargc()
 if( iarg==0 ) then 
   INPUT_FILE_NAME ="inputfile" ! input file
@@ -117,7 +119,7 @@ else
   call system(COMMAND)
 endif
 if( branch_mode==1 ) then
-  write(tmpc,*) branch_num
+  write(tmpc,*) new_branch_label
   DIRNAME="CONFIG"//trim(adjustl(tmpc))
   COMMAND='if [ ! -d '//trim(DIRNAME)//' ]; then mkdir -p '//trim(DIRNAME)//'; fi'
   call system(COMMAND)
@@ -196,46 +198,44 @@ endif
     job_number=1
     !!! when cold start, evaluation of Dirac is time-consuming
     eval_eigen=0
-    call set_random_config(UMAT,PHIMAT) 
+    call set_cold_config(UMAT,PHIMAT) 
     !call set_cold_config(UMAT,PHIMAT)
+  elseif( new_config == 4 ) then
+    total_ite=0
+    job_number=1
+    eval_eigen=0
+    call set_hot_config(UMAT,PhiMat)
   else ! read config from CONF directory
-    if( branch_mode == 0 ) then ! continuous simulation 
-      if( branch_use == 0 ) then
-        if( job_number <= 0 ) then
-          Fconfigin="CONFIG/latestconf"
-        else
-          write(Fconfigin, '("CONFIG/inputconf_", i4.4, ".dat")') job_number-1
-        endif
-      else
-        if( job_number <= 0 ) then
-          write(Fconfigin, '("CONFIG",i1.1,"/latestconf")') branch_use
-        else
-          write(Fconfigin, '("CONFIG",i1.1,"/inputconf_", i4.4, ".dat")') branch_use,job_number-1
-        endif
-      endif
-    else ! make branch from branch_root
-      !! set the configuration directries
-      write(tmpc,*) branch_num
-      if( job_number <= 0 ) then
-        if( branch_root==0 ) then
-          Fconfigin="CONFIG/latestconf"
-        else
-          write(tmpc,*) branch_root
-          Fconfigin="CONFIG"//trim(adjustl(tmpc))//'/latestconf'
-        endif
-      else
-        if( branch_root==0 ) then
-          write(Fconfigin, '("CONFIG/inputconf_", i4.4, ".dat")') job_number-1
-        else
-          !write(tmpc,*) branch_root
-          !write(tmpc2,*) job_number-1
-          !Fconfigin="CONFIG"//trim(adjustl(tmpc))//'/lastconf_'trim(adjustl(tmpc2)//'.dat'
-          write(Fconfigin, '("CONFIG",i1.1,"/inputconf_", i4.4, ".dat")') branch_root,job_number-1
-        endif
-      endif
+ 
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !! branch modeによる読み込み先の分岐
+    !! branch_mode=0 : branchは作らず、"branch_use"上で継続的にシミュレーション
+    !!             1 : barnchを branch_root から作る
+    if( branch_mode == 0 ) then 
+      root=branch_use
+    else ! branch_mode /= 0
+      root=branch_root
     endif
+    !!
+    if( root == 0 ) then
+      if( job_number <= 0 ) then
+        Fconfigin="CONFIG/latestconf"
+      else
+        write(Fconfigin, '("CONFIG/inputconf_", i4.4, ".dat")') job_number-1
+      endif
+    else
+      if( job_number <= 0 ) then
+        write(Fconfigin, '("CONFIG",i1.1,"/latestconf")') root
+      else
+        write(Fconfigin, '("CONFIG",i1.1,"/inputconf_", i4.4, ".dat")') root,job_number-1
+      endif
+   endif
     call read_config(UMAT,PhiMat,state_mt95,seed)
   endif
+
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  !! fix_seedの値で乱数を再設定
   if( fix_seed == 0 ) then
     call genrand_init( put=state_mt95 )
   else
@@ -244,18 +244,19 @@ endif
   if( reset_ite == 1 ) then
     total_ite=0
   endif
-! set Remez data
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  !! set Remez data
     call set_Remez_data
-!! check unitaryty
+  !! check unitaryty
     !call check_unitary
-!! check mode expansion
+  !! check mode expansion
     !call check_Ta_expansion
     !stop
-!! check anti-symmetricity of Dirac and Hermiticity of D\dag D
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!do s=1,num_sites
-!call make_traceless_matrix_from_modes(PhiMat(:,:,s),NMAT,Phi(:,s))
-!enddo
+  !! check anti-symmetricity of Dirac and Hermiticity of D\dag D
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  !do s=1,num_sites
+  !call make_traceless_matrix_from_modes(PhiMat(:,:,s),NMAT,Phi(:,s))
+  !enddo
 
   !if (writedown_mode==1) then
     !call writedown_config_action_and_fores(UMAT,PhiMat,seed)
@@ -277,13 +278,10 @@ endif
         write(Fmedconf, '("MEDCONF",i1.1,"/medconfig_", i6.6,"+",i6.6,".dat")') branch_use, total_ite,num_ite
       endif
     else !! branch mode
-      write(Fconfigout, '("CONFIG",i1.1,"/inputconf_", i4.4, ".dat")') branch_num, job_number
-      write(Foutput, '("OUTPUT",i1.1,"/output_",i4.4,":",i6.6,"+",i6.6,".dat")') branch_num, job_number,total_ite,num_ite
-      write(Fmedconf, '("MEDCONF",i1.1,"/medconfig_", i6.6,"+",i6.6,".dat")') branch_num, total_ite,num_ite
+      write(Fconfigout, '("CONFIG",i1.1,"/inputconf_", i4.4, ".dat")') new_branch_label, job_number
+      write(Foutput, '("OUTPUT",i1.1,"/output_",i4.4,":",i6.6,"+",i6.6,".dat")') new_branch_label, job_number,total_ite,num_ite
+      write(Fmedconf, '("MEDCONF",i1.1,"/medconfig_", i6.6,"+",i6.6,".dat")') new_branch_label, total_ite,num_ite
     endif
-    !if( MYRANK == 0) then
-      !write(*,*) Fconfigin, Fconfigout, Foutput, Fmedconf
-    !endif
     call HybridMonteCarlo(UMAT,PhiMat,seed,total_ite)
   endif
 
@@ -428,7 +426,7 @@ end subroutine read_config
 !! Thus the random number must satisfy 
 !!   <\theta^2> < 2\pi/N
 !! 
-subroutine set_random_config(UMAT,PhiMat)
+subroutine set_cold_config(UMAT,PhiMat)
 use SUN_generators, only : Make_SUN_generators
 use matrix_functions, only : matrix_exp,make_matrix_traceless
 use global_subroutines, only : BoxMuller2
@@ -466,103 +464,103 @@ call make_SUN_generators(TMAT,NMAT)
 
 #ifdef PARALLEL
 !! テスト用に、シングルコアと同じconfigurationを用意する。
-if( PARATEST== 1 ) then 
-  !call genrand_real3(rsite)
-  if( MYRANK == 0 ) then 
-    call BoxMuller2(g_rsite,2*global_num_sites*NMAT*NMAT)
-    call genrand_real3(g_rlink)
-  
-    !g_rsite=g_rsite * 1d-8 !/ mass_square_phi
-    num=0
-    do s=1,global_num_sites
-      do i=1,NMAT
-        do j=1,NMAT
-          num=num+1
-          !if ( i.ne.NMAT .or. j.ne.NMAT ) then
-          if( i==j ) then
-            G_PHIMAT(i,j,s)=dcmplx(g_rsite(2*num-1))+(0d0,1d0)*dcmplx(g_rsite(2*num))
-          else
-            G_PHIMAT(i,j,s)=dcmplx(1d-2 *g_rsite(2*num-1))+(0d0,1d-2)*dcmplx(g_rsite(2*num))
-          endif
-          !endif
-        enddo
-      enddo
-      trace=(0d0,0d0)
-      do i=1,NMAT
-        trace=trace+G_PHIMAT(i,i,s)
-      enddo
-      do i=1,NMAT
-        G_PHIMAT(i,i,s)=G_PHIMAT(i,i,s)-trace/dcmplx(dble(NMAT))
-      enddo
-    enddo
-  
-    ! random number must be sufficiently small
-    if( m_omega == 0 .or. m_omega == -1 ) then 
-      !g_rlink=g_rlink * ( 1d0/dble(NMAT*NMAT) )
-      g_rlink=g_rlink * 1d-3
-    else
-      !g_rlink=g_rlink * ( 1d0/dble(NMAT*NMAT*m_omega) )
-      g_rlink=g_rlink * ( 1d-3/dble(m_omega) )
-    endif
-    G_AMAT=(0d0,0d0)
-    do l=1,global_num_links
-      do a=1,dimG
-        G_AMAT(:,:,l)=G_AMAT(:,:,l)+g_rlink(a,l)*TMAT(:,:,a)
-      enddo
-    enddo
-    
-    do l=1,global_num_links
-      call matrix_exp(G_UMAT(:,:,l),(0d0,1d0)*G_AMAT(:,:,l))
-    enddo
-  endif
-  
-  do s=1,global_num_sites
-    if( MYRANK == 0 ) then
-      tmp_PhiMat = g_PhiMat(:,:,s)
-    endif
-    rank=local_site_of_global(s)%rank_ 
-    ls=local_site_of_global(s)%label_
-    if( MYRANK == 0 ) then
-      if( rank == 0 ) then 
-        PhiMat(:,:,ls) = tmp_PhiMat
-      else
-        call MPI_SEND(tmp_PhiMat,NMAT*NMAT,MPI_DOUBLE_COMPLEX,rank,s,MPI_COMM_WORLD,IERR)
-      endif
-    else
-      if( MYRANK == rank ) then 
-        call MPI_RECV(PhiMat(:,:,ls),NMAT*NMAT,MPI_DOUBLE_COMPLEX,0,s,MPI_COMM_WORLD,ISTATUS,IERR)
-      endif
-    endif
-  enddo
-  
-  
-  do l=1,global_num_links
-    if( MYRANK == 0 ) then
-      tmp_UMat = g_UMat(:,:,l)
-    endif
-    rank=local_link_of_global(l)%rank_ 
-    ll=local_link_of_global(l)%label_
-    if( MYRANK == 0 ) then
-      if( rank == 0 ) then 
-        UMat(:,:,ll) = tmp_UMat
-      else
-        call MPI_SEND(tmp_UMat,NMAT*NMAT,MPI_DOUBLE_COMPLEX,rank,global_num_sites+l,MPI_COMM_WORLD,IERR)
-      endif
-    else
-      if( MYRANK == rank  ) then 
-        call MPI_RECV(UMat(:,:,ll),NMAT*NMAT,MPI_DOUBLE_COMPLEX,0,global_num_sites+l,MPI_COMM_WORLD,ISTATUS,IERR)
-      endif
-    endif
-  enddo
-        
-  call syncronize_bosons(UMAT,Phimat)
-  return
-
-else ! PARATEST==0 case
+!if( PARATEST== 1 ) then 
+!  !call genrand_real3(rsite)
+!  if( MYRANK == 0 ) then 
+!    call BoxMuller2(g_rsite,2*global_num_sites*NMAT*NMAT)
+!    call genrand_real3(g_rlink)
+!  
+!    !g_rsite=g_rsite * 1d-8 !/ mass_square_phi
+!    num=0
+!    do s=1,global_num_sites
+!      do i=1,NMAT
+!        do j=1,NMAT
+!          num=num+1
+!          !if ( i.ne.NMAT .or. j.ne.NMAT ) then
+!          if( i==j ) then
+!            G_PHIMAT(i,j,s)=dcmplx(g_rsite(2*num-1))+(0d0,1d0)*dcmplx(g_rsite(2*num))
+!          else
+!            G_PHIMAT(i,j,s)=dcmplx(1d-2 *g_rsite(2*num-1))+(0d0,1d-2)*dcmplx(g_rsite(2*num))
+!          endif
+!          !endif
+!        enddo
+!      enddo
+!      trace=(0d0,0d0)
+!      do i=1,NMAT
+!        trace=trace+G_PHIMAT(i,i,s)
+!      enddo
+!      do i=1,NMAT
+!        G_PHIMAT(i,i,s)=G_PHIMAT(i,i,s)-trace/dcmplx(dble(NMAT))
+!      enddo
+!    enddo
+!  
+!    ! random number must be sufficiently small
+!    if( m_omega == 0 .or. m_omega == -1 ) then 
+!      !g_rlink=g_rlink * ( 1d0/dble(NMAT*NMAT) )
+!      g_rlink=g_rlink * 1d-3
+!    else
+!      !g_rlink=g_rlink * ( 1d0/dble(NMAT*NMAT*m_omega) )
+!      g_rlink=g_rlink * ( 1d-3/dble(m_omega) )
+!    endif
+!    G_AMAT=(0d0,0d0)
+!    do l=1,global_num_links
+!      do a=1,dimG
+!        G_AMAT(:,:,l)=G_AMAT(:,:,l)+g_rlink(a,l)*TMAT(:,:,a)
+!      enddo
+!    enddo
+!    
+!    do l=1,global_num_links
+!      call matrix_exp(G_UMAT(:,:,l),(0d0,1d0)*G_AMAT(:,:,l))
+!    enddo
+!  endif
+!  
+!  do s=1,global_num_sites
+!    if( MYRANK == 0 ) then
+!      tmp_PhiMat = g_PhiMat(:,:,s)
+!    endif
+!    rank=local_site_of_global(s)%rank_ 
+!    ls=local_site_of_global(s)%label_
+!    if( MYRANK == 0 ) then
+!      if( rank == 0 ) then 
+!        PhiMat(:,:,ls) = tmp_PhiMat
+!      else
+!        call MPI_SEND(tmp_PhiMat,NMAT*NMAT,MPI_DOUBLE_COMPLEX,rank,s,MPI_COMM_WORLD,IERR)
+!      endif
+!    else
+!      if( MYRANK == rank ) then 
+!        call MPI_RECV(PhiMat(:,:,ls),NMAT*NMAT,MPI_DOUBLE_COMPLEX,0,s,MPI_COMM_WORLD,ISTATUS,IERR)
+!      endif
+!    endif
+!  enddo
+!  
+!  
+!  do l=1,global_num_links
+!    if( MYRANK == 0 ) then
+!      tmp_UMat = g_UMat(:,:,l)
+!    endif
+!    rank=local_link_of_global(l)%rank_ 
+!    ll=local_link_of_global(l)%label_
+!    if( MYRANK == 0 ) then
+!      if( rank == 0 ) then 
+!        UMat(:,:,ll) = tmp_UMat
+!      else
+!        call MPI_SEND(tmp_UMat,NMAT*NMAT,MPI_DOUBLE_COMPLEX,rank,global_num_sites+l,MPI_COMM_WORLD,IERR)
+!      endif
+!    else
+!      if( MYRANK == rank  ) then 
+!        call MPI_RECV(UMat(:,:,ll),NMAT*NMAT,MPI_DOUBLE_COMPLEX,0,global_num_sites+l,MPI_COMM_WORLD,ISTATUS,IERR)
+!      endif
+!    endif
+!  enddo
+!        
+!  call syncronize_bosons(UMAT,Phimat)
+!  return
+!
+!else ! PARATEST==0 case
   call BoxMuller2(g_rsite,2*num_sites*NMAT*NMAT)
   call genrand_real3(g_rlink)
   
-  g_rsite=g_rsite * 0.01d0 !/ mass_square_phi
+  g_rsite=g_rsite * 1d-5 !/ mass_square_phi
   num=0
   do s=1,num_sites
     do i=1,NMAT
@@ -581,27 +579,31 @@ else ! PARATEST==0 case
       PhiMat(i,i,s)=PhiMat(i,i,s)-trace/dcmplx(dble(NMAT))
     enddo
   enddo
+  !PhiMat=(0d0,0d0)
+
   
-  ! random number must be sufficiently small
-  if( m_omega == 0 .or. m_omega == -1 ) then 
-    g_rlink=g_rlink * ( 1d0/dble(NMAT*NMAT) )
-  else
-    g_rlink=g_rlink * ( 1d0/dble(NMAT*NMAT*m_omega) )
-  endif
-  AMAT=(0d0,0d0)
-  do l=1,num_links
-    do a=1,dimG
-      AMAT(:,:,l)=AMAT(:,:,l)+g_rlink(a,l)*TMAT(:,:,a)
-    enddo
-  enddo
+!  ! random number must be sufficiently small
+!  if( m_omega == 0 .or. m_omega == -1 ) then 
+!    g_rlink=g_rlink * ( 1d0/dble(NMAT*NMAT) )
+!  else
+!    g_rlink=g_rlink * ( 1d0/dble(NMAT*NMAT*m_omega) )
+!  endif
+!  AMAT=(0d0,0d0)
+!  do l=1,num_links
+!    do a=1,dimG
+!      AMAT(:,:,l)=AMAT(:,:,l)+g_rlink(a,l)*TMAT(:,:,a)
+!    enddo
+!  enddo
     
+  !! Ul=1
+  Amat=(0d0,0d0)
   do l=1,num_links
     call matrix_exp(UMAT(:,:,l),(0d0,1d0)*AMAT(:,:,l))
   enddo
   
   !write(*,*) "test"
   call syncronize_bosons(UMAT,Phimat)
-endif
+!endif
 
 #else
   !call genrand_real3(rsite)
@@ -657,8 +659,82 @@ endif
 !  call matrix_exp(Umat(:,:,l),(0d0,1d0) * Bmat )! * dcmplx(global_link_of_local(l)))
 !enddo
 
-end subroutine set_random_config
+end subroutine set_cold_config
 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+subroutine set_hot_config(UMAT,PhiMat)
+use SUN_generators, only : Make_SUN_generators
+use matrix_functions, only : matrix_exp, make_unit_matrix,matrix_norm
+use global_subroutines, only : BoxMuller2, make_face_variable
+use global_parameters
+use mt95
+use parallel
+use global_subroutines, only : syncronize_bosons
+implicit none
+
+complex(kind(0d0)), intent(inout) :: UMAT(1:NMAT,1:NMAT,1:num_necessary_links)
+complex(kind(0d0)), intent(inout) :: PhiMat(1:NMAT,1:NMAT,1:num_necessary_sites)
+
+complex(kind(0d0)) :: TMAT(1:NMAT,1:NMAT,1:NMAT**2-1)
+double precision :: g_rsite(1:2*dimG*global_num_sites) ! for PHI
+double precision :: g_rlink(1:2*dimG*global_num_links) ! for UMAT
+complex(kind(0d0)) :: AMAT(1:NMAT,1:NMAT,1:num_links)
+complex(kind(0d0)) :: unitmat(1:NMAT,1:NMAT),Uf(1:NMAT,1:NMAT)
+complex(kind(0d0)) :: phi_a, A_a
+integer :: s,l,f, a,i,j,num
+integer :: rank,gs,gl
+double precision :: distance,info
+
+
+call make_SUN_generators(TMAT,NMAT)
+
+call BoxMuller2(g_rsite,global_num_sites*dimG)
+call BoxMuller2(g_rlink,global_num_links*dimG)
+
+Phimat=(0d0,0d0)
+do s=1,num_sites
+  gs=global_site_of_local(s)
+  do a=1,dimG
+    num=dimG*(gs-1)+a
+    phi_a=dcmplx(g_rsite(2*num-1))+(0d0,1d0)*dcmplx(g_rsite(2*num))
+    PHIMAT(:,:,s)=PhiMat(:,:,s)+phi_a*Tmat(:,:,a)
+  enddo
+enddo
+
+AMAT=(0d0,0d0)
+do l=1,num_links
+  gl=global_link_of_local(l)
+  do a=1,dimG
+    num=dimG*(gl-1)+a
+    A_a=g_rlink(2*num-1)
+    AMAT(:,:,l)=AMAT(:,:,l)+A_a*TMAT(:,:,a)
+  enddo
+  call matrix_exp(UMAT(:,:,l),(0d0,1d0)*AMAT(:,:,l))
+enddo
+call syncronize_bosons(UMAT,Phimat)
+
+!! check if Uf is in the allowed range
+call make_unit_matrix(unitmat)
+!do gf=1,global_num_faces
+  !rank=local_face_of_global(gf)%rank_
+  !f=local_facde_of_global(gf)%label_
+  !if( MYRANK==rank ) then
+do f=1,num_faces
+  call Make_face_variable(Uf,f,UMAT)
+  call matrix_norm(distance, unitmat-Uf)
+  do while( distance > maximal_dist )
+    l=links_in_f(f)%link_labels_(1)
+    Amat(:,:,l)=Amat(:,:,l)/(2d0,0d0)
+    call matrix_exp(UMAT(:,:,l),(0d0,1d0)*AMAT(:,:,l))
+    call Make_face_variable(Uf,f,UMAT)
+    call matrix_norm(distance, unitmat-Uf)
+  enddo
+enddo
+
+call syncronize_bosons(UMAT,Phimat)
+
+
+end subroutine set_hot_config
 
 !!!!!!!!!!!!!!!!!!!!!!!
 !! cold start

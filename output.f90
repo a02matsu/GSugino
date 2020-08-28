@@ -36,13 +36,13 @@ output=6
 #ifdef PARALLEL
 if( MYRANK == 0 ) then
 #endif
-call write_header_to(output,min_eigen,max_eigen)
+call write_header_to(output,min_eigen,max_eigen,seed,Umat,Phimat)
 call write_observable_list(output)
 
 !!!!!!!!!!!!!!!!!!!!!!!!!
 !! for output file
 output=OUTPUT_FILE
-call write_header_to(output,min_eigen,max_eigen)
+call write_header_to(output,min_eigen,max_eigen,seed,Umat,Phimat)
 !!!
 !if( read_alpha == 0 ) then
 !  write(output,*) "# alpha and beta for SC are set to 1.0"
@@ -51,39 +51,6 @@ call write_header_to(output,min_eigen,max_eigen)
 !endif
 !write(output,*)
 !!!
-if( new_config == 0 ) then
-  write(output,*) "# configs read from ", trim(Fconfigin)
-  if( fix_seed == 0 ) then
-    write(output,*) "# random seed is succeeded from the previous simulation"
-  elseif( fix_seed == 1 ) then
-    write(output,*) "# random seed is fixed to seed=",seed
-  elseif( fix_seed == 2 ) then
-    write(output,*) "# random seed is determined by the system time"
-  endif
-elseif( fix_seed == 1 ) then
-  write(output,*) "# new configs"
-  if( fix_seed == 1 ) then
-    write(output,*) "# random seed is fixed to seed=",seed
-  else
-    write(output,*) "# random seed is determined by the system time"
-  endif
-elseif( fix_seed == 2 ) then 
-  write(output,*) "# new configs and all accept"
-  if( fix_seed == 1 ) then
-    write(output,*) "# random seed is fixed to seed=",seed
-  else
-    write(output,*) "# random seed is determined by the system time"
-  endif
-elseif( fix_seed == 3 ) then 
-  write(output,*) "# configs read from ", trim(Fconfigin), "and all accept"
-  if( fix_seed == 0 ) then
-    write(output,*) "# random seed is succeeded from the previous simulation"
-  elseif( fix_seed == 1 ) then
-    write(output,*) "# random seed is fixed to seed=",seed
-  elseif( fix_seed == 2 ) then
-    write(output,*) "# random seed is determined by the system time"
-  endif
-endif
 !!!
 call write_observable_list(output)
 
@@ -93,11 +60,16 @@ endif
 end subroutine write_header
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-subroutine write_header_to(output,min_eigen,max_eigen)
+subroutine write_header_to(output,min_eigen,max_eigen,seed,Umat,Phimat)
 implicit none
 
 complex(kind(0d0)), intent(in) :: min_eigen,max_eigen
 integer, intent(in) :: output
+integer, intent(in) :: seed 
+complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_necessary_links)
+complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_necessary_sites)
+
+
 
 write(output,'(a,a)') "# simplicial complex : ",trim(SC_FILE_NAME)
 write(output,'(A,F6.4)') "# lattice spacing (\lambda=1)= ",LatticeSpacing
@@ -110,7 +82,7 @@ write(output,'(A,I5)') "# job_number= ",job_number
 if( branch_mode==0 ) then 
   write(output,'(A,I5)') "# branch= ",branch_use
 else
-  write(output,'(A,I5,A,I5)') "# make branch from ",branch_root," to ",branch_num
+  write(output,'(A,I5,A,I5)') "# make branch from ",branch_root," to ",new_branch_label
 endif
 write(output,'(a)') "#"
 write(output,'(A,F10.8)') "# Tau for A= ",Tau
@@ -132,6 +104,49 @@ if( eval_eigen /= 0 ) then
 else
   write(output,'(A)') "# omitted the evaluation of the eigenvalues"
 endif
+write(output,'(a)') "#"
+
+if( new_config == 0 ) then
+  write(output,*) "# configs read from ", trim(Fconfigin)
+  if( fix_seed == 0 ) then
+    write(output,*) "# random seed is succeeded from the previous simulation"
+  elseif( fix_seed == 1 ) then
+    write(output,*) "# random seed is fixed to seed=",seed
+  elseif( fix_seed == 2 ) then
+    write(output,*) "# random seed is determined by the system time"
+  endif
+elseif( new_config == 1 ) then
+  write(output,*) "# cold start: A=0, phi=tiny"
+  if( fix_seed == 1 ) then
+    write(output,*) "# random seed is fixed to seed=",seed
+  else
+    write(output,*) "# random seed is determined by the system time"
+  endif
+elseif( new_config == 2 ) then 
+  write(output,*) "# cold start(A=0,phi=tiny) and all accept"
+  if( fix_seed == 1 ) then
+    write(output,*) "# random seed is fixed to seed=",seed
+  else
+    write(output,*) "# random seed is determined by the system time"
+  endif
+elseif( new_config == 3 ) then 
+  write(output,*) "# configs read from ", trim(Fconfigin), "and all accept"
+  if( fix_seed == 0 ) then
+    write(output,*) "# random seed is succeeded from the previous simulation"
+  elseif( fix_seed == 1 ) then
+    write(output,*) "# random seed is fixed to seed=",seed
+  elseif( fix_seed == 2 ) then
+    write(output,*) "# random seed is determined by the system time"
+  endif
+elseif( new_config == 4 ) then 
+  write(output,*) "# hot start(A,phi:random)"
+  if( fix_seed == 1 ) then
+    write(output,*) "# random seed is fixed to seed=",seed
+  else
+    write(output,*) "# random seed is determined by the system time"
+  endif
+endif
+
 write(output,'(a)') "#"
 
 end subroutine write_header_to
@@ -580,7 +595,7 @@ if( branch_mode==0) then
   endif
 endif
 if( branch_mode==1 ) then
-  write(tmpc,*) branch_num
+  write(tmpc,*) new_branch_label
   COMMAND='cd CONFIG'//trim(adjustl(tmpc))//'; FILE=$(ls inputconf* | tail -1); &
     LINK="latestconf"; if [ -e "$LINK" ]; then /bin/rm $LINK; &
     fi; ln -s $FILE $LINK; cd ..' 

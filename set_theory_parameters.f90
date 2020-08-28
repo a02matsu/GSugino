@@ -36,9 +36,9 @@ open(PAR_FILE, file=PAR_FILE_NAME, status='old',action='READ')
 !! branch_root ! make branch from this config. default:0
   read(PAR_FILE,'()') 
   read(PAR_FILE,*) branch_root
-!! branch_num !! number of branches to make
+!! new_branch_label !! label of branches to make
   read(PAR_FILE,'()') 
-  read(PAR_FILE,*) branch_num
+  read(PAR_FILE,*) new_branch_label
 !! force_measurement ; 1:measure forces  
   read(PAR_FILE,'()') 
   read(PAR_FILE,*) force_measurement
@@ -98,8 +98,8 @@ call MPI_BCAST(test_mode,1,MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
 call MPI_BCAST(branch_mode,1,MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
   !read(PAR_FILE,*) branch_root
 call MPI_BCAST(branch_root,1,MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
-  !read(PAR_FILE,*) branch_num
-call MPI_BCAST(branch_num,1,MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
+  !read(PAR_FILE,*) new_branch_label
+call MPI_BCAST(new_branch_label,1,MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
   !read(PAR_FILE,*) force_measurement
 call MPI_BCAST(force_measurement,1,MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
   !read(PAR_FILE,*) new_config
