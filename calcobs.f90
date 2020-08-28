@@ -701,6 +701,21 @@ do
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble(tmp_obs)
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble((0d0,-1d0)*tmp_obs)
 
+    ! WT with Areg2 site
+      tmp_obs=WT_site*Acomp_reg2*Acomp_tr/dcmplx(cdabs(Acomp_tr))
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble(tmp_obs)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble((0d0,-1d0)*tmp_obs)
+
+    ! WT with Areg2 link
+      tmp_obs=WT_link*cdabs(Acomp_reg2) *Acomp_tr/dcmplx(cdabs(Acomp_tr))
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble(tmp_obs)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble((0d0,-1d0)*tmp_obs)
+
+    ! WT with Areg2 face
+      tmp_obs=WT_face*cdabs(Acomp_reg2) *Acomp_tr/dcmplx(cdabs(Acomp_tr))
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble(tmp_obs)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble((0d0,-1d0)*tmp_obs)
+
 
     ! WT with Areg1 site
       tmp_obs=WT_site*Acomp_reg1*Acomp_tr/dcmplx(cdabs(Acomp_tr))
@@ -717,6 +732,22 @@ do
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble(tmp_obs)
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble((0d0,-1d0)*tmp_obs)
 
+    ! WT with Areg05 site
+      tmp_obs=WT_site*Acomp_reg05*Acomp_tr/dcmplx(cdabs(Acomp_tr))
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble(tmp_obs)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble((0d0,-1d0)*tmp_obs)
+
+    ! WT with Areg05 link
+      tmp_obs=WT_link*cdabs(Acomp_reg05) *Acomp_tr/dcmplx(cdabs(Acomp_tr))
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble(tmp_obs)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble((0d0,-1d0)*tmp_obs)
+
+    ! WT with Areg05 face
+      tmp_obs=WT_face*cdabs(Acomp_reg05) *Acomp_tr/dcmplx(cdabs(Acomp_tr))
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble(tmp_obs)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble((0d0,-1d0)*tmp_obs)
+
+
     ! WT with Areg01 site
       tmp_obs=WT_site*Acomp_reg01*Acomp_tr/dcmplx(cdabs(Acomp_tr))
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble(tmp_obs)
@@ -729,21 +760,6 @@ do
 
     ! WT with Areg01 face
       tmp_obs=WT_face*cdabs(Acomp_reg01) *Acomp_tr/dcmplx(cdabs(Acomp_tr))
-      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble(tmp_obs)
-      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble((0d0,-1d0)*tmp_obs)
-
-    ! WT with Areg001 site
-      tmp_obs=WT_site*Acomp_reg001*Acomp_tr/dcmplx(cdabs(Acomp_tr))
-      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble(tmp_obs)
-      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble((0d0,-1d0)*tmp_obs)
-
-    ! WT with Areg001 link
-      tmp_obs=WT_link*cdabs(Acomp_reg001) *Acomp_tr/dcmplx(cdabs(Acomp_tr))
-      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble(tmp_obs)
-      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble((0d0,-1d0)*tmp_obs)
-
-    ! WT with Areg001 face
-      tmp_obs=WT_face*cdabs(Acomp_reg001) *Acomp_tr/dcmplx(cdabs(Acomp_tr))
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble(tmp_obs)
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble((0d0,-1d0)*tmp_obs)
 
