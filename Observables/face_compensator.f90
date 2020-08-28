@@ -120,9 +120,15 @@ contains
   complex(kind(0d0)) :: DSmat(1:NMAT,1:NMAT,1:num_sites)
   complex(kind(0d0)) :: DFmat(1:NMAT,1:NMAT,1:num_sites)
   complex(kind(0d0)) :: Xi_eta(1:NMAT,1:NMAT,1:num_necessary_sites)
-  complex(kind(0d0)) :: trace1, trace2, trace3, trace4
-  complex(kind(0d0)) :: tmp1, tmp2, tmp3, tmp4,tmp
-  complex(kind(0d0)) :: ttmp1, ttmp2, ttmp3, ttmp4
+  complex(kind(0d0)) :: trace
+  complex(kind(0d0)), allocatable :: tmp1(:,:,:,:)
+  complex(kind(0d0)), allocatable :: tmp2(:,:,:,:)
+  complex(kind(0d0)), allocatable :: tmp3(:,:,:,:)
+  complex(kind(0d0)), allocatable :: tmp4(:,:,:,:)
+  complex(kind(0d0)), allocatable :: ttmp1(:,:,:,:)
+  complex(kind(0d0)), allocatable :: ttmp2(:,:,:,:)
+  complex(kind(0d0)), allocatable :: ttmp3(:,:,:,:)
+  complex(kind(0d0)), allocatable :: ttmp4(:,:,:,:)
   
   integer :: ls,lf,gs,gf
   integer :: tag, rank
@@ -134,6 +140,15 @@ contains
   allocate( SMAT(1:NMAT,1:NMAT,1:num_necessary_sites,1:NMAT,1:NMAT,0:ratio-1,1:global_num_faces) )
   allocate( FMAT(1:NMAT,1:NMAT,1:num_necessary_sites,1:NMAT,1:NMAT,0:ratio-1,1:global_num_faces) )
   allocate( phibar_p(1:NMAT,1:NMAT,0:ratio) )
+
+  allocate( tmp1(1:NMAT,1:NMAT,0:ratio,1:global_num_faces) )
+  allocate( tmp2(1:NMAT,1:NMAT,0:ratio,1:global_num_faces) )
+  allocate( tmp3(1:NMAT,1:NMAT,0:ratio,1:global_num_faces) )
+  allocate( tmp4(1:NMAT,1:NMAT,0:ratio,1:global_num_faces) )
+  allocate( ttmp1(1:NMAT,1:NMAT,0:ratio,1:global_num_faces) )
+  allocate( ttmp2(1:NMAT,1:NMAT,0:ratio,1:global_num_faces) )
+  allocate( ttmp3(1:NMAT,1:NMAT,0:ratio,1:global_num_faces) )
+  allocate( ttmp4(1:NMAT,1:NMAT,0:ratio,1:global_num_faces) )
   
   !! 
   SMAT=(0d0,0d0)
@@ -197,58 +212,54 @@ contains
   
   !! (2) mass term
   call make_XiVec_site(Xi_eta,PhiMat)
+  tmp1=(0d0,0d0)
+  tmp2=(0d0,0d0)
+  tmp3=(0d0,0d0)
+  tmp4=(0d0,0d0)
   do gf=1,global_num_faces
     do p=0,ratio-1
       do j=1,NMAT
         do i=1,NMAT
-          trace1=(0d0,0d0)
-          trace2=(0d0,0d0)
-          trace3=(0d0,0d0)
-          trace4=(0d0,0d0)
           do ls=1,num_sites
-            tmp1=(0d0,0d0)
-            tmp2=(0d0,0d0)
-            tmp3=(0d0,0d0)
-            tmp4=(0d0,0d0)
             do b=1,NMAT
               do a=1,NMAT
-                tmp1=tmp1 + Xi_eta(a,b,ls)*Smat(b,a,ls,i,j,p,gf)
-                tmp2=tmp2 + Phimat(a,b,ls)*Fmat(b,a,ls,j,i,ratio-p-1,gf)
+                tmp1(i,j,p,gf)=tmp1(i,j,p,gf) + Xi_eta(a,b,ls)*Smat(b,a,ls,i,j,p,gf)
+                tmp2(i,j,p,gf)=tmp2(i,j,p,gf) + Phimat(a,b,ls)*Fmat(b,a,ls,i,j,p,gf)
                 !!
-                tmp3=tmp3 + Xi_eta(a,b,ls)*Fmat(b,a,ls,i,j,p,gf)
-                tmp4=tmp4 + Phimat(a,b,ls)*Smat(b,a,ls,j,i,ratio-p-1,gf)
+                tmp3(i,j,p,gf)=tmp3(i,j,p,gf) + Xi_eta(a,b,ls)*Fmat(b,a,ls,i,j,p,gf)
+                tmp4(i,j,p,gf)=tmp4(i,j,p,gf) + Phimat(a,b,ls)*Smat(b,a,ls,i,j.p,gf)
               enddo
             enddo
-            ttmp1=(0d0,0d0)
-            ttmp2=(0d0,0d0)
-            ttmp3=(0d0,0d0)
-            ttmp4=(0d0,0d0)
-            call MPI_REDUCE(tmp1,ttmp1,1,MPI_DOUBLE_COMPLEX, &
-              MPI_SUM,0,MPI_COMM_WORLD,IERR)
-            call MPI_REDUCE(tmp2,ttmp2,1,MPI_DOUBLE_COMPLEX, &
-              MPI_SUM,0,MPI_COMM_WORLD,IERR)
-            call MPI_REDUCE(tmp3,ttmp3,1,MPI_DOUBLE_COMPLEX, &
-              MPI_SUM,0,MPI_COMM_WORLD,IERR)
-            call MPI_REDUCE(tmp4,ttmp4,1,MPI_DOUBLE_COMPLEX, &
-              MPI_SUM,0,MPI_COMM_WORLD,IERR)
-            if( MYRANK==0 ) then
-              trace1=trace1+ttmp1
-              trace2=trace2+ttmp2
-              trace3=trace3+ttmp3
-              trace4=trace4+ttmp4
-            endif
           enddo
-          if( MYRANK==0 ) then
-            CSF=CSF&
-              -dcmplx( 0.5d0*mass_square_phi )*trace1*trace2 &
-              +dcmplx( 0.5d0*mass_square_phi )*trace3*trace4
           endif
         enddo
       enddo
     enddo
   enddo
-  
+  call MPI_REDUCE(tmp1,ttmp1,global_num_face*NMAT*NMAT*ratio,MPI_DOUBLE_COMPLEX, &
+    MPI_SUM,0,MPI_COMM_WORLD,IERR)
+  call MPI_REDUCE(tmp2,ttmp2,global_num_face*NMAT*NMAT*ratio,MPI_DOUBLE_COMPLEX, &
+    MPI_SUM,0,MPI_COMM_WORLD,IERR)
+  call MPI_REDUCE(tmp3,ttmp3,global_num_face*NMAT*NMAT*ratio,MPI_DOUBLE_COMPLEX, &
+    MPI_SUM,0,MPI_COMM_WORLD,IERR)
+  call MPI_REDUCE(tmp4,ttmp4,global_num_face*NMAT*NMAT*ratio,MPI_DOUBLE_COMPLEX, &
+    MPI_SUM,0,MPI_COMM_WORLD,IERR)
+
   if( MYRANK==0 ) then
+    trace=(0d0,0d0)
+    do gf=1,global_num_faces
+      do p=0,ratio-1
+        do j=1,NMAT
+          do i=1,NMAT
+            trace=trace&
+              -ttmp1(i,j,p,gf)*ttmp2(j,i,ratio-p-1,gf) &
+              +ttmp3(i,j,p,gf)*ttmp4(j,i,ratio-p-1,gf)
+          enddo
+        enddo
+      enddo
+    enddo
+    CSF=CSF + dcmplx( 0.5d0*mass_square_phi )*trace
+
     CSF=CSF / dcmplx( NMAT * global_num_faces )
   endif
   end subroutine calc_4fermi_in_CSFsite
@@ -282,9 +293,15 @@ contains
   complex(kind(0d0)) :: DSlambda(1:NMAT,1:NMAT,1:num_links)
   complex(kind(0d0)) :: DFlambda(1:NMAT,1:NMAT,1:num_links)
   complex(kind(0d0)) :: Xi_lambda(1:NMAT,1:NMAT,1:num_necessary_links)
-  complex(kind(0d0)) :: trace1, trace2, trace3, trace4
-  complex(kind(0d0)) :: tmp1, tmp2, tmp3, tmp4,tmp
-  complex(kind(0d0)) :: ttmp1, ttmp2, ttmp3, ttmp4
+  complex(kind(0d0)) :: trace
+  complex(kind(0d0)), allocatable :: tmp1(:,:,:,:)
+  complex(kind(0d0)), allocatable :: tmp2(:,:,:,:)
+  complex(kind(0d0)), allocatable :: tmp3(:,:,:,:)
+  complex(kind(0d0)), allocatable :: tmp4(:,:,:,:)
+  complex(kind(0d0)), allocatable :: ttmp1(:,:,:,:)
+  complex(kind(0d0)), allocatable :: ttmp2(:,:,:,:)
+  complex(kind(0d0)), allocatable :: ttmp3(:,:,:,:)
+  complex(kind(0d0)), allocatable :: ttmp4(:,:,:,:)
   
   integer :: ls,ll,lf,gs,gf
   integer :: tag, rank
@@ -299,6 +316,14 @@ contains
   allocate( Flambda(1:NMAT,1:NMAT,1:num_necessary_links,1:NMAT,1:NMAT,0:ratio-1,1:global_num_faces) )
   allocate( phibar_p(1:NMAT,1:NMAT,0:ratio) )
   
+  allocate( tmp1(1:NMAT,1:NMAT,0:ratio,1:global_num_faces) )
+  allocate( tmp2(1:NMAT,1:NMAT,0:ratio,1:global_num_faces) )
+  allocate( tmp3(1:NMAT,1:NMAT,0:ratio,1:global_num_faces) )
+  allocate( tmp4(1:NMAT,1:NMAT,0:ratio,1:global_num_faces) )
+  allocate( ttmp1(1:NMAT,1:NMAT,0:ratio,1:global_num_faces) )
+  allocate( ttmp2(1:NMAT,1:NMAT,0:ratio,1:global_num_faces) )
+  allocate( ttmp3(1:NMAT,1:NMAT,0:ratio,1:global_num_faces) )
+  allocate( ttmp4(1:NMAT,1:NMAT,0:ratio,1:global_num_faces) )
   !! 
   Seta=(0d0,0d0)
   Feta=(0d0,0d0)
@@ -393,66 +418,63 @@ contains
   
   !! (2) mass term
   call make_XiVec_link(Xi_lambda,Umat,PhiMat)
+  tmp1=(0d0,0d0)
+  tmp2=(0d0,0d0)
+  tmp3=(0d0,0d0)
+  tmp4=(0d0,0d0)
   do gf=1,global_num_faces
     do p=0,ratio-1
       do j=1,NMAT
         do i=1,NMAT
-          trace1=(0d0,0d0) ! Phi.Seta
-          trace2=(0d0,0d0) ! Phi.Feta
-          trace3=(0d0,0d0) ! Xi.Slambda
-          trace4=(0d0,0d0) ! Xi.Flambda
           do ls=1,num_sites
-            tmp1=(0d0,0d0)
-            tmp2=(0d0,0d0)
-            ttmp1=(0d0,0d0)
-            ttmp2=(0d0,0d0)
             do b=1,NMAT
               do a=1,NMAT
-                tmp1=tmp1 + Phimat(a,b,ls)*Seta(b,a,ls,i,j,p,gf)
-                tmp2=tmp2 + Phimat(a,b,ls)*Feta(b,a,ls,j,i,ratio-p-1,gf)
+                ! Phi.Feta
+                tmp2(i,j,p,gf)=tmp2(i,j,p,gf) + Phimat(a,b,ls)*Feta(b,a,ls,i,j,p,gf)
+                ! Phi.Seta
+                tmp4(i,j,p,gf)=tmp4(i,j,p,gf) + Phimat(a,b,ls)*Seta(b,a,ls,i,j,p,gf)
               enddo
             enddo
-            call MPI_REDUCE(tmp1,ttmp1,1,MPI_DOUBLE_COMPLEX, &
-              MPI_SUM,0,MPI_COMM_WORLD,IERR)
-            call MPI_REDUCE(tmp2,ttmp2,1,MPI_DOUBLE_COMPLEX, &
-              MPI_SUM,0,MPI_COMM_WORLD,IERR)
-            if( MYRANK==0 ) then
-              trace1=trace1+ttmp1
-              trace2=trace2+ttmp2
-            endif
           enddo
-       write(*,*) MYRANK
           do ll=1,num_links
-            tmp3=(0d0,0d0)
-            tmp4=(0d0,0d0)
-            ttmp3=(0d0,0d0)
-            ttmp4=(0d0,0d0)
             do b=1,NMAT
               do a=1,NMAT
-                tmp3=tmp3 + Xi_lambda(a,b,ll)*Slambda(b,a,ls,i,j,p,gf)
-                tmp4=tmp4 + Xi_lambda(a,b,ll)*Flambda(b,a,ls,j,i,ratio-p-1,gf)
+                ! Xi.Slambda
+                tmp1(i,j,p,gf)=tmp1(i,j,p,gf) + Xi_lambda(a,b,ll)*Slambda(b,a,ls,i,j,p,gf)
+                ! Xi.Flambda
+                tmp3(i,j,p,gf)=tmp3(i,j,p,gf) + Xi_lambda(a,b,ll)*Flambda(b,a,ls,i,j,p,gf)
               enddo
             enddo
-            call MPI_REDUCE(tmp3,ttmp3,1,MPI_DOUBLE_COMPLEX, &
-              MPI_SUM,0,MPI_COMM_WORLD,IERR)
-            call MPI_REDUCE(tmp4,ttmp4,1,MPI_DOUBLE_COMPLEX, &
-              MPI_SUM,0,MPI_COMM_WORLD,IERR)
-            if( MYRANK==0 ) then
-              trace3=trace3+ttmp3
-              trace4=trace4+ttmp4
-            endif
           enddo
-          if( MYRANK==0 ) then
-            CSF=CSF&
-              -dcmplx( 0.5d0*mass_square_phi )*trace3*trace2 &
-              +dcmplx( 0.5d0*mass_square_phi )*trace4*trace1
-          endif
         enddo
       enddo
     enddo
   enddo
-  
+
+  call MPI_REDUCE(tmp1,ttmp1,global_num_face*NMAT*NMAT*ratio,MPI_DOUBLE_COMPLEX, &
+    MPI_SUM,0,MPI_COMM_WORLD,IERR)
+  call MPI_REDUCE(tmp2,ttmp2,global_num_face*NMAT*NMAT*ratio,MPI_DOUBLE_COMPLEX, &
+    MPI_SUM,0,MPI_COMM_WORLD,IERR)
+  call MPI_REDUCE(tmp3,ttmp3,global_num_face*NMAT*NMAT*ratio,MPI_DOUBLE_COMPLEX, &
+    MPI_SUM,0,MPI_COMM_WORLD,IERR)
+  call MPI_REDUCE(tmp4,ttmp4,global_num_face*NMAT*NMAT*ratio,MPI_DOUBLE_COMPLEX, &
+    MPI_SUM,0,MPI_COMM_WORLD,IERR)
+
   if( MYRANK==0 ) then
+    trace=(0d0,0d0)
+    do gf=1,global_num_faces
+      do p=0,ratio-1
+        do j=1,NMAT
+          do i=1,NMAT
+            trace=trace&
+              -ttmp1(i,j,p,gf)*ttmp2(j,i,ratio-p-1,gf) &
+              +ttmp3(i,j,p,gf)*ttmp4(j,i,ratio-p-1,gf)
+          enddo
+        enddo
+      enddo
+    enddo
+    CSF=CSF + dcmplx( 0.5d0*mass_square_phi )*trace
+  
     CSF=CSF / dcmplx( NMAT * global_num_faces )
   endif
   end subroutine calc_4fermi_in_CSFlink
@@ -489,9 +511,15 @@ contains
   complex(kind(0d0)) :: DSlambda(1:NMAT,1:NMAT,1:num_links)
   complex(kind(0d0)) :: DFlambda(1:NMAT,1:NMAT,1:num_links)
   complex(kind(0d0)) :: Xi_chi(1:NMAT,1:NMAT,1:num_necessary_faces)
-  complex(kind(0d0)) :: trace1, trace2, trace3, trace4
-  complex(kind(0d0)) :: tmp1, tmp2, tmp3, tmp4, tmp
-  complex(kind(0d0)) :: ttmp1, ttmp2, ttmp3, ttmp4
+  complex(kind(0d0)) :: trace
+  complex(kind(0d0)), allocatable :: tmp1(:,:,:,:)
+  complex(kind(0d0)), allocatable :: tmp2(:,:,:,:)
+  complex(kind(0d0)), allocatable :: tmp3(:,:,:,:)
+  complex(kind(0d0)), allocatable :: tmp4(:,:,:,:)
+  complex(kind(0d0)), allocatable :: ttmp1(:,:,:,:)
+  complex(kind(0d0)), allocatable :: ttmp2(:,:,:,:)
+  complex(kind(0d0)), allocatable :: ttmp3(:,:,:,:)
+  complex(kind(0d0)), allocatable :: ttmp4(:,:,:,:)
   
   integer :: ls,ll,lf,gs,gf,lf2
   integer :: tag, rank
@@ -508,6 +536,14 @@ contains
   allocate( Flambda(1:NMAT,1:NMAT,1:num_necessary_links,1:NMAT,1:NMAT,0:ratio-1,1:global_num_faces) )
   allocate( phibar_p(1:NMAT,1:NMAT,0:ratio) )
   
+  allocate( tmp1(1:NMAT,1:NMAT,0:ratio,1:global_num_faces) )
+  allocate( tmp2(1:NMAT,1:NMAT,0:ratio,1:global_num_faces) )
+  allocate( tmp3(1:NMAT,1:NMAT,0:ratio,1:global_num_faces) )
+  allocate( tmp4(1:NMAT,1:NMAT,0:ratio,1:global_num_faces) )
+  allocate( ttmp1(1:NMAT,1:NMAT,0:ratio,1:global_num_faces) )
+  allocate( ttmp2(1:NMAT,1:NMAT,0:ratio,1:global_num_faces) )
+  allocate( ttmp3(1:NMAT,1:NMAT,0:ratio,1:global_num_faces) )
+  allocate( ttmp4(1:NMAT,1:NMAT,0:ratio,1:global_num_faces) )
   !! 
   Seta=(0d0,0d0)
   Feta=(0d0,0d0)
@@ -607,77 +643,65 @@ contains
     CSF=CSF+tmp
   endif
   
-  call mpi_barrier(MPI_COMM_WORLD,IERR) !!! here
   !! (2) mass term
   call make_XiVec_face(Xi_chi,Umat)
+  tmp1=(0d0,0d0)
+  tmp2=(0d0,0d0)
+  tmp3=(0d0,0d0)
+  tmp4=(0d0,0d0)
   do gf=1,global_num_faces
     do p=0,ratio-1
       do j=1,NMAT
         do i=1,NMAT
-          trace1=(0d0,0d0) ! Phi.Schi
-          trace2=(0d0,0d0) ! Phi.Fchi
-          trace3=(0d0,0d0) ! Xi.Schi
-          trace4=(0d0,0d0) ! Xi.Fchi   
-          ttmp1=(0d0,0d0)
-          ttmp2=(0d0,0d0)
           do ls=1,num_sites
-            tmp1=(0d0,0d0)
-            tmp2=(0d0,0d0)
             do b=1,NMAT
               do a=1,NMAT
-                tmp1=tmp1 + Phimat(a,b,ls)*Seta(b,a,ls,i,j,p,gf)
-                tmp2=tmp2 + Phimat(a,b,ls)*Feta(b,a,ls,j,i,ratio-p-1,gf)
+                ! Phi.Fchi
+                tmp2(i,j,p,gf)=tmp2(i,j,p,gf) + Phimat(a,b,ls)*Feta(b,a,ls,i,j,p,gf)
+                ! Phi.Schi
+                tmp4(i,j,p,gf)=tmp4(i,j,p,gf) + Phimat(a,b,ls)*Seta(b,a,ls,i,j,p,gf)
               enddo
             enddo
-            ttmp1=ttmp1+tmp1
-            ttmp2=ttmp2+tmp2
           enddo
-          tmp1=(0d0,0d0)
-          tmp2=(0d0,0d0)
-          call MPI_REDUCE(ttmp1,tmp1,1,MPI_DOUBLE_COMPLEX, &
-            MPI_SUM,0,MPI_COMM_WORLD,IERR)
-          call MPI_REDUCE(ttmp2,tmp2,1,MPI_DOUBLE_COMPLEX, &
-            MPI_SUM,0,MPI_COMM_WORLD,IERR)
-          if ( MYRANK==0 ) then 
-            trace1=trace1+tmp1
-            trace2=trace2+tmp2
-          endif
           !!!!!!!!!
-          ttmp3=(0d0,0d0)
-          ttmp4=(0d0,0d0)
           do lf=1,num_faces
-            tmp3=(0d0,0d0)
-            tmp4=(0d0,0d0)
             do b=1,NMAT
               do a=1,NMAT
-                tmp3=tmp3 + Xi_chi(a,b,lf)*Schi(b,a,lf,i,j,p,gf)
-                tmp4=tmp4 + Xi_chi(a,b,lf)*Fchi(b,a,lf,j,i,ratio-p-1,gf)
+                ! Xi.Schi
+                tmp1(i,j,p,gf)=tmp1(i,j,p,gf) + Xi_chi(a,b,lf)*Schi(b,a,lf,i,j,p,gf)
+                ! Xi.Fchi   
+                tmp3(i,j,p,gf)=tmp3(i,j,p,gf) + Xi_chi(a,b,lf)*Fchi(b,a,lf,i,j,p,gf)
               enddo
             enddo
-            ttmp3=ttmp3+tmp3
-            ttmp4=ttmp4+tmp4
           enddo
-          tmp3=(0d0,0d0)
-          tmp4=(0d0,0d0)
-          call MPI_REDUCE(ttmp3,tmp3,1,MPI_DOUBLE_COMPLEX, &
-            MPI_SUM,0,MPI_COMM_WORLD,IERR)
-          call MPI_REDUCE(ttmp4,tmp4,1,MPI_DOUBLE_COMPLEX, &
-            MPI_SUM,0,MPI_COMM_WORLD,IERR)
-          if( MYRANK==0 ) then 
-            trace3=trace3+tmp3
-            trace4=trace4+tmp4
-          endif
-          if( MYRANK==0 ) then
-            CSF=CSF&
-              -dcmplx( 0.5d0*mass_square_phi )*trace3*trace2 &
-              +dcmplx( 0.5d0*mass_square_phi )*trace4*trace1
-          endif
         enddo
       enddo
     enddo
   enddo
-  
+  call MPI_REDUCE(tmp1,ttmp1,global_num_face*NMAT*NMAT*ratio,MPI_DOUBLE_COMPLEX, &
+    MPI_SUM,0,MPI_COMM_WORLD,IERR)
+  call MPI_REDUCE(tmp2,ttmp2,global_num_face*NMAT*NMAT*ratio,MPI_DOUBLE_COMPLEX, &
+    MPI_SUM,0,MPI_COMM_WORLD,IERR)
+  call MPI_REDUCE(tmp3,ttmp3,global_num_face*NMAT*NMAT*ratio,MPI_DOUBLE_COMPLEX, &
+    MPI_SUM,0,MPI_COMM_WORLD,IERR)
+  call MPI_REDUCE(tmp4,ttmp4,global_num_face*NMAT*NMAT*ratio,MPI_DOUBLE_COMPLEX, &
+    MPI_SUM,0,MPI_COMM_WORLD,IERR)
+
   if( MYRANK==0 ) then
+    trace=(0d0,0d0)
+    do gf=1,global_num_faces
+      do p=0,ratio-1
+        do j=1,NMAT
+          do i=1,NMAT
+            trace=trace&
+              -ttmp1(i,j,p,gf)*ttmp2(j,i,ratio-p-1,gf) &
+              +ttmp3(i,j,p,gf)*ttmp4(j,i,ratio-p-1,gf)
+          enddo
+        enddo
+      enddo
+    enddo
+    CSF=CSF + dcmplx( 0.5d0*mass_square_phi )*trace
+  
     CSF=CSF / dcmplx( NMAT * global_num_faces )
   endif
   
