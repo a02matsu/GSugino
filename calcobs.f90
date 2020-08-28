@@ -435,9 +435,9 @@ do
        if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble((0d0,-1d0)*WT_link)
 
     !! WT identity face
-       WT_face=dcmplx(SbF)+Sf4+Sf5+mass_cont_face+0.5d0*dcmplx( (NMAT*NMAT-1)*(global_num_sites+global_num_links) ) 
-       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble(WT_link)
-       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble((0d0,-1d0)*WT_link)
+       WT_face=dcmplx(SbF)+Sf4+Sf5+mass_cont_face+(0.5d0,0d0)*dcmplx( (NMAT*NMAT-1)*(global_num_faces) )
+       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble(WT_face)
+       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble((0d0,-1d0)*WT_face)
 
     !! Pfaffian phase
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble(phase_pf)
