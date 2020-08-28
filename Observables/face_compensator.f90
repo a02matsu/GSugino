@@ -450,13 +450,13 @@ contains
     enddo
   enddo
 
-  call MPI_REDUCE(tmp1,ttmp1,global_num_face*NMAT*NMAT*ratio,MPI_DOUBLE_COMPLEX, &
+  call MPI_REDUCE(tmp1,ttmp1,global_num_faces*NMAT*NMAT*ratio,MPI_DOUBLE_COMPLEX, &
     MPI_SUM,0,MPI_COMM_WORLD,IERR)
-  call MPI_REDUCE(tmp2,ttmp2,global_num_face*NMAT*NMAT*ratio,MPI_DOUBLE_COMPLEX, &
+  call MPI_REDUCE(tmp2,ttmp2,global_num_faces*NMAT*NMAT*ratio,MPI_DOUBLE_COMPLEX, &
     MPI_SUM,0,MPI_COMM_WORLD,IERR)
-  call MPI_REDUCE(tmp3,ttmp3,global_num_face*NMAT*NMAT*ratio,MPI_DOUBLE_COMPLEX, &
+  call MPI_REDUCE(tmp3,ttmp3,global_num_faces*NMAT*NMAT*ratio,MPI_DOUBLE_COMPLEX, &
     MPI_SUM,0,MPI_COMM_WORLD,IERR)
-  call MPI_REDUCE(tmp4,ttmp4,global_num_face*NMAT*NMAT*ratio,MPI_DOUBLE_COMPLEX, &
+  call MPI_REDUCE(tmp4,ttmp4,global_num_faces*NMAT*NMAT*ratio,MPI_DOUBLE_COMPLEX, &
     MPI_SUM,0,MPI_COMM_WORLD,IERR)
 
   if( MYRANK==0 ) then
@@ -677,13 +677,13 @@ contains
       enddo
     enddo
   enddo
-  call MPI_REDUCE(tmp1,ttmp1,global_num_face*NMAT*NMAT*ratio,MPI_DOUBLE_COMPLEX, &
+  call MPI_REDUCE(tmp1,ttmp1,global_num_faces*NMAT*NMAT*ratio,MPI_DOUBLE_COMPLEX, &
     MPI_SUM,0,MPI_COMM_WORLD,IERR)
-  call MPI_REDUCE(tmp2,ttmp2,global_num_face*NMAT*NMAT*ratio,MPI_DOUBLE_COMPLEX, &
+  call MPI_REDUCE(tmp2,ttmp2,global_num_faces*NMAT*NMAT*ratio,MPI_DOUBLE_COMPLEX, &
     MPI_SUM,0,MPI_COMM_WORLD,IERR)
-  call MPI_REDUCE(tmp3,ttmp3,global_num_face*NMAT*NMAT*ratio,MPI_DOUBLE_COMPLEX, &
+  call MPI_REDUCE(tmp3,ttmp3,global_num_faces*NMAT*NMAT*ratio,MPI_DOUBLE_COMPLEX, &
     MPI_SUM,0,MPI_COMM_WORLD,IERR)
-  call MPI_REDUCE(tmp4,ttmp4,global_num_face*NMAT*NMAT*ratio,MPI_DOUBLE_COMPLEX, &
+  call MPI_REDUCE(tmp4,ttmp4,global_num_faces*NMAT*NMAT*ratio,MPI_DOUBLE_COMPLEX, &
     MPI_SUM,0,MPI_COMM_WORLD,IERR)
 
   if( MYRANK==0 ) then
