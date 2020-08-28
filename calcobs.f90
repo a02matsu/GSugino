@@ -141,6 +141,7 @@ double precision :: Sb, SbS, SbL, SbF
 complex(kind(0d0)) :: SfL2
 complex(kind(0d0)) :: Acomp_tr ! trace compensator
 complex(kind(0d0)) :: Acomp_face ! face compensator
+complex(kind(0d0)) :: Acomp_Yphi ! face compensator
 complex(kind(0d0)) :: Acomp_reg1 ! regularized compensator
 complex(kind(0d0)) :: Acomp_reg01 ! regularized compensator
 complex(kind(0d0)) :: Acomp_reg001 ! regularized compensator
@@ -531,10 +532,10 @@ do
 
 
     !"|AYphi|", &
-      call calc_Yphi_compensator(Acomp_face,PhiMat,Umat)
-      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') cdabs(Acomp_face)
-      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble(Acomp_face/cdabs(Acomp_face))
-      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble( (0d0,-1d0)*Acomp_face/cdabs(Acomp_face))
+      call calc_Yphi_compensator(Acomp_Yphi,PhiMat,Umat)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') cdabs(Acomp_Yphi)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble(Acomp_Yphi/cdabs(Acomp_Yphi))
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble( (0d0,-1d0)*Acomp_Yphi/cdabs(Acomp_Yphi))
 
     !"|AYphibar|", &
       call calc_Yphibar_compensator(Acomp_phibar,PhiMat,Umat)
