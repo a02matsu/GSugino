@@ -13,7 +13,7 @@ character(128), parameter :: PARAFILE="parameters_calcobs.dat"
 character(128) :: MEDFILE
 character(128) :: DinvFILE
 character(128) :: EigenFILE
-integer, parameter :: num_calcobs=105 ! 考えているobservableの数
+integer, parameter :: num_calcobs=114 ! 考えているobservableの数
 character(128) :: name_obs(1:num_calcobs) = (/ &
   "SbS", &
   "SbL", &
@@ -47,12 +47,15 @@ character(128) :: name_obs(1:num_calcobs) = (/ &
   "|Atr|", &
   "Re(phase Atr)", &
   "Im(phase Atr)", &
+  "|Areg(2.0)|", &
+  "Re(phase Areg(2.0))", &
+  "Im(phase Areg(2.0))", &
   "|Areg(1.0)|", &
   "Re(phase Areg(1.0))", &
   "Im(phase Areg(1.0))", &
-  "|Areg(0.1)|", &
-  "Re(phase Areg(0.1))", &
-  "Im(phase Areg(0.1))", &
+  "|Areg(0.5)|", &
+  "Re(phase Areg(0.5))", &
+  "Im(phase Areg(0.5))", &
   "|Areg(0.01)|", &
   "Re(phase Areg(0.01))", &
   "Im(phase Areg(0.01))", &
@@ -102,24 +105,30 @@ character(128) :: name_obs(1:num_calcobs) = (/ &
   "Im(WT Aface link)", &
   "Re(WT Aface face)", &
   "Im(WT Aface face)", &
+  "Re(WT Areg2 site)", &
+  "Im(WT Areg2 site)", &
+  "Re(WT Areg2 link)", &
+  "Im(WT Areg2 link)", &
+  "Re(WT Areg2 face)", &
+  "Im(WT Areg2 face)", &
   "Re(WT Areg1 site)", &
   "Im(WT Areg1 site)", &
   "Re(WT Areg1 link)", &
   "Im(WT Areg1 link)", &
   "Re(WT Areg1 face)", &
   "Im(WT Areg1 face)", &
+  "Re(WT Areg05 site)", &
+  "Im(WT Areg05 site)", &
+  "Re(WT Areg05 link)", &
+  "Im(WT Areg05 link)", &
+  "Re(WT Areg05 face)", &
+  "Im(WT Areg05 face)", &
   "Re(WT Areg01 site)", &
   "Im(WT Areg01 site)", &
   "Re(WT Areg01 link)", &
   "Im(WT Areg01 link)", &
   "Re(WT Areg01 face)", &
-  "Im(WT Areg01 face)", &
-  "Re(WT Areg001 site)", &
-  "Im(WT Areg001 site)", &
-  "Re(WT Areg001 link)", &
-  "Im(WT Areg001 link)", &
-  "Re(WT Areg001 face)", &
-  "Im(WT Areg001 face)" &
+  "Im(WT Areg01 face)" &
   /)
   !"Re(exactSf_link1)", &
   !"Im(exactSf_link1)", &
@@ -142,9 +151,10 @@ complex(kind(0d0)) :: SfL2
 complex(kind(0d0)) :: Acomp_tr ! trace compensator
 complex(kind(0d0)) :: Acomp_face ! face compensator
 complex(kind(0d0)) :: Acomp_Yphi ! face compensator
+complex(kind(0d0)) :: Acomp_reg2 ! regularized compensator
 complex(kind(0d0)) :: Acomp_reg1 ! regularized compensator
+complex(kind(0d0)) :: Acomp_reg05 ! regularized compensator
 complex(kind(0d0)) :: Acomp_reg01 ! regularized compensator
-complex(kind(0d0)) :: Acomp_reg001 ! regularized compensator
 complex(kind(0d0)) :: CSF_site ! 4-fermi term in Aface-(SFsite+mass)
 complex(kind(0d0)) :: CSF_link ! 4-fermi term in Aface-(SFlink+mass)
 complex(kind(0d0)) :: CSF_face ! 4-fermi term in Aface-(SFface+mass)
