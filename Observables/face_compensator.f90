@@ -120,7 +120,7 @@ contains
   complex(kind(0d0)) :: DSmat(1:NMAT,1:NMAT,1:num_sites)
   complex(kind(0d0)) :: DFmat(1:NMAT,1:NMAT,1:num_sites)
   complex(kind(0d0)) :: Xi_eta(1:NMAT,1:NMAT,1:num_necessary_sites)
-  complex(kind(0d0)) :: trace
+  complex(kind(0d0)) :: trace,tmp
   complex(kind(0d0)), allocatable :: tmp1(:,:,:,:)
   complex(kind(0d0)), allocatable :: tmp2(:,:,:,:)
   complex(kind(0d0)), allocatable :: tmp3(:,:,:,:)
@@ -227,22 +227,21 @@ contains
                 tmp2(i,j,p,gf)=tmp2(i,j,p,gf) + Phimat(a,b,ls)*Fmat(b,a,ls,i,j,p,gf)
                 !!
                 tmp3(i,j,p,gf)=tmp3(i,j,p,gf) + Xi_eta(a,b,ls)*Fmat(b,a,ls,i,j,p,gf)
-                tmp4(i,j,p,gf)=tmp4(i,j,p,gf) + Phimat(a,b,ls)*Smat(b,a,ls,i,j.p,gf)
+                tmp4(i,j,p,gf)=tmp4(i,j,p,gf) + Phimat(a,b,ls)*Smat(b,a,ls,i,j,p,gf)
               enddo
             enddo
           enddo
-          endif
         enddo
       enddo
     enddo
   enddo
-  call MPI_REDUCE(tmp1,ttmp1,global_num_face*NMAT*NMAT*ratio,MPI_DOUBLE_COMPLEX, &
+  call MPI_REDUCE(tmp1,ttmp1,global_num_faces*NMAT*NMAT*ratio,MPI_DOUBLE_COMPLEX, &
     MPI_SUM,0,MPI_COMM_WORLD,IERR)
-  call MPI_REDUCE(tmp2,ttmp2,global_num_face*NMAT*NMAT*ratio,MPI_DOUBLE_COMPLEX, &
+  call MPI_REDUCE(tmp2,ttmp2,global_num_faces*NMAT*NMAT*ratio,MPI_DOUBLE_COMPLEX, &
     MPI_SUM,0,MPI_COMM_WORLD,IERR)
-  call MPI_REDUCE(tmp3,ttmp3,global_num_face*NMAT*NMAT*ratio,MPI_DOUBLE_COMPLEX, &
+  call MPI_REDUCE(tmp3,ttmp3,global_num_faces*NMAT*NMAT*ratio,MPI_DOUBLE_COMPLEX, &
     MPI_SUM,0,MPI_COMM_WORLD,IERR)
-  call MPI_REDUCE(tmp4,ttmp4,global_num_face*NMAT*NMAT*ratio,MPI_DOUBLE_COMPLEX, &
+  call MPI_REDUCE(tmp4,ttmp4,global_num_faces*NMAT*NMAT*ratio,MPI_DOUBLE_COMPLEX, &
     MPI_SUM,0,MPI_COMM_WORLD,IERR)
 
   if( MYRANK==0 ) then
