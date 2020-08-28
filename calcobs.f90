@@ -733,8 +733,7 @@ do
     if(MYRANK==0) write(*,*)
   else
     exit
-
-
+  endif
 enddo
 
 if( MYRANK == 0 ) then
