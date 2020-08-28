@@ -13,7 +13,7 @@ character(128), parameter :: PARAFILE="parameters_calcobs.dat"
 character(128) :: MEDFILE
 character(128) :: DinvFILE
 character(128) :: EigenFILE
-integer, parameter :: num_calcobs=114 ! 考えているobservableの数
+integer, parameter :: num_calcobs=123 ! 考えているobservableの数
 character(128) :: name_obs(1:num_calcobs) = (/ &
   "SbS", &
   "SbL", &
@@ -47,6 +47,9 @@ character(128) :: name_obs(1:num_calcobs) = (/ &
   "|Atr|", &
   "Re(phase Atr)", &
   "Im(phase Atr)", &
+  "|Areg(3.0)|", &
+  "Re(phase Areg(3.0))", &
+  "Im(phase Areg(3.0))", &
   "|Areg(2.0)|", &
   "Re(phase Areg(2.0))", &
   "Im(phase Areg(2.0))", &
@@ -105,6 +108,12 @@ character(128) :: name_obs(1:num_calcobs) = (/ &
   "Im(WT Aface link)", &
   "Re(WT Aface face)", &
   "Im(WT Aface face)", &
+  "Re(WT Areg3 site)", &
+  "Im(WT Areg3 site)", &
+  "Re(WT Areg3 link)", &
+  "Im(WT Areg3 link)", &
+  "Re(WT Areg3 face)", &
+  "Im(WT Areg3 face)", &
   "Re(WT Areg2 site)", &
   "Im(WT Areg2 site)", &
   "Re(WT Areg2 link)", &
@@ -151,6 +160,7 @@ complex(kind(0d0)) :: SfL2
 complex(kind(0d0)) :: Acomp_tr ! trace compensator
 complex(kind(0d0)) :: Acomp_face ! face compensator
 complex(kind(0d0)) :: Acomp_Yphi ! face compensator
+complex(kind(0d0)) :: Acomp_reg3 ! regularized compensator
 complex(kind(0d0)) :: Acomp_reg2 ! regularized compensator
 complex(kind(0d0)) :: Acomp_reg1 ! regularized compensator
 complex(kind(0d0)) :: Acomp_reg05 ! regularized compensator
@@ -493,6 +503,12 @@ do
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') cdabs(Acomp_tr)
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble(Acomp_tr/cdabs(Acomp_tr))
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble( (0d0,-1d0)*Acomp_tr/cdabs(Acomp_tr))
+
+    !"|Areg(3.0)|", &
+      call calc_regularized_compensator(Acomp_reg3,PhiMat,3d0)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') cdabs(Acomp_reg3)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble(Acomp_reg3/cdabs(Acomp_reg3))
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble( (0d0,-1d0)*Acomp_reg3/cdabs(Acomp_reg3))
 
     !"|Areg(2.0)|", &
       call calc_regularized_compensator(Acomp_reg2,PhiMat,2d0)
