@@ -13,7 +13,7 @@ character(128), parameter :: PARAFILE="parameters_calcobs.dat"
 character(128) :: MEDFILE
 character(128) :: DinvFILE
 character(128) :: EigenFILE
-integer, parameter :: num_calcobs=75 ! 考えているobservableの数
+integer, parameter :: num_calcobs=105 ! 考えているobservableの数
 character(128) :: name_obs(1:num_calcobs) = (/ &
   "SbS", &
   "SbL", &
@@ -89,7 +89,37 @@ character(128) :: name_obs(1:num_calcobs) = (/ &
   "Im(Q(Aphibar)XiL)", &
   "Re(Q(Aphibar)XiF)", &
   "Im(Q(Aphibar)XiF)", &
-  "Tr|phi^2|" &
+  "Tr|phi^2|", &
+  "Re(WT Atr site)", &
+  "Im(WT Atr site)", &
+  "Re(WT Atr link)", &
+  "Im(WT Atr link)", &
+  "Re(WT Atr face)", &
+  "Im(WT Atr face)", &
+  "Re(WT Aface site)", &
+  "Im(WT Aface site)", &
+  "Re(WT Aface link)", &
+  "Im(WT Aface link)", &
+  "Re(WT Aface face)", &
+  "Im(WT Aface face)", &
+  "Re(WT Areg1 site)", &
+  "Im(WT Areg1 site)", &
+  "Re(WT Areg1 link)", &
+  "Im(WT Areg1 link)", &
+  "Re(WT Areg1 face)", &
+  "Im(WT Areg1 face)", &
+  "Re(WT Areg01 site)", &
+  "Im(WT Areg01 site)", &
+  "Re(WT Areg01 link)", &
+  "Im(WT Areg01 link)", &
+  "Re(WT Areg01 face)", &
+  "Im(WT Areg01 face)", &
+  "Re(WT Areg001 site)", &
+  "Im(WT Areg001 site)", &
+  "Re(WT Areg001 link)", &
+  "Im(WT Areg001 link)", &
+  "Re(WT Areg001 face)", &
+  "Im(WT Areg001 face)" &
   /)
   !"Re(exactSf_link1)", &
   !"Im(exactSf_link1)", &
@@ -111,7 +141,9 @@ double precision :: Sb, SbS, SbL, SbF
 complex(kind(0d0)) :: SfL2
 complex(kind(0d0)) :: Acomp_tr ! trace compensator
 complex(kind(0d0)) :: Acomp_face ! face compensator
-complex(kind(0d0)) :: Acomp_reg ! regularized compensator
+complex(kind(0d0)) :: Acomp_reg1 ! regularized compensator
+complex(kind(0d0)) :: Acomp_reg01 ! regularized compensator
+complex(kind(0d0)) :: Acomp_reg001 ! regularized compensator
 complex(kind(0d0)) :: CSF_site ! 4-fermi term in Aface-(SFsite+mass)
 complex(kind(0d0)) :: CSF_link ! 4-fermi term in Aface-(SFlink+mass)
 complex(kind(0d0)) :: CSF_face ! 4-fermi term in Aface-(SFface+mass)
@@ -131,6 +163,7 @@ complex(kind(0d0)) :: WT_link
 complex(kind(0d0)) :: WT_face
 complex(kind(0d0)) :: Sf1, Sf2, Sf3, Sf4, Sf5
 complex(kind(0d0)) :: XiQS
+complex(kind(0d0)) :: tmp_obs
 !complex(kind(0d0)), allocatable :: WT1(:)
 !complex(kind(0d0)), allocatable :: WT2(:)
 complex(kind(0d0)) :: WT1, WT2
@@ -437,7 +470,7 @@ do
     !! WT identity face
        WT_face=dcmplx(SbF)+Sf4+Sf5+mass_cont_face+(0.5d0,0d0)*dcmplx( (NMAT*NMAT-1)*(global_num_faces) )
        if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble(WT_face)
-       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble((0d0,-1d0)*WT_face)
+       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble((0d0,-1d0)*WT_link)
 
     !! Pfaffian phase
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble(phase_pf)
@@ -451,22 +484,22 @@ do
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble( (0d0,-1d0)*Acomp_tr/cdabs(Acomp_tr))
 
     !"|Areg(1.0)|", &
-      call calc_regularized_compensator(Acomp_reg,PhiMat,1d0)
-      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') cdabs(Acomp_reg)
-      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble(Acomp_reg/cdabs(Acomp_reg))
-      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble( (0d0,-1d0)*Acomp_reg/cdabs(Acomp_reg))
+      call calc_regularized_compensator(Acomp_reg1,PhiMat,1d0)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') cdabs(Acomp_reg1)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble(Acomp_reg1/cdabs(Acomp_reg1))
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble( (0d0,-1d0)*Acomp_reg1/cdabs(Acomp_reg1))
 
     !"|Areg(0.1)|", &
-      call calc_regularized_compensator(Acomp_reg,PhiMat,1d-1)
+      call calc_regularized_compensator(Acomp_reg01,PhiMat,1d-1)
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') cdabs(Acomp_reg)
-      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble(Acomp_reg/cdabs(Acomp_reg))
-      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble( (0d0,-1d0)*Acomp_reg/cdabs(Acomp_reg))
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble(Acomp_reg01/cdabs(Acomp_reg01))
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble( (0d0,-1d0)*Acomp_reg01/cdabs(Acomp_reg01))
 
     !"|Areg(0.01)|", &
-      call calc_regularized_compensator(Acomp_reg,PhiMat,1d-2)
-      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') cdabs(Acomp_reg)
-      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble(Acomp_reg/cdabs(Acomp_reg))
-      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble( (0d0,-1d0)*Acomp_reg/cdabs(Acomp_reg))
+      call calc_regularized_compensator(Acomp_reg001,PhiMat,1d-2)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') cdabs(Acomp_reg001)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble(Acomp_reg001/cdabs(Acomp_reg001))
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble( (0d0,-1d0)*Acomp_reg001/cdabs(Acomp_reg001))
 
     !! Face compensator
       call calc_face_compensator(&
@@ -619,6 +652,98 @@ do
 !          write(*,'(E15.8,2X)',advance='no')  dble((0d0,-1d0)*tmp*tmp2)
 !        endif
 !      enddo
+
+    ! WT with Atr site
+      tmp_obs=WT_site*cdabs(Acomp_tr)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble(tmp_obs)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble((0d0,-1d0)*tmp_obs)
+
+    ! WT with Atr link
+      tmp_obs=WT_link*cdabs(Acomp_tr)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble(tmp_obs)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble((0d0,-1d0)*tmp_obs)
+
+    ! WT with Atr face
+      tmp_obs=WT_face*cdabs(Acomp_tr)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble(tmp_obs)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble((0d0,-1d0)*tmp_obs)
+
+    ! WT with Aface site
+      tmp_obs=WT_site*cdabs(Acomp_face) + CFS_site*dconjg(Acomp_face)/cdabs(Acomp_face)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble(tmp_obs)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble((0d0,-1d0)*tmp_obs)
+
+    ! WT with Aface link
+      tmp_obs=WT_link*cdabs(Acomp_face) + CFS_link*dconjg(Acomp_face)/cdabs(Acomp_face)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble(tmp_obs)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble((0d0,-1d0)*tmp_obs)
+
+    ! WT with Aface face
+      tmp_obs=WT_face*cdabs(Acomp_face) + CFS_link*dconjg(Acomp_face)/cdabs(Acomp_face)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble(tmp_obs)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble((0d0,-1d0)*tmp_obs)
+
+
+    ! WT with Areg1 site
+      tmp_obs=WT_site*Acomp_reg1*Acomp_tr/dcmplx(cdabs(Acomp_tr))
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble(tmp_obs)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble((0d0,-1d0)*tmp_obs)
+
+    ! WT with Areg1 link
+      tmp_obs=WT_link*cdabs(Acomp_reg1) *Acomp_tr/dcmplx(cdabs(Acomp_tr))
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble(tmp_obs)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble((0d0,-1d0)*tmp_obs)
+
+    ! WT with Areg1 face
+      tmp_obs=WT_face*cdabs(Acomp_reg1) *Acomp_tr/dcmplx(cdabs(Acomp_tr))
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble(tmp_obs)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble((0d0,-1d0)*tmp_obs)
+
+    ! WT with Areg01 site
+      tmp_obs=WT_site*Acomp_reg01*Acomp_tr/dcmplx(cdabs(Acomp_tr))
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble(tmp_obs)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble((0d0,-1d0)*tmp_obs)
+
+    ! WT with Areg01 link
+      tmp_obs=WT_link*cdabs(Acomp_reg01) *Acomp_tr/dcmplx(cdabs(Acomp_tr))
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble(tmp_obs)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble((0d0,-1d0)*tmp_obs)
+
+    ! WT with Areg01 face
+      tmp_obs=WT_face*cdabs(Acomp_reg01) *Acomp_tr/dcmplx(cdabs(Acomp_tr))
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble(tmp_obs)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble((0d0,-1d0)*tmp_obs)
+
+    ! WT with Areg001 site
+      tmp_obs=WT_site*Acomp_reg001*Acomp_tr/dcmplx(cdabs(Acomp_tr))
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble(tmp_obs)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble((0d0,-1d0)*tmp_obs)
+
+    ! WT with Areg001 link
+      tmp_obs=WT_link*cdabs(Acomp_reg001) *Acomp_tr/dcmplx(cdabs(Acomp_tr))
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble(tmp_obs)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble((0d0,-1d0)*tmp_obs)
+
+    ! WT with Areg001 face
+      tmp_obs=WT_face*cdabs(Acomp_reg001) *Acomp_tr/dcmplx(cdabs(Acomp_tr))
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble(tmp_obs)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble((0d0,-1d0)*tmp_obs)
+
+
+
+    if(MYRANK==0) write(*,*)
+  else
+    exit
+
+
+    if(MYRANK==0) write(*,*)
+  else
+    exit
+
+
+    if(MYRANK==0) write(*,*)
+  else
+    exit
 
     if(MYRANK==0) write(*,*)
   else
