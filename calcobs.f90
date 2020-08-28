@@ -491,7 +491,7 @@ do
 
     !"|Areg(0.1)|", &
       call calc_regularized_compensator(Acomp_reg01,PhiMat,1d-1)
-      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') cdabs(Acomp_reg)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') cdabs(Acomp_reg01)
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble(Acomp_reg01/cdabs(Acomp_reg01))
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble( (0d0,-1d0)*Acomp_reg01/cdabs(Acomp_reg01))
 
@@ -669,17 +669,17 @@ do
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble((0d0,-1d0)*tmp_obs)
 
     ! WT with Aface site
-      tmp_obs=WT_site*cdabs(Acomp_face) + CFS_site*dconjg(Acomp_face)/cdabs(Acomp_face)
+      tmp_obs=WT_site*cdabs(Acomp_face) + CSF_site*dconjg(Acomp_face)/cdabs(Acomp_face)
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble(tmp_obs)
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble((0d0,-1d0)*tmp_obs)
 
     ! WT with Aface link
-      tmp_obs=WT_link*cdabs(Acomp_face) + CFS_link*dconjg(Acomp_face)/cdabs(Acomp_face)
+      tmp_obs=WT_link*cdabs(Acomp_face) + CSF_link*dconjg(Acomp_face)/cdabs(Acomp_face)
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble(tmp_obs)
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble((0d0,-1d0)*tmp_obs)
 
     ! WT with Aface face
-      tmp_obs=WT_face*cdabs(Acomp_face) + CFS_link*dconjg(Acomp_face)/cdabs(Acomp_face)
+      tmp_obs=WT_face*cdabs(Acomp_face) + CSF_link*dconjg(Acomp_face)/cdabs(Acomp_face)
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble(tmp_obs)
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble((0d0,-1d0)*tmp_obs)
 
