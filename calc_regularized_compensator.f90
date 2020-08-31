@@ -54,13 +54,13 @@ endif
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! output measurements 
+if( MYRANK == 0 ) then
+  write(*,'(a,f6.2,a,f6.2)') "# min=0.0, max=",max_epsilon,", interval=",interval
+endif
 do 
   !! read configuration
   call read_config_from_medfile(Umat,PhiMat,ite,N_MEDFILE,control)
   call MPI_BCAST(control, 1, MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
-  if( MYRANK == 0 ) then
-    write(*,'(a,f6.2,a,f6.2)') "# min=0.0, max=",max_epsilon,", interval=",interval
-  endif
   if( control == 1 ) exit
 
   if( MYRANK == 0 ) then
