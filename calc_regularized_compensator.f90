@@ -27,6 +27,7 @@ integer :: num_fermion, eular, ratio
 double precision, parameter :: max_epsilon=5.0d0
 double precision, parameter :: interval=0.1d0
 double precision :: regulator
+integer :: ite
 integer :: i
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -79,7 +80,7 @@ do
     call calc_regularized_compensator(Acomp_reg,PhiMat,regulator)
     if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') cdabs(Acomp_reg)
     if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble(Acomp_reg/cdabs(Acomp_reg))
-    if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble( (0d0,-1d0)*Acomp_reg3/cdabs(Acomp_reg))
+    if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble( (0d0,-1d0)*Acomp_reg/cdabs(Acomp_reg))
 
     regulator = regulator + interval
   enddo
@@ -92,10 +93,6 @@ do
 enddo
 if( MYRANK == 0 ) then
   close(N_MEDFILE)
-  !close(N_DinvFILE)
-  do i=1,num_operators
-    close(N_operatorFILE(i))
-  enddo
 endif
 
 call stop_for_test
