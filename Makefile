@@ -132,7 +132,7 @@ comp:$(PROG_REGCOMP)
 
 $(OBJ_REGCOMP): simulation.o $(OBJ_CALCOBSCOMM) global_parameters.o parallel.o
 $(PROG_REGCOMP): $(OBJ_REGCOMP) $(OBJS) $(OBJ_CALCOBSMAIN) 
-	 $(FC) $(FLAGS_CLUSTER) -o $@ $(OBJ_CALCOBSCOMM) $(OBJS) $(OBJ_REGCOMP)
+	 $(FC) $(FLAGS_CLUSTER) -o $@ $(OBJ_CALCOBSCOMM) $(OBJS) $(OBJ_REGCOMP) $(LIB)
 
 #########################################
 # moduleをコンパイルするときの依存性を解消
