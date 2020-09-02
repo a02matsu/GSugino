@@ -81,6 +81,10 @@ SRC_WriteConf=writeconfig.f90
 OBJ_WriteConf=writeconfig.o
 PROG_WriteConf=writeconfig.exe
 #########################
+SRC_REGCOMP=calc_regularized_compensator.f90  
+OBJ_REGCOMP=calc_regularized_compensator.o   
+PROG_REGCOMP=calc_regularized_compensator.exe
+#########################
 DIR_OBSERVABLES=Observables
 
 
@@ -122,6 +126,13 @@ writeconf:$(PROG_WriteConf)
 
 $(PROG_WriteConf): $(OBJ_WriteConf) $(OBJS) $(OBJ_CALCOBSCOMM) 
 	$(FC) $(FLAGS_CLUSTER) -o $@ $(OBJ_CALCOBSCOMM) $(OBJS) $(OBJ_WriteConf) $(LIB)
+
+#########################################
+comp:$(PROG_REGCOMP)
+
+$(OBJ_REGCOMP): simulation.o $(OBJ_CALCOBSCOMM) global_parameters.o parallel.o
+$(PROG_REGCOMP): $(OBJ_REGCOMP) $(OBJS) $(OBJ_CALCOBSMAIN) 
+	 $(FC) $(FLAGS_CLUSTER) -o $@ $(OBJ_CALCOBSCOMM) $(OBJS) $(OBJ_REGCOMP) $(LIB)
 
 #########################################
 # moduleをコンパイルするときの依存性を解消

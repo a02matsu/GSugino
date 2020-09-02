@@ -44,8 +44,19 @@ if( iarg < 1 ) then
   stop
 endif
 call getarg(1,MEDFILE)
-DinvFILE=trim("MEDCONF/Dinv"//MEDFILE(18:))
-divJFILE=trim("OBS/U1V"//MEDFILE(18:))
+!DinvFILE=trim("MEDCONF/Dinv"//MEDFILE(18:))
+!divJFILE=trim("OBS/U1V"//MEDFILE(18:))
+if( iarg == 1 ) then
+  DinvFILE=trim("MEDCONF/Dinv"//MEDFILE(18:))
+else
+  call getarg(2,DinvFILE)
+endif
+if( iarg <= 2 ) then
+  divJFILE=trim("OBS/U1V"//MEDFILE(18:))
+else
+  call getarg(3,divJFILE)
+endif
+
 INPUT_FILE_NAME="inputfile"
 
 !write(*,*) DinvFile, divJFILE
