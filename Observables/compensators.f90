@@ -18,7 +18,7 @@ do s=1,num_sites
   tmp=(0d0,0d0)
   do i=1,NMAT
     do j=1,NMAT
-      tmp=tmp+PhiMat(i,j,s)*PhiMat(i,j,s)
+      tmp=tmp+PhiMat(i,j,s)*PhiMat(j,i,s)
     enddo
   enddo
   tmp=(tmp/dcmplx(dble(NMAT)))
