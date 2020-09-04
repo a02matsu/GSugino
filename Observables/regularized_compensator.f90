@@ -21,7 +21,7 @@ do s=1,num_sites
   do i=1,NMAT
     do j=1,NMAT
       if( i .ne. j ) then
-        tmp=tmp+PhiMat(i,j,s)*PhiMat(i,j,s)
+        tmp=tmp+PhiMat(i,j,s)*PhiMat(j,i,s)
       else
         tmp=tmp+(PhiMat(i,i,s)+dcmplx(reg))*(PhiMat(i,i,s)+dcmplx(reg))
       endif
@@ -65,7 +65,7 @@ do s=1,num_sites
   !! Tr(\phi^2) 
   do i=1,NMAT
     do j=1,NMAT
-      tmp=tmp+PhiMat(i,j,s)*PhiMat(i,j,s)
+      tmp=tmp+PhiMat(i,j,s)*PhiMat(j,i,s)
     enddo
   enddo
   tmp=(tmp/dcmplx(dble(NMAT)))
