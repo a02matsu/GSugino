@@ -26,7 +26,7 @@ do s=1,num_sites
   !phase=atan2(dble(tmp),dble(tmp*(0d0,-1d0)))
   phase=atan2(dble(tmp*(0d0,-1d0)),dble(tmp))
 
-  A_tmp=A_tmp + dcmplx(radius**ratio) * cdexp( (0d0,1d0)*dcmplx(phase*ratio) )
+  A_tmp=A_tmp + dcmplx(radius**ratio) * ( dcos( phase*ratio ) + (0d0,-1d0)*dsin( phase*ratio) )
 enddo
 
 call MPI_REDUCE(A_tmp,Acomp,1,MPI_DOUBLE_COMPLEX, &
