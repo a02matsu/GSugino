@@ -3015,17 +3015,21 @@ complex(kind(0d0)), intent(inout) :: PHIMAT(1:NMAT,1:NMAT,1:num_necessary_sites)
 integer :: s_send,l_send
 integer :: s_recv,l_recv
 integer :: local, rank, tag
-integer, allocatable :: ISEND(:), IRECV(:) ! for MPI_WAIT 
+!integer, allocatable :: ISEND(:), IRECV(:) ! for MPI_WAIT 
+integer :: ISEND_S(1:num_send_sites)
+integer :: IRECV_S(1:num_recv_sites)
+integer :: ISEND_L(1:num_send_links)
+integer :: IRECV_L(1:num_recv_links)
 
 !!!!!!!!
-allocate(ISEND(1:num_send_sites))
-allocate(IRECV(1:num_recv_sites))
+!allocate(ISEND(1:num_send_sites))
+!allocate(IRECV(1:num_recv_sites))
 do s_send=1,num_send_sites
   local=send_sites(s_send)%label_
   rank=send_sites(s_send)%rank_
   tag=10000*rank + global_site_of_local(local)
 
-  call MPI_ISEND(PhiMat(:,:,local),NMAT*NMAT,MPI_DOUBLE_COMPLEX,rank,tag,MPI_COMM_WORLD,ISEND(s_send),IERR)
+  call MPI_ISEND(PhiMat(:,:,local),NMAT*NMAT,MPI_DOUBLE_COMPLEX,rank,tag,MPI_COMM_WORLD,ISEND_S(s_send),IERR)
 enddo
 
 do s_recv=1,num_recv_sites
@@ -3033,27 +3037,27 @@ do s_recv=1,num_recv_sites
   rank=recv_sites(s_recv)%rank_
   tag=10000*MYRANK + global_site_of_local(local)
 
-  call MPI_IRECV(PhiMat(:,:,local),NMAT*NMAT,MPI_DOUBLE_COMPLEX,rank,tag,MPI_COMM_WORLD,IRECV(s_recv),IERR)
+  call MPI_IRECV(PhiMat(:,:,local),NMAT*NMAT,MPI_DOUBLE_COMPLEX,rank,tag,MPI_COMM_WORLD,IRECV_S(s_recv),IERR)
 enddo
 
 do s_send=1,num_send_sites
-  call MPI_WAIT(ISEND(s_send),ISTATUS,IERR)
+  call MPI_WAIT(ISEND_S(s_send),ISTATUS,IERR)
 enddo
 do s_recv=1,num_recv_sites
-  call MPI_WAIT(IRECV(s_recv),ISTATUS,IERR)
+  call MPI_WAIT(IRECV_S(s_recv),ISTATUS,IERR)
 enddo
 
-deallocate(ISEND, IRECV)
+!deallocate(ISEND, IRECV)
 
 !!!!!!!!
-allocate(ISEND(1:num_send_links))
-allocate(IRECV(1:num_recv_links))
+!allocate(ISEND(1:num_send_links))
+!allocate(IRECV(1:num_recv_links))
 do l_send=1,num_send_links
   local=send_links(l_send)%label_
   rank=send_links(l_send)%rank_
   tag=10000*rank + global_link_of_local(local)
 
-  call MPI_ISEND(UMat(:,:,local),NMAT*NMAT,MPI_DOUBLE_COMPLEX,rank,tag,MPI_COMM_WORLD,ISEND(l_send),IERR)
+  call MPI_ISEND(UMat(:,:,local),NMAT*NMAT,MPI_DOUBLE_COMPLEX,rank,tag,MPI_COMM_WORLD,ISEND_L(l_send),IERR)
 enddo
 
 do l_recv=1,num_recv_links
@@ -3061,14 +3065,14 @@ do l_recv=1,num_recv_links
   rank=recv_links(l_recv)%rank_
   tag=10000*MYRANK + global_link_of_local(local)
 
-  call MPI_IRECV(UMat(:,:,local),NMAT*NMAT,MPI_DOUBLE_COMPLEX,rank,tag,MPI_COMM_WORLD,IRECV(l_recv),IERR)
+  call MPI_IRECV(UMat(:,:,local),NMAT*NMAT,MPI_DOUBLE_COMPLEX,rank,tag,MPI_COMM_WORLD,IRECV_L(l_recv),IERR)
 enddo
 
 do l_send=1,num_send_links
-  call MPI_WAIT(ISEND(l_send),ISTATUS,IERR)
+  call MPI_WAIT(ISEND_L(l_send),ISTATUS,IERR)
 enddo
 do l_recv=1,num_recv_links
-  call MPI_WAIT(IRECV(l_recv),ISTATUS,IERR)
+  call MPI_WAIT(IRECV_L(l_recv),ISTATUS,IERR)
 enddo
 
 end subroutine syncronize_bosons
@@ -3084,11 +3088,13 @@ complex(kind(0d0)), intent(inout) :: eta(1:NMAT,1:NMAT,1:num_necessary_sites)
 integer :: s_send
 integer :: s_recv
 integer :: local, rank, tag
-integer, allocatable :: ISEND(:), IRECV(:) ! for MPI_WAIT 
+!integer, allocatable :: ISEND(:), IRECV(:) ! for MPI_WAIT 
+integer :: ISEND(1:num_send_sites)
+integer :: IRECV(1:num_recv_sites)
 
 !!!!!!!!
-allocate(ISEND(1:num_send_sites))
-allocate(IRECV(1:num_recv_sites))
+!allocate(ISEND(1:num_send_sites))
+!allocate(IRECV(1:num_recv_sites))
 do s_send=1,num_send_sites
   local=send_sites(s_send)%label_
   rank=send_sites(s_send)%rank_
@@ -3112,7 +3118,7 @@ do s_recv=1,num_recv_sites
   call MPI_WAIT(IRECV(s_recv),ISTATUS,IERR)
 enddo
 
-deallocate(ISEND, IRECV)
+!deallocate(ISEND, IRECV)
 end subroutine syncronize_sites
 #endif
 
@@ -3127,13 +3133,15 @@ complex(kind(0d0)), intent(inout) :: lambda(1:NMAT,1:NMAT,1:num_necessary_links)
 integer :: s_send
 integer :: s_recv
 integer :: local, rank, tag
-integer, allocatable :: ISEND(:), IRECV(:) ! for MPI_WAIT 
+!integer, allocatable :: ISEND(:), IRECV(:) ! for MPI_WAIT 
+integer :: ISEND(1:num_send_links)
+integer :: IRECV(1:num_recv_links)
 complex(kind(0d0)) :: tmpmat(1:NMAT,1:NMAT)
 
 !lambda=tmplambda
 !!!!!!!!
-allocate(ISEND(1:num_send_links))
-allocate(IRECV(1:num_recv_links))
+!allocate(ISEND(1:num_send_links))
+!allocate(IRECV(1:num_recv_links))
 do s_send=1,num_send_links
   local=send_links(s_send)%label_
   rank=send_links(s_send)%rank_
@@ -3158,7 +3166,7 @@ do s_recv=1,num_recv_links
   call MPI_WAIT(IRECV(s_recv),ISTATUS,IERR)
 enddo
 
-deallocate(ISEND, IRECV)
+!deallocate(ISEND, IRECV)
 
 end subroutine syncronize_links
 #endif
@@ -3174,11 +3182,13 @@ complex(kind(0d0)), intent(inout) :: chi(1:NMAT,1:NMAT,1:num_necessary_faces)
 integer :: s_send
 integer :: s_recv
 integer :: local, rank, tag
-integer, allocatable :: ISEND(:), IRECV(:) ! for MPI_WAIT 
+!integer, allocatable :: ISEND(:), IRECV(:) ! for MPI_WAIT 
+integer :: ISEND(1:num_send_faces)
+integer :: IRECV(1:num_recv_faces)
 
 !!!!!!!!
-allocate(ISEND(1:num_send_faces))
-allocate(IRECV(1:num_recv_faces))
+!allocate(ISEND(1:num_send_faces))
+!allocate(IRECV(1:num_recv_faces))
 do s_send=1,num_send_faces
   local=send_faces(s_send)%label_
   rank=send_faces(s_send)%rank_
@@ -3203,7 +3213,7 @@ do s_recv=1,num_recv_faces
   call MPI_WAIT(IRECV(s_recv),ISTATUS,IERR)
 enddo
 
-deallocate(ISEND, IRECV)
+!deallocate(ISEND, IRECV)
 end subroutine syncronize_faces
 #endif
 

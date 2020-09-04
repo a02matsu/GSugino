@@ -757,7 +757,9 @@ contains
   integer :: s_send
   integer :: s_recv
   integer :: local, rank, tag
-  integer, allocatable :: ISEND(:), IRECV(:) ! for MPI_WAIT 
+  !integer, allocatable :: ISEND(:), IRECV(:) ! for MPI_WAIT 
+  integer :: ISEND(1:num_send_sites)
+  integer :: IRECV(1:num_recv_sites)
   
   integer :: ls, gf, r, i,j, num
   
@@ -776,8 +778,8 @@ contains
     enddo
   enddo
   !!!!!!!!
-  allocate(ISEND(1:num_send_sites))
-  allocate(IRECV(1:num_recv_sites))
+  !allocate(ISEND(1:num_send_sites))
+  !allocate(IRECV(1:num_recv_sites))
   do s_send=1,num_send_sites
     local=send_sites(s_send)%label_
     rank=send_sites(s_send)%rank_
@@ -801,7 +803,7 @@ contains
     call MPI_WAIT(IRECV(s_recv),ISTATUS,IERR)
   enddo
   
-  deallocate(ISEND, IRECV)
+  !deallocate(ISEND, IRECV)
   
   !! from tmp_eta to eta
   do ls=1,num_necessary_sites
@@ -832,10 +834,14 @@ contains
   integer :: s_send
   integer :: s_recv
   integer :: local, rank, tag
-  integer, allocatable :: ISEND(:), IRECV(:) ! for MPI_WAIT 
+  !integer, allocatable :: ISEND(:) ! for MPI_WAIT 
+  !integer, allocatable :: IRECV(:) ! for MPI_WAIT 
+  integer :: ISEND(1:num_send_links) ! for MPI_WAIT 
+  integer :: IRECV(1:num_recv_links) ! for MPI_WAIT 
   complex(kind(0d0)) :: tmpmat(1:NMAT,1:NMAT)
   
   integer :: ll, gf, r, i,j, num
+
   
   num=NMAT**4*pekepeke*global_num_faces
   !! prepare tmp_lambda
@@ -852,8 +858,8 @@ contains
     enddo
   enddo
   !!!!!!!!
-  allocate(ISEND(1:num_send_links))
-  allocate(IRECV(1:num_recv_links))
+  !allocate(ISEND(1:num_send_links))
+  !allocate(IRECV(1:num_recv_links))
   do s_send=1,num_send_links
     local=send_links(s_send)%label_
     rank=send_links(s_send)%rank_
@@ -878,7 +884,7 @@ contains
     call MPI_WAIT(IRECV(s_recv),ISTATUS,IERR)
   enddo
   
-  deallocate(ISEND, IRECV)
+  !deallocate(ISEND, IRECV)
 
   !! from tmp_lambda to tmp
   do ll=1,num_necessary_links
@@ -907,7 +913,9 @@ contains
   integer :: s_send
   integer :: s_recv
   integer :: local, rank, tag
-  integer, allocatable :: ISEND(:), IRECV(:) ! for MPI_WAIT 
+  !integer, allocatable :: ISEND(:), IRECV(:) ! for MPI_WAIT 
+  integer :: ISEND(1:num_send_faces)
+  integer :: IRECV(1:num_recv_faces)
   complex(kind(0d0)) :: tmpmat(1:NMAT,1:NMAT)
   
   integer :: lf, gf, r, i,j, num
@@ -927,8 +935,8 @@ contains
     enddo
   enddo
   !!!!!!!!
-  allocate(ISEND(1:num_send_faces))
-  allocate(IRECV(1:num_recv_faces))
+  !allocate(ISEND(1:num_send_faces))
+  !allocate(IRECV(1:num_recv_faces))
   do s_send=1,num_send_faces
     local=send_faces(s_send)%label_
     rank=send_faces(s_send)%rank_
@@ -953,7 +961,7 @@ contains
     call MPI_WAIT(IRECV(s_recv),ISTATUS,IERR)
   enddo
   
-  deallocate(ISEND, IRECV)
+  !deallocate(ISEND, IRECV)
 
   !! from tmp_chi to tmp
   do lf=1,num_necessary_faces
