@@ -28,7 +28,8 @@ do ls=1,num_sites
   enddo
   tmp=dconjg(tmp)/dcmplx(dble(NMAT))
   radius=cdabs(tmp)
-  phase=atan2(dble(tmp),dble(tmp*(0d0,-1d0)))
+  !phase=atan2(dble(tmp),dble(tmp*(0d0,-1d0)))
+  phase=atan2(dble(tmp*(0d0,-1d0)),dble(tmp))
 
   tmp_Acomp=tmp_Acomp + dcmplx(radius**ratio) * cdexp( (0d0,1d0)*dcmplx(phase*ratio) )
 enddo
@@ -66,7 +67,8 @@ do ls=1,num_necessary_sites
   enddo
   tmp=dconjg(tmp)/dcmplx(dble(NMAT))
   radius=cdabs(tmp)
-  phase=atan2(dble(tmp),dble(tmp*(0d0,-1d0)))
+  !phase=atan2(dble(tmp),dble(tmp*(0d0,-1d0)))
+  phase=atan2(dble(tmp*(0d0,-1d0)),dble(tmp))
 
   phibar(ls) = dcmplx(radius**ratio) * cdexp( (0d0,1d0)*dcmplx(phase*ratio) )
 enddo
@@ -142,7 +144,8 @@ do gs=1,global_num_sites
     trace = dconjg(trace)/dcmplx(dble(NMAT))
   
     radius=cdabs(trace)
-    phase=atan2(dble(trace),dble(trace*(0d0,-1d0)))
+    !phase=atan2(dble(trace),dble(trace*(0d0,-1d0)))
+    phase=atan2(dble(trace*(0d0,-1d0)),dble(trace))
     tr_phibar2 &
       = dcmplx(radius**(ratio-1d0)) * cdexp( (0d0,1d0)*dcmplx(phase*(ratio-1d0)) )
   endif
