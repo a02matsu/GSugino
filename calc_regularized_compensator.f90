@@ -25,7 +25,7 @@ integer :: num_fermion, eular, ratio
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! misc
 double precision, parameter :: max_epsilon=5.0d0
-double precision, parameter :: interval=0.1d0
+double precision, parameter :: interval=0.01d0
 double precision :: regulator
 integer :: ite
 integer :: i
