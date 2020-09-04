@@ -20,6 +20,7 @@ complex(kind(0d0)), intent(in) :: Gchi_chi(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_
 
 call calc_face_compensator_main(Acomp,Umat,PhiMat,Geta_chi)
 call calc_4fermi_in_CSFsite(CSF_site, Umat, Phimat, Geta_eta, Gchi_eta )
+  write(*,*) "##########", num_send_links, num_recv_links
 call calc_4fermi_in_CSFlink(CSF_link, Umat, Phimat, Geta_eta, Gchi_eta, Geta_lambda, Gchi_lambda )
 call calc_4fermi_in_CSFface(CSF_face, Umat, Phimat, Geta_eta, Gchi_eta, Geta_chi, Gchi_chi, Geta_lambda, Gchi_lambda )
 
