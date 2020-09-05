@@ -9,10 +9,8 @@ complex(kind(0d0)) tmp,A_tmp
 double precision :: radius, phase, ratio
 integer :: s,i,j,eular
 
-
 eular=global_num_sites-global_num_links+global_num_faces 
 ratio=dble(-(NMAT*NMAT-1)*eular)/4d0 
-Acomp=(0d0,0d0)
 A_tmp=(0d0,0d0)
 do s=1,num_sites
   tmp=(0d0,0d0)
@@ -26,17 +24,19 @@ do s=1,num_sites
   !phase=atan2(dble(tmp),dble(tmp*(0d0,-1d0)))
   phase=atan2(dble(tmp*(0d0,-1d0)),dble(tmp))
 
-  A_tmp=A_tmp + dcmplx(radius**ratio) * cdexp( (0d0,1d0)*dcmplx(phase*ratio) )
+  A_tmp=A_tmp + dcmplx(radius**ratio) * exp( (0d0,1d0)*dcmplx(phase*ratio) )
   !A_tmp=A_tmp + dcmplx(radius**ratio) * dcmplx( dcmplx(dcos( phase*ratio )) + (0d0,1d0)*dcmplx(dsin( phase*ratio)) )
   !A_tmp=A_tmp + tmp**ratio
 enddo
 
+Acomp=(0d0,0d0)
 call MPI_REDUCE(A_tmp,Acomp,1,MPI_DOUBLE_COMPLEX, &
   MPI_SUM,0,MPI_COMM_WORLD,IERR)
   
 Acomp=Acomp/dcmplx(dble(global_num_sites))
 
-end subroutine 
+end subroutine calc_trace_compensator
+
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 subroutine calc_VM_compensator(Acomp,PhiMat)
