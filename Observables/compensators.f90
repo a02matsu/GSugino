@@ -9,31 +9,73 @@ complex(kind(0d0)) tmp,A_tmp
 double precision :: radius, phase, ratio
 integer :: s,i,j,eular
 
-
 eular=global_num_sites-global_num_links+global_num_faces 
 ratio=dble(-(NMAT*NMAT-1)*eular)/4d0 
-Acomp=(0d0,0d0)
 A_tmp=(0d0,0d0)
 do s=1,num_sites
   tmp=(0d0,0d0)
   do i=1,NMAT
     do j=1,NMAT
-      tmp=tmp+PhiMat(i,j,s)*PhiMat(i,j,s)
+      tmp=tmp+PhiMat(i,j,s)*PhiMat(j,i,s)
     enddo
   enddo
-  tmp=(tmp/dcmplx(dble(NMAT)))
-  radius=cdabs(tmp)
-  phase=atan2(dble(tmp),dble(tmp*(0d0,-1d0)))
+  radius=cdabs(tmp)/dble(NMAT)
+  !phase=atan2(dble(tmp),dble(tmp*(0d0,-1d0)))
+  phase=atan2(dble(tmp*(0d0,-1d0)),dble(tmp))
 
-  A_tmp=A_tmp + dcmplx(radius**ratio) * cdexp( (0d0,1d0)*dcmplx(phase*ratio) )
+  A_tmp = A_tmp + dcmplx(radius**ratio) * cdexp( (0d0,1d0)*dcmplx(phase*ratio) )
+  !A_tmp=A_tmp + dcmplx(radius**ratio) * dcmplx( dcmplx(dcos( phase*ratio )) + (0d0,1d0)*dcmplx(dsin( phase*ratio)) )
+  !A_tmp=A_tmp + tmp**ratio
 enddo
 
+Acomp=(0d0,0d0)
 call MPI_REDUCE(A_tmp,Acomp,1,MPI_DOUBLE_COMPLEX, &
   MPI_SUM,0,MPI_COMM_WORLD,IERR)
   
 Acomp=Acomp/dcmplx(dble(global_num_sites))
 
-end subroutine 
+end subroutine calc_trace_compensator
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! ( 1/N_s sum_s( 1/N Tr( \phi_s^2 ) ) )^(-r/4)
+subroutine calc_trace_compensator2(Acomp,PhiMat)
+use parallel
+implicit none
+
+complex(kind(0d0)), intent(out) :: Acomp
+complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_necessary_sites)
+complex(kind(0d0)) tmp,A_tmp,Acomp2
+double precision :: radius, phase,ratio
+integer :: s,i,j,eular
+
+eular=global_num_sites-global_num_links+global_num_faces 
+ratio=-dble( (NMAT*NMAT-1)*eular ) / 4d0
+A_tmp=(0d0,0d0)
+do s=1,num_sites
+  tmp=(0d0,0d0)
+  do i=1,NMAT
+    do j=1,NMAT
+      tmp=tmp+PhiMat(i,j,s)*PhiMat(j,i,s)
+    enddo
+  enddo
+  A_tmp = A_tmp + tmp/dcmplx(NMAT)
+enddo
+
+Acomp2=(0d0,0d0)
+call MPI_REDUCE(A_tmp,Acomp2,1,MPI_DOUBLE_COMPLEX, &
+  MPI_SUM,0,MPI_COMM_WORLD,IERR)
+Acomp2=Acomp2/dcmplx(dble(global_num_sites))
+
+if( MYRANK==0 ) then 
+  radius=cdabs(Acomp2)
+  phase=atan2(dble(Acomp2*(0d0,-1d0)),dble(Acomp2))
+
+  Acomp = radius**ratio * cdexp( (0d0,1d0)*phase*ratio )
+endif
+  
+
+end subroutine calc_trace_compensator2
+
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 subroutine calc_VM_compensator(Acomp,PhiMat)

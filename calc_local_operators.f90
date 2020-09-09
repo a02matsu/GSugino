@@ -167,7 +167,8 @@ do
       call trace_MM(ctmp, phimat(:,:,ls),phimat(:,:,ls))
       ctmp=ctmp/dcmplx(NMAT)
       radius=cdabs(ctmp)
-      phase=atan2(dble(ctmp),dble(ctmp*(0d0,-1d0)))
+      !phase=atan2(dble(ctmp),dble(ctmp*(0d0,-1d0)))
+      phase=atan2(dble(ctmp*(0d0,-1d0)),dble(ctmp))
 
       phi_site(ls)=dcmplx(radius**(-dble(ratio)/2d0)) &
         * cdexp( (0d0,1d0)*dcmplx(phase*dble(-ratio/2d0)) ) 

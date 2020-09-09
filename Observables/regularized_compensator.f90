@@ -21,7 +21,7 @@ do s=1,num_sites
   do i=1,NMAT
     do j=1,NMAT
       if( i .ne. j ) then
-        tmp=tmp+PhiMat(i,j,s)*PhiMat(i,j,s)
+        tmp=tmp+PhiMat(i,j,s)*PhiMat(j,i,s)
       else
         tmp=tmp+(PhiMat(i,i,s)+dcmplx(reg))*(PhiMat(i,i,s)+dcmplx(reg))
       endif
@@ -29,7 +29,8 @@ do s=1,num_sites
   enddo
   tmp=(tmp/dcmplx(dble(NMAT)))
   radius=cdabs(tmp)
-  phase=atan2(dble(tmp),dble(tmp*(0d0,-1d0)))
+  !phase=atan2(dble(tmp),dble(tmp*(0d0,-1d0)))
+  phase=atan2(dble(tmp*(0d0,-1d0)),dble(tmp))
 
   A_tmp=A_tmp + dcmplx(radius**ratio) * cdexp( (0d0,1d0)*dcmplx(phase*ratio) )
 enddo
@@ -64,12 +65,13 @@ do s=1,num_sites
   !! Tr(\phi^2) 
   do i=1,NMAT
     do j=1,NMAT
-      tmp=tmp+PhiMat(i,j,s)*PhiMat(i,j,s)
+      tmp=tmp+PhiMat(i,j,s)*PhiMat(j,i,s)
     enddo
   enddo
   tmp=(tmp/dcmplx(dble(NMAT)))
   radius=cdabs(tmp)
-  phase=atan2(dble(tmp),dble(tmp*(0d0,-1d0)))
+  !phase=atan2(dble(tmp),dble(tmp*(0d0,-1d0)))
+  phase=atan2(dble(tmp*(0d0,-1d0)),dble(tmp))
 
   A_tmp=A_tmp + dcmplx(radius**ratio) * cdexp( (0d0,1d0)*dcmplx(phase*ratio) )
 enddo

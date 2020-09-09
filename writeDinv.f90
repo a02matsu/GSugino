@@ -57,9 +57,19 @@ if( iarg ==0 ) then
   stop
 endif
 call getarg(1,MEDFILE)
+if( iarg == 1 ) then
+  DinvFILE=trim("MEDCONF/Dinv"//MEDFILE(18:))
+else
+  call getarg(2,DinvFILE)
+endif
+if( iarg <= 2 ) then
+  EigenFILE=trim("MEDCONF/Eigen"//MEDFILE(18:))
+else
+  call getarg(3,EigenFILE)
+endif
 !call getarg(2,DinvFILE)
-DinvFILE=trim("MEDCONF/Dinv"//MEDFILE(18:))
-EigenFILE=trim("MEDCONF/Eigen"//MEDFILE(18:))
+!DinvFILE=trim("MEDCONF/Dinv"//MEDFILE(18:))
+!EigenFILE=trim("MEDCONF/Eigen"//MEDFILE(18:))
 INPUT_FILE_NAME="inputfile"
   
 call initialization 
