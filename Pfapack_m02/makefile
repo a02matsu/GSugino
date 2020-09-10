@@ -17,7 +17,8 @@ OBJECTS= slasktrd.o slasktrf.o sskbpf10.o sskbpfa.o sskbtrd.o \
 #FORT = gfortran
 #FFLAGS = -O3 
 FORT = ifort 
-FFLAGS = -O3 -ipo #-xHost
+#FFLAGS = -O3 -ipo #-xHost
+FFLAGS = -O3 -ipo  -CB -traceback -g 
 
 all: $(OBJECTS)
 #	$(AR) rvu libpfapack.a $(OBJECTS)

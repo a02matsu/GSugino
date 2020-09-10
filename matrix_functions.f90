@@ -540,6 +540,61 @@ call ZGEMM(C1,C2,NMAT,NMAT,NMAT,alpha, &
 
 end subroutine Matrix_Product
 
+!***********************************************************
+!***********************************************************
+! prod = alpha*MAT1.MAT2 
+!  or
+! prod = alpha*MAT1.MAT2 + prod  with ADD=A
+!  * the size of comm, MAT1 and MAT2 must be the same.
+!  * beta is potional and the default is (0d0,0d0) 
+!  * conj1 and conj2 are optional and 
+!    conj1 = N or C or T (default: N)
+!    conj2 = N or C or T (default: N)
+SUBROUTINE Matrix_Product2(prod,MAT1,MAT2,NMAT,char1,char2,alpha_input,ADD)
+implicit none
+
+
+integer, intent(in) :: NMAT
+complex(kind(0d0)), intent(in) :: MAT1(NMAT,NMAT), MAT2(NMAT,NMAT)
+complex(kind(0d0)), intent(inout) :: prod(NMAT,NMAT)
+character, optional :: char1,char2
+character(3), optional :: ADD
+complex(kind(0d0)), optional :: alpha_input
+character :: C1,C2
+complex(kind(0d0)) :: beta,alpha
+
+
+if (present(char1)) then
+  C1=char1
+else
+  C1='N'
+endif
+
+if (present(char2)) then
+  C2=char2
+else
+  C2='N'
+endif
+
+alpha=(1d0,0d0)
+beta=(0d0,0d0)
+if (present(alpha_input)) then
+  alpha=alpha_input
+endif
+
+if (present(ADD)) then
+  if( ADD == 'ADD' .or. ADD == 'A' ) then 
+    beta=(1d0,0d0)
+  endif
+endif
+
+call ZGEMM(C1,C2,NMAT,NMAT,NMAT,alpha, &
+  MAT1, NMAT, &
+  MAT2, NMAT, &
+  beta, prod, NMAT)
+
+end subroutine Matrix_Product2
+
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ! product of 3 matrices
 ! prod = alpha * MAT1.MAT2.Mat3 

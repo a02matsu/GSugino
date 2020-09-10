@@ -17,11 +17,13 @@ complex(kind(0d0)), intent(in) :: Geta_chi(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_
 complex(kind(0d0)), intent(in) :: Gchi_eta(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_faces,1:num_sites) 
 complex(kind(0d0)), intent(in) :: Gchi_lambda(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_faces,1:num_links) 
 complex(kind(0d0)), intent(in) :: Gchi_chi(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_faces,1:num_faces) 
+integer :: ratio
 
+ratio = (NMAT*NMAT-1)*(global_num_sites-global_num_links+global_num_faces)/2
 call calc_face_compensator_main(Acomp,Umat,PhiMat,Geta_chi)
-call calc_4fermi_in_CSFsite(CSF_site, Umat, Phimat, Geta_eta, Gchi_eta )
-call calc_4fermi_in_CSFlink(CSF_link, Umat, Phimat, Geta_eta, Gchi_eta, Geta_lambda, Gchi_lambda )
-call calc_4fermi_in_CSFface(CSF_face, Umat, Phimat, Geta_eta, Gchi_eta, Geta_chi, Gchi_chi, Geta_lambda, Gchi_lambda )
+call calc_4fermi_in_CSFsite(CSF_site, Umat, Phimat, Geta_eta, Gchi_eta, ratio)
+call calc_4fermi_in_CSFlink(CSF_link, Umat, Phimat, Geta_eta, Gchi_eta, Geta_lambda, Gchi_lambda, ratio )
+call calc_4fermi_in_CSFface(CSF_face, Umat, Phimat, Geta_eta, Gchi_eta, Geta_chi, Gchi_chi, Geta_lambda, Gchi_lambda ,ratio)
 
 
 contains
@@ -101,7 +103,7 @@ contains
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !! 4-fermio terms in C_face SF_site
   subroutine calc_4fermi_in_CSFsite(CSF, Umat, Phimat, &
-      Geta_eta, Gchi_eta )
+      Geta_eta, Gchi_eta, ratio )
   use parallel
   use global_parameters
   use Dirac_operator , only : prod_Dirac_site
@@ -113,51 +115,68 @@ contains
   complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_necessary_sites)
   complex(kind(0d0)), intent(in) :: Geta_eta(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_sites,1:num_sites) 
   complex(kind(0d0)), intent(in) :: Gchi_eta(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_faces,1:num_sites) 
+  integer, intent(in) :: ratio
+
+  complex(kind(0d0)) :: SMAT(1:NMAT,1:NMAT,1:num_necessary_sites,1:NMAT,1:NMAT,0:ratio-1,1:global_num_faces)
+  complex(kind(0d0)) :: FMAT(1:NMAT,1:NMAT,1:num_necessary_sites,1:NMAT,1:NMAT,0:ratio-1,1:global_num_faces)
+  complex(kind(0d0)) :: phibar_p(1:NMAT,1:NMAT,0:ratio)
+
+  complex(kind(0d0)) :: tmp1(1:NMAT,1:NMAT,0:ratio,1:global_num_faces)
+  complex(kind(0d0)) :: tmp2(1:NMAT,1:NMAT,0:ratio,1:global_num_faces)
+  complex(kind(0d0)) :: tmp3(1:NMAT,1:NMAT,0:ratio,1:global_num_faces)
+  complex(kind(0d0)) :: tmp4(1:NMAT,1:NMAT,0:ratio,1:global_num_faces)
+  complex(kind(0d0)) :: ttmp1(1:NMAT,1:NMAT,0:ratio,1:global_num_faces)
+  complex(kind(0d0)) :: ttmp2(1:NMAT,1:NMAT,0:ratio,1:global_num_faces)
+  complex(kind(0d0)) :: ttmp3(1:NMAT,1:NMAT,0:ratio,1:global_num_faces)
+  complex(kind(0d0)) :: ttmp4(1:NMAT,1:NMAT,0:ratio,1:global_num_faces)
   
-  complex(kind(0d0)), allocatable :: SMAT(:,:,:,:,:,:,:) 
-  complex(kind(0d0)), allocatable :: FMAT(:,:,:,:,:,:,:) 
-  complex(kind(0d0)), allocatable :: phibar_p(:,:,:)
+  !complex(kind(0d0)), allocatable :: SMAT(:,:,:,:,:,:,:) 
+  !complex(kind(0d0)), allocatable :: FMAT(:,:,:,:,:,:,:) 
+  !complex(kind(0d0)), allocatable :: phibar_p(:,:,:)
   complex(kind(0d0)) :: DSmat(1:NMAT,1:NMAT,1:num_sites)
   complex(kind(0d0)) :: DFmat(1:NMAT,1:NMAT,1:num_sites)
   complex(kind(0d0)) :: Xi_eta(1:NMAT,1:NMAT,1:num_necessary_sites)
   complex(kind(0d0)) :: trace,tmp
-  complex(kind(0d0)), allocatable :: tmp1(:,:,:,:)
-  complex(kind(0d0)), allocatable :: tmp2(:,:,:,:)
-  complex(kind(0d0)), allocatable :: tmp3(:,:,:,:)
-  complex(kind(0d0)), allocatable :: tmp4(:,:,:,:)
-  complex(kind(0d0)), allocatable :: ttmp1(:,:,:,:)
-  complex(kind(0d0)), allocatable :: ttmp2(:,:,:,:)
-  complex(kind(0d0)), allocatable :: ttmp3(:,:,:,:)
-  complex(kind(0d0)), allocatable :: ttmp4(:,:,:,:)
+  !complex(kind(0d0)), allocatable :: tmp1(:,:,:,:)
+  !complex(kind(0d0)), allocatable :: tmp2(:,:,:,:)
+  !complex(kind(0d0)), allocatable :: tmp3(:,:,:,:)
+  !complex(kind(0d0)), allocatable :: tmp4(:,:,:,:)
+  !complex(kind(0d0)), allocatable :: ttmp1(:,:,:,:)
+  !complex(kind(0d0)), allocatable :: ttmp2(:,:,:,:)
+  !complex(kind(0d0)), allocatable :: ttmp3(:,:,:,:)
+  !complex(kind(0d0)), allocatable :: ttmp4(:,:,:,:)
   
   integer :: ls,lf,gs,gf
   integer :: tag, rank
   integer :: i,j,k,l,p,a,b
-  integer :: ratio
   complex(kind(0d0)) :: tmp_CSF
   
-  ratio = (NMAT*NMAT-1)*(global_num_sites-global_num_links+global_num_faces)/2
-  allocate( SMAT(1:NMAT,1:NMAT,1:num_necessary_sites,1:NMAT,1:NMAT,0:ratio-1,1:global_num_faces) )
-  allocate( FMAT(1:NMAT,1:NMAT,1:num_necessary_sites,1:NMAT,1:NMAT,0:ratio-1,1:global_num_faces) )
-  allocate( phibar_p(1:NMAT,1:NMAT,0:ratio) )
-
-  allocate( tmp1(1:NMAT,1:NMAT,0:ratio,1:global_num_faces) )
-  allocate( tmp2(1:NMAT,1:NMAT,0:ratio,1:global_num_faces) )
-  allocate( tmp3(1:NMAT,1:NMAT,0:ratio,1:global_num_faces) )
-  allocate( tmp4(1:NMAT,1:NMAT,0:ratio,1:global_num_faces) )
-  allocate( ttmp1(1:NMAT,1:NMAT,0:ratio,1:global_num_faces) )
-  allocate( ttmp2(1:NMAT,1:NMAT,0:ratio,1:global_num_faces) )
-  allocate( ttmp3(1:NMAT,1:NMAT,0:ratio,1:global_num_faces) )
-  allocate( ttmp4(1:NMAT,1:NMAT,0:ratio,1:global_num_faces) )
+  !ratio = (NMAT*NMAT-1)*(global_num_sites-global_num_links+global_num_faces)/2
+  !allocate( SMAT(1:NMAT,1:NMAT,1:num_necessary_sites,1:NMAT,1:NMAT,0:ratio-1,1:global_num_faces) )
+  !allocate( FMAT(1:NMAT,1:NMAT,1:num_necessary_sites,1:NMAT,1:NMAT,0:ratio-1,1:global_num_faces) )
+  !allocate( phibar_p(1:NMAT,1:NMAT,0:ratio) )
+!
+  !allocate( tmp1(1:NMAT,1:NMAT,0:ratio,1:global_num_faces) )
+  !allocate( tmp2(1:NMAT,1:NMAT,0:ratio,1:global_num_faces) )
+  !allocate( tmp3(1:NMAT,1:NMAT,0:ratio,1:global_num_faces) )
+  !allocate( tmp4(1:NMAT,1:NMAT,0:ratio,1:global_num_faces) )
+  !allocate( ttmp1(1:NMAT,1:NMAT,0:ratio,1:global_num_faces) )
+  !allocate( ttmp2(1:NMAT,1:NMAT,0:ratio,1:global_num_faces) )
+  !allocate( ttmp3(1:NMAT,1:NMAT,0:ratio,1:global_num_faces) )
+  !allocate( ttmp4(1:NMAT,1:NMAT,0:ratio,1:global_num_faces) )
   
   !! 
   SMAT=(0d0,0d0)
   FMAT=(0d0,0d0)
   do gf=1,global_num_faces
-    rank=local_face_of_global(gf)%rank_
-    lf=local_face_of_global(gf)%label_
-    ls=sites_in_f(lf)%label_(1)
     gs=global_sites_in_f(gf)%label_(1)
+    !rank=local_face_of_global(gf)%rank_
+    !lf=local_face_of_global(gf)%label_
+    !if( rank==MYRANK ) then
+      !ls=sites_in_f(lf)%label_(1)
+    !else 
+      !ls=0
+    !endif
   
     !! phibar_p = phibar^{0...r}(:,:,gf)
     call make_phibar_p(phibar_p,PhiMat,ratio,gf)
@@ -267,7 +286,7 @@ contains
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !! 4-fermio terms in C_face SF_link
   subroutine calc_4fermi_in_CSFlink(CSF, Umat, Phimat, &
-      Geta_eta, Gchi_eta, Geta_lambda, Gchi_lambda )
+      Geta_eta, Gchi_eta, Geta_lambda, Gchi_lambda, ratio)
   use parallel
   use global_parameters
   use Dirac_operator , only : prod_Dirac_link1, prod_dirac_link2
@@ -281,57 +300,73 @@ contains
   complex(kind(0d0)), intent(in) :: Gchi_eta(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_faces,1:num_sites) 
   complex(kind(0d0)), intent(in) :: Geta_lambda(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_sites,1:num_links) 
   complex(kind(0d0)), intent(in) :: Gchi_lambda(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_faces,1:num_links) 
+  integer, intent(in) :: ratio
   
-  complex(kind(0d0)), allocatable :: Seta(:,:,:,:,:,:,:) 
-  complex(kind(0d0)), allocatable :: Feta(:,:,:,:,:,:,:) 
-  complex(kind(0d0)), allocatable :: Slambda(:,:,:,:,:,:,:) 
-  complex(kind(0d0)), allocatable :: Flambda(:,:,:,:,:,:,:) 
-  complex(kind(0d0)), allocatable :: phibar_p(:,:,:)
+  complex(kind(0d0)) :: Seta(1:NMAT,1:NMAT,1:num_necessary_sites,1:NMAT,1:NMAT,0:ratio-1,1:global_num_faces)
+  complex(kind(0d0)) :: Feta(1:NMAT,1:NMAT,1:num_necessary_sites,1:NMAT,1:NMAT,0:ratio-1,1:global_num_faces)
+  complex(kind(0d0)) :: Slambda(1:NMAT,1:NMAT,1:num_necessary_links,1:NMAT,1:NMAT,0:ratio-1,1:global_num_faces)
+  complex(kind(0d0)) :: Flambda(1:NMAT,1:NMAT,1:num_necessary_links,1:NMAT,1:NMAT,0:ratio-1,1:global_num_faces)
+  complex(kind(0d0)) :: phibar_p(1:NMAT,1:NMAT,0:ratio)
+ 
+  complex(kind(0d0)) :: tmp1(1:NMAT,1:NMAT,0:ratio,1:global_num_faces)
+  complex(kind(0d0)) :: tmp2(1:NMAT,1:NMAT,0:ratio,1:global_num_faces)
+  complex(kind(0d0)) :: tmp3(1:NMAT,1:NMAT,0:ratio,1:global_num_faces)
+  complex(kind(0d0)) :: tmp4(1:NMAT,1:NMAT,0:ratio,1:global_num_faces)
+  complex(kind(0d0)) :: ttmp1(1:NMAT,1:NMAT,0:ratio,1:global_num_faces)
+  complex(kind(0d0)) :: ttmp2(1:NMAT,1:NMAT,0:ratio,1:global_num_faces)
+  complex(kind(0d0)) :: ttmp3(1:NMAT,1:NMAT,0:ratio,1:global_num_faces)
+  complex(kind(0d0)) :: ttmp4(1:NMAT,1:NMAT,0:ratio,1:global_num_faces)
+
   complex(kind(0d0)) :: DSeta(1:NMAT,1:NMAT,1:num_sites)
   complex(kind(0d0)) :: DFeta(1:NMAT,1:NMAT,1:num_sites)
   complex(kind(0d0)) :: DSlambda(1:NMAT,1:NMAT,1:num_links)
   complex(kind(0d0)) :: DFlambda(1:NMAT,1:NMAT,1:num_links)
   complex(kind(0d0)) :: Xi_lambda(1:NMAT,1:NMAT,1:num_necessary_links)
   complex(kind(0d0)) :: trace,tmp
-  complex(kind(0d0)), allocatable :: tmp1(:,:,:,:)
-  complex(kind(0d0)), allocatable :: tmp2(:,:,:,:)
-  complex(kind(0d0)), allocatable :: tmp3(:,:,:,:)
-  complex(kind(0d0)), allocatable :: tmp4(:,:,:,:)
-  complex(kind(0d0)), allocatable :: ttmp1(:,:,:,:)
-  complex(kind(0d0)), allocatable :: ttmp2(:,:,:,:)
-  complex(kind(0d0)), allocatable :: ttmp3(:,:,:,:)
-  complex(kind(0d0)), allocatable :: ttmp4(:,:,:,:)
+
+  !complex(kind(0d0)), allocatable :: Seta(:,:,:,:,:,:,:) 
+  !complex(kind(0d0)), allocatable :: Feta(:,:,:,:,:,:,:) 
+  !complex(kind(0d0)), allocatable :: Slambda(:,:,:,:,:,:,:) 
+  !complex(kind(0d0)), allocatable :: Flambda(:,:,:,:,:,:,:) 
+  !complex(kind(0d0)), allocatable :: phibar_p(:,:,:)
+  !complex(kind(0d0)), allocatable :: tmp1(:,:,:,:)
+  !complex(kind(0d0)), allocatable :: tmp2(:,:,:,:)
+  !complex(kind(0d0)), allocatable :: tmp3(:,:,:,:)
+  !complex(kind(0d0)), allocatable :: tmp4(:,:,:,:)
+  !complex(kind(0d0)), allocatable :: ttmp1(:,:,:,:)
+  !complex(kind(0d0)), allocatable :: ttmp2(:,:,:,:)
+  !complex(kind(0d0)), allocatable :: ttmp3(:,:,:,:)
+  !complex(kind(0d0)), allocatable :: ttmp4(:,:,:,:)
   
   integer :: ls,ll,lf,gs,gf
   integer :: tag, rank
   integer :: i,j,k,l,p,a,b
-  integer :: ratio
   complex(kind(0d0)) :: tmp_CSF
   
-  ratio = (NMAT*NMAT-1)*(global_num_sites-global_num_links+global_num_faces)/2
-  allocate( Seta(1:NMAT,1:NMAT,1:num_necessary_sites,1:NMAT,1:NMAT,0:ratio-1,1:global_num_faces) )
-  allocate( Feta(1:NMAT,1:NMAT,1:num_necessary_sites,1:NMAT,1:NMAT,0:ratio-1,1:global_num_faces) )
-  allocate( Slambda(1:NMAT,1:NMAT,1:num_necessary_links,1:NMAT,1:NMAT,0:ratio-1,1:global_num_faces) )
-  allocate( Flambda(1:NMAT,1:NMAT,1:num_necessary_links,1:NMAT,1:NMAT,0:ratio-1,1:global_num_faces) )
-  allocate( phibar_p(1:NMAT,1:NMAT,0:ratio) )
-  
-  allocate( tmp1(1:NMAT,1:NMAT,0:ratio,1:global_num_faces) )
-  allocate( tmp2(1:NMAT,1:NMAT,0:ratio,1:global_num_faces) )
-  allocate( tmp3(1:NMAT,1:NMAT,0:ratio,1:global_num_faces) )
-  allocate( tmp4(1:NMAT,1:NMAT,0:ratio,1:global_num_faces) )
-  allocate( ttmp1(1:NMAT,1:NMAT,0:ratio,1:global_num_faces) )
-  allocate( ttmp2(1:NMAT,1:NMAT,0:ratio,1:global_num_faces) )
-  allocate( ttmp3(1:NMAT,1:NMAT,0:ratio,1:global_num_faces) )
-  allocate( ttmp4(1:NMAT,1:NMAT,0:ratio,1:global_num_faces) )
+  !ratio = (NMAT*NMAT-1)*(global_num_sites-global_num_links+global_num_faces)/2
+  !allocate( Seta(1:NMAT,1:NMAT,1:num_necessary_sites,1:NMAT,1:NMAT,0:ratio-1,1:global_num_faces) )
+  !allocate( Feta(1:NMAT,1:NMAT,1:num_necessary_sites,1:NMAT,1:NMAT,0:ratio-1,1:global_num_faces) )
+  !allocate( Slambda(1:NMAT,1:NMAT,1:num_necessary_links,1:NMAT,1:NMAT,0:ratio-1,1:global_num_faces) )
+  !allocate( Flambda(1:NMAT,1:NMAT,1:num_necessary_links,1:NMAT,1:NMAT,0:ratio-1,1:global_num_faces) )
+  !allocate( phibar_p(1:NMAT,1:NMAT,0:ratio) )
+  !
+  !allocate( tmp1(1:NMAT,1:NMAT,0:ratio,1:global_num_faces) )
+  !allocate( tmp2(1:NMAT,1:NMAT,0:ratio,1:global_num_faces) )
+  !allocate( tmp3(1:NMAT,1:NMAT,0:ratio,1:global_num_faces) )
+  !allocate( tmp4(1:NMAT,1:NMAT,0:ratio,1:global_num_faces) )
+  !allocate( ttmp1(1:NMAT,1:NMAT,0:ratio,1:global_num_faces) )
+  !allocate( ttmp2(1:NMAT,1:NMAT,0:ratio,1:global_num_faces) )
+  !allocate( ttmp3(1:NMAT,1:NMAT,0:ratio,1:global_num_faces) )
+  !allocate( ttmp4(1:NMAT,1:NMAT,0:ratio,1:global_num_faces) )
   !! 
   Seta=(0d0,0d0)
   Feta=(0d0,0d0)
   Slambda=(0d0,0d0)
   Flambda=(0d0,0d0)
   do gf=1,global_num_faces
-    rank=local_face_of_global(gf)%rank_
-    lf=local_face_of_global(gf)%label_
-    ls=sites_in_f(lf)%label_(1)
+    !rank=local_face_of_global(gf)%rank_
+    !lf=local_face_of_global(gf)%label_
+    !ls=sites_in_f(lf)%label_(1)
     gs=global_sites_in_f(gf)%label_(1)
   
     !! phibar_p = phibar^{0...r}(:,:,gf)
@@ -358,6 +393,7 @@ contains
     enddo
   enddo
   call syncronize_sites_large(Seta,ratio)
+
   call syncronize_sites_large(Feta,ratio)
   call syncronize_links_large(Slambda,ratio)
   call syncronize_links_large(Flambda,ratio)
@@ -481,11 +517,11 @@ contains
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !! 4-fermio terms in C_face SF_face
   subroutine calc_4fermi_in_CSFface(CSF, Umat, Phimat, &
-      Geta_eta, Gchi_eta, Geta_chi, Gchi_chi, Geta_lambda, Gchi_lambda )
+      Geta_eta, Gchi_eta, Geta_chi, Gchi_chi, Geta_lambda, Gchi_lambda, ratio )
   use parallel
   use global_parameters
   use Dirac_operator , only : prod_Dirac_face1, Dirac_omega_adm
-  use matrix_functions, only : hermitian_conjugate, matrix_power, trace_mm, make_unit_matrix, matrix_product, matrix_3_product, matrix_commutator
+  use matrix_functions, only : hermitian_conjugate, matrix_power, trace_mm, make_unit_matrix, matrix_product, matrix_product2, matrix_3_product, matrix_commutator
   implicit none
   
   complex(kind(0d0)), intent(out) :: CSF
@@ -497,61 +533,77 @@ contains
   complex(kind(0d0)), intent(in) :: Gchi_chi(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_faces,1:num_faces) 
   complex(kind(0d0)), intent(in) :: Geta_lambda(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_sites,1:num_links) 
   complex(kind(0d0)), intent(in) :: Gchi_lambda(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_faces,1:num_links) 
+  integer, intent(in) :: ratio
   
-  complex(kind(0d0)), allocatable :: Seta(:,:,:,:,:,:,:) 
-  complex(kind(0d0)), allocatable :: Feta(:,:,:,:,:,:,:) 
-  complex(kind(0d0)), allocatable :: Schi(:,:,:,:,:,:,:) 
-  complex(kind(0d0)), allocatable :: Fchi(:,:,:,:,:,:,:) 
-  complex(kind(0d0)), allocatable :: Slambda(:,:,:,:,:,:,:) 
-  complex(kind(0d0)), allocatable :: Flambda(:,:,:,:,:,:,:) 
-  complex(kind(0d0)), allocatable :: phibar_p(:,:,:)
+  complex(kind(0d0)) :: Seta(1:NMAT,1:NMAT,1:num_necessary_sites,1:NMAT,1:NMAT,0:ratio-1,1:global_num_faces)
+  complex(kind(0d0)) :: Feta(1:NMAT,1:NMAT,1:num_necessary_sites,1:NMAT,1:NMAT,0:ratio-1,1:global_num_faces)
+  complex(kind(0d0)) :: Schi(1:NMAT,1:NMAT,1:num_necessary_faces,1:NMAT,1:NMAT,0:ratio-1,1:global_num_faces)
+  complex(kind(0d0)) :: Fchi(1:NMAT,1:NMAT,1:num_necessary_faces,1:NMAT,1:NMAT,0:ratio-1,1:global_num_faces)
+  complex(kind(0d0)) :: Slambda(1:NMAT,1:NMAT,1:num_necessary_links,1:NMAT,1:NMAT,0:ratio-1,1:global_num_faces)
+  complex(kind(0d0)) :: Flambda(1:NMAT,1:NMAT,1:num_necessary_links,1:NMAT,1:NMAT,0:ratio-1,1:global_num_faces)
+  complex(kind(0d0)) :: phibar_p(1:NMAT,1:NMAT,0:ratio)
+  
+  complex(kind(0d0)) :: tmp1(1:NMAT,1:NMAT,0:ratio,1:global_num_faces)
+  complex(kind(0d0)) :: tmp2(1:NMAT,1:NMAT,0:ratio,1:global_num_faces)
+  complex(kind(0d0)) :: tmp3(1:NMAT,1:NMAT,0:ratio,1:global_num_faces)
+  complex(kind(0d0)) :: tmp4(1:NMAT,1:NMAT,0:ratio,1:global_num_faces)
+  complex(kind(0d0)) :: ttmp1(1:NMAT,1:NMAT,0:ratio,1:global_num_faces)
+  complex(kind(0d0)) :: ttmp2(1:NMAT,1:NMAT,0:ratio,1:global_num_faces)
+  complex(kind(0d0)) :: ttmp3(1:NMAT,1:NMAT,0:ratio,1:global_num_faces)
+  complex(kind(0d0)) :: ttmp4(1:NMAT,1:NMAT,0:ratio,1:global_num_faces)
+  !complex(kind(0d0)), allocatable :: Seta(:,:,:,:,:,:,:) 
+  !complex(kind(0d0)), allocatable :: Feta(:,:,:,:,:,:,:) 
+  !complex(kind(0d0)), allocatable :: Schi(:,:,:,:,:,:,:) 
+  !complex(kind(0d0)), allocatable :: Fchi(:,:,:,:,:,:,:) 
+  !complex(kind(0d0)), allocatable :: Slambda(:,:,:,:,:,:,:) 
+  !complex(kind(0d0)), allocatable :: Flambda(:,:,:,:,:,:,:) 
+  !complex(kind(0d0)), allocatable :: phibar_p(:,:,:)
   complex(kind(0d0)) :: DSchi(1:NMAT,1:NMAT,1:num_faces)
   complex(kind(0d0)) :: DFchi(1:NMAT,1:NMAT,1:num_faces)
   complex(kind(0d0)) :: DSlambda(1:NMAT,1:NMAT,1:num_links)
   complex(kind(0d0)) :: DFlambda(1:NMAT,1:NMAT,1:num_links)
   complex(kind(0d0)) :: Xi_chi(1:NMAT,1:NMAT,1:num_necessary_faces)
   complex(kind(0d0)) :: trace, tmp
-  complex(kind(0d0)), allocatable :: tmp1(:,:,:,:)
-  complex(kind(0d0)), allocatable :: tmp2(:,:,:,:)
-  complex(kind(0d0)), allocatable :: tmp3(:,:,:,:)
-  complex(kind(0d0)), allocatable :: tmp4(:,:,:,:)
-  complex(kind(0d0)), allocatable :: ttmp1(:,:,:,:)
-  complex(kind(0d0)), allocatable :: ttmp2(:,:,:,:)
-  complex(kind(0d0)), allocatable :: ttmp3(:,:,:,:)
-  complex(kind(0d0)), allocatable :: ttmp4(:,:,:,:)
+  !complex(kind(0d0)), allocatable :: tmp1(:,:,:,:)
+  !complex(kind(0d0)), allocatable :: tmp2(:,:,:,:)
+  !complex(kind(0d0)), allocatable :: tmp3(:,:,:,:)
+  !complex(kind(0d0)), allocatable :: tmp4(:,:,:,:)
+  !complex(kind(0d0)), allocatable :: ttmp1(:,:,:,:)
+  !complex(kind(0d0)), allocatable :: ttmp2(:,:,:,:)
+  !complex(kind(0d0)), allocatable :: ttmp3(:,:,:,:)
+  !complex(kind(0d0)), allocatable :: ttmp4(:,:,:,:)
   
   integer :: ls,ll,lf,gs,gf,lf2
   integer :: tag, rank
   integer :: i,j,k,l,p,a,b
-  integer :: ratio
   complex(kind(0d0)) :: tmp_CSF
   
-  ratio = (NMAT*NMAT-1)*(global_num_sites-global_num_links+global_num_faces)/2
-  allocate( Seta(1:NMAT,1:NMAT,1:num_necessary_sites,1:NMAT,1:NMAT,0:ratio-1,1:global_num_faces) )
-  allocate( Feta(1:NMAT,1:NMAT,1:num_necessary_sites,1:NMAT,1:NMAT,0:ratio-1,1:global_num_faces) )
-  allocate( Schi(1:NMAT,1:NMAT,1:num_necessary_faces,1:NMAT,1:NMAT,0:ratio-1,1:global_num_faces) )
-  allocate( Fchi(1:NMAT,1:NMAT,1:num_necessary_faces,1:NMAT,1:NMAT,0:ratio-1,1:global_num_faces) )
-  allocate( Slambda(1:NMAT,1:NMAT,1:num_necessary_links,1:NMAT,1:NMAT,0:ratio-1,1:global_num_faces) )
-  allocate( Flambda(1:NMAT,1:NMAT,1:num_necessary_links,1:NMAT,1:NMAT,0:ratio-1,1:global_num_faces) )
-  allocate( phibar_p(1:NMAT,1:NMAT,0:ratio) )
+  !ratio = (NMAT*NMAT-1)*(global_num_sites-global_num_links+global_num_faces)/2
+  !allocate( Seta(1:NMAT,1:NMAT,1:num_necessary_sites,1:NMAT,1:NMAT,0:ratio-1,1:global_num_faces) )
+  !allocate( Feta(1:NMAT,1:NMAT,1:num_necessary_sites,1:NMAT,1:NMAT,0:ratio-1,1:global_num_faces) )
+  !allocate( Schi(1:NMAT,1:NMAT,1:num_necessary_faces,1:NMAT,1:NMAT,0:ratio-1,1:global_num_faces) )
+  !allocate( Fchi(1:NMAT,1:NMAT,1:num_necessary_faces,1:NMAT,1:NMAT,0:ratio-1,1:global_num_faces) )
+  !allocate( Slambda(1:NMAT,1:NMAT,1:num_necessary_links,1:NMAT,1:NMAT,0:ratio-1,1:global_num_faces) )
+  !allocate( Flambda(1:NMAT,1:NMAT,1:num_necessary_links,1:NMAT,1:NMAT,0:ratio-1,1:global_num_faces) )
+  !allocate( phibar_p(1:NMAT,1:NMAT,0:ratio) )
   
-  allocate( tmp1(1:NMAT,1:NMAT,0:ratio,1:global_num_faces) )
-  allocate( tmp2(1:NMAT,1:NMAT,0:ratio,1:global_num_faces) )
-  allocate( tmp3(1:NMAT,1:NMAT,0:ratio,1:global_num_faces) )
-  allocate( tmp4(1:NMAT,1:NMAT,0:ratio,1:global_num_faces) )
-  allocate( ttmp1(1:NMAT,1:NMAT,0:ratio,1:global_num_faces) )
-  allocate( ttmp2(1:NMAT,1:NMAT,0:ratio,1:global_num_faces) )
-  allocate( ttmp3(1:NMAT,1:NMAT,0:ratio,1:global_num_faces) )
-  allocate( ttmp4(1:NMAT,1:NMAT,0:ratio,1:global_num_faces) )
+  !allocate( tmp1(1:NMAT,1:NMAT,0:ratio,1:global_num_faces) )
+  !allocate( tmp2(1:NMAT,1:NMAT,0:ratio,1:global_num_faces) )
+  !allocate( tmp3(1:NMAT,1:NMAT,0:ratio,1:global_num_faces) )
+  !allocate( tmp4(1:NMAT,1:NMAT,0:ratio,1:global_num_faces) )
+  !allocate( ttmp1(1:NMAT,1:NMAT,0:ratio,1:global_num_faces) )
+  !allocate( ttmp2(1:NMAT,1:NMAT,0:ratio,1:global_num_faces) )
+  !allocate( ttmp3(1:NMAT,1:NMAT,0:ratio,1:global_num_faces) )
+  !allocate( ttmp4(1:NMAT,1:NMAT,0:ratio,1:global_num_faces) )
   !! 
   Seta=(0d0,0d0)
   Feta=(0d0,0d0)
   Slambda=(0d0,0d0)
   Flambda=(0d0,0d0)
   do gf=1,global_num_faces
-    rank=local_face_of_global(gf)%rank_
-    lf=local_face_of_global(gf)%label_
-    ls=sites_in_f(lf)%label_(1)
+    !rank=local_face_of_global(gf)%rank_
+    !lf=local_face_of_global(gf)%label_
+    !ls=sites_in_f(lf)%label_(1)
     gs=global_sites_in_f(gf)%label_(1)
   
     !! phibar_p = phibar^{0...r}(:,:,gf)
@@ -562,22 +614,22 @@ contains
       do j=1,NMAT
         do i=1,NMAT
           do ls=1,num_sites
-            call matrix_product(Seta(:,:,ls,i,j,p,gf),&
-              phibar_p(:,:,p), Geta_eta(:,:,i,j,gs,ls))
-            call matrix_product(Feta(:,:,ls,i,j,p,gf),&
-              phibar_p(:,:,p), Gchi_eta(:,:,i,j,gf,ls))
+            call matrix_product2(Seta(:,:,ls,i,j,p,gf),&
+              phibar_p(:,:,p), Geta_eta(:,:,i,j,gs,ls), NMAT)
+            call matrix_product2(Feta(:,:,ls,i,j,p,gf),&
+              phibar_p(:,:,p), Gchi_eta(:,:,i,j,gf,ls), NMAT)
           enddo !ls
           do lf2=1,num_faces
-            call matrix_product(Schi(:,:,lf2,i,j,p,gf),&
-              phibar_p(:,:,p), Geta_chi(:,:,i,j,gs,lf2))
-            call matrix_product(Fchi(:,:,lf2,i,j,p,gf),&
-              phibar_p(:,:,p), Gchi_chi(:,:,i,j,gf,lf2))
+            call matrix_product2(Schi(:,:,lf2,i,j,p,gf),&
+              phibar_p(:,:,p), Geta_chi(:,:,i,j,gs,lf2), NMAT)
+            call matrix_product2(Fchi(:,:,lf2,i,j,p,gf),&
+              phibar_p(:,:,p), Gchi_chi(:,:,i,j,gf,lf2), NMAT)
           enddo !lf2
           do ll=1,num_links
-            call matrix_product(Slambda(:,:,ll,i,j,p,gf),&
-              phibar_p(:,:,p), Geta_lambda(:,:,i,j,gs,ll))
-            call matrix_product(Flambda(:,:,ll,i,j,p,gf),&
-              phibar_p(:,:,p), Gchi_lambda(:,:,i,j,gf,ll))
+            call matrix_product2(Slambda(:,:,ll,i,j,p,gf),&
+              phibar_p(:,:,p), Geta_lambda(:,:,i,j,gs,ll), NMAT)
+            call matrix_product2(Flambda(:,:,ll,i,j,p,gf),&
+              phibar_p(:,:,p), Gchi_lambda(:,:,i,j,gf,ll), NMAT)
           enddo !ll
         enddo
       enddo
@@ -725,10 +777,12 @@ contains
   
   integer :: gs,lf,ls,rank,k
   
-  rank=local_face_of_global(gf)%rank_
-  lf=local_face_of_global(gf)%label_
-  ls=sites_in_f(lf)%label_(1)
   gs=global_sites_in_f(gf)%label_(1)
+  rank=local_face_of_global(gf)%rank_
+  if( rank == MYRANK) then
+    lf=local_face_of_global(gf)%label_
+    ls=sites_in_f(lf)%label_(1)
+  endif
   
   phibar_p=(0d0,0d0)
   
