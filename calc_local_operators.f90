@@ -20,6 +20,7 @@ integer, parameter :: num_operators=4
 
 integer :: control
 character(128) :: MEDFILE
+character(32) :: OBSDIR
 !character(128) :: DinvFILE
 character(128) :: operatorFILE(1:num_operators)
 integer, parameter :: N_MEDFILE=100
@@ -64,6 +65,11 @@ if( iarg < 1 ) then
 endif
 call getarg(1,MEDFILE)
 !DinvFILE=trim("MEDCONF/Dinv"//MEDFILE(18:))
+if( iarg == 1 ) then
+  OBSDIR=trim(adjustl("OBS"))
+else
+  call getarg(2,OBSDIR)
+endif
 INPUT_FILE_NAME="inputfile"
 
 call initialization 
@@ -73,18 +79,18 @@ allocate(tmpmat2(1:NMAT,1:NMAT))
 allocate(Uf(1:NMAT,1:NMAT))
 allocate(Ymat(1:NMAT,1:NMAT))
 !! for 1) tr(\phibar^2)^{r/2}(f)
-operatorFILE(1)=trim("OBS/trphibar"//MEDFILE(18:))
+operatorFILE(1)=trim(adjustl(OBSDIR)) // trim("/trphibar"//MEDFILE(18:))
 allocate( phibar(1:num_faces) )
 allocate( phibar_site(1:num_necessary_sites) )
 !! for 2) tr(\phi^2)^{-r/2}(f)
-operatorFILE(2)=trim("OBS/trphi"//MEDFILE(18:))
+operatorFILE(2)=trim(adjustl(OBSDIR)) // trim("/trphi"//MEDFILE(18:))
 allocate( phi_face(1:num_faces) )
 allocate( phi_site(1:num_necessary_sites) )
 !! for 3) tr(Y\phibar^r)
-operatorFILE(3)=trim("OBS/Yphibar"//MEDFILE(18:))
+operatorFILE(3)=trim(adjustl(OBSDIR)) // trim("/Yphibar"//MEDFILE(18:))
 allocate( Yphibar(1:num_faces) )
 !! for 4) tr(Y\phi^{-r})
-operatorFILE(4)=trim("OBS/Yphi"//MEDFILE(18:))
+operatorFILE(4)=trim(adjustl(OBSDIR)) // trim("/Yphi"//MEDFILE(18:))
 allocate( Yphi(1:num_faces) )
 
 
