@@ -33,7 +33,7 @@ do lf=1,num_faces
   !! Omega
   call Make_face_variable(Uf,lf,UMAT)
   call Make_moment_map_adm(Ymat,Uf)
-  Ymat = Ymat * (0d0,0.5d0)*beta_f(lf)*Ymat
+  Ymat = (0d0,0.5d0)*beta_f(lf)*Ymat
   !! tr( phi^{-dimG r} Y )
   call trace_MM(tmp,phiinv_p, Ymat)
   !! 
@@ -44,6 +44,7 @@ call MPI_REDUCE(tmp_Acomp,Acomp,1,MPI_DOUBLE_COMPLEX, &
   MPI_SUM,0,MPI_COMM_WORLD,IERR)
   
 Acomp=Acomp/dcmplx(dble(global_num_faces))
+!Acomp = (1d0,0d0)/Acomp
 
 end subroutine calc_Yphi_compensator
 

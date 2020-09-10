@@ -32,7 +32,7 @@ do lf=1,num_faces
   !! Omega
   call Make_face_variable(Uf,lf,UMAT)
   call Make_moment_map_adm(Ymat,Uf)
-  Ymat = Ymat * (0d0,0.5d0)*beta_f(lf)*Ymat
+  Ymat = (0d0,0.5d0)*beta_f(lf)*Ymat
   !! tr( phi^{-dimG r} Y )
   call trace_MM(tmp,phibar_p, Ymat)
   !! 
