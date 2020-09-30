@@ -3146,6 +3146,8 @@ do s_send=1,num_send_links
   local=send_links(s_send)%label_
   rank=send_links(s_send)%rank_
   tag=10000*rank + global_link_of_local(local)
+  !write(*,*) "check: ", global_link_of_local
+  !write(*,*) "send: ", MYRANK, rank, global_link_of_local(local), tag
 
   call MPI_ISEND(lambda(:,:,local),NMAT*NMAT,MPI_DOUBLE_COMPLEX,rank,tag,MPI_COMM_WORLD,ISEND(s_send),IERR)
 enddo
@@ -3154,6 +3156,7 @@ do s_recv=1,num_recv_links
   local=recv_links(s_recv)%label_
   rank=recv_links(s_recv)%rank_
   tag=10000*MYRANK + global_link_of_local(local)
+  !write(*,*) "recv: ", MYRANK, rank, global_link_of_local(local), tag
 
   !call MPI_RECV(lambda(:,:,local),NMAT*NMAT,MPI_DOUBLE_COMPLEX,rank,tag,MPI_COMM_WORLD,ISTATUS,IERR)
   call MPI_IRECV(lambda(:,:,local),NMAT*NMAT,MPI_DOUBLE_COMPLEX,rank,tag,MPI_COMM_WORLD,IRECV(s_recv),IERR)

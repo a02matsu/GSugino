@@ -9,7 +9,9 @@ PARA2=-DPARALLEL -DCOUNT_TIME
 #PARA=-DNOPARALLEL
 #FLAGS_IFORT=-mkl -fpp $(PARA) -CB -traceback -g 
 #FLAGS_CLUSTER=-mkl=cluster -heap-arrays 10 -check bounds -fp-stack-check -check arg_temp_created -fpp $(PARA) -CB -traceback -g 
-FLAGS_CLUSTER=-mkl=cluster -fpp $(PARA) -CB -traceback -check bounds -g -heap-arrays 
+#FLAGS_CLUSTER=-mkl=cluster -fpp $(PARA) -CB -traceback -check bounds -g -heap-arrays 
+#FLAGS_CLUSTER=-mkl=cluster -fpp $(PARA) -CB -traceback -g
+FLAGS_CLUSTER=-mkl=cluster -fpp $(PARA) -CB -traceback -g
 #FLAGS_IFORT=-mkl -parallel -ipo
 #FLAGS_IFORT=-mkl -fpp $(PARA) -O3 -ipo
 #FLAGS_GCC=-llapack -lblas

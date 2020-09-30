@@ -1017,6 +1017,7 @@ subroutine Prod_DdagD(&
     DF_eta, DF_lambda, DF_chi, &
     eta_mat,lambda_mat,chi_mat, &
     UMAT,Phimat)
+use global_parameters
 implicit none
 
 !integer, intent(in) :: Vsize !! vecsize must be sizeD
@@ -1068,12 +1069,12 @@ do f=1,num_faces
   enddo
 enddo
 #ifdef PARALLEL
+call syncronize_links(tmp2_lambda)
+!write(*,*) MYRANK,"testL"
 call syncronize_sites(tmp2_eta)
 !write(*,*) MYRANK,"testS"
 call syncronize_faces(tmp2_chi)
 !write(*,*) MYRANK,"testF"
-call syncronize_links(tmp2_lambda)
-!write(*,*) MYRANK,"testL"
 #endif
 
 call Prod_Dirac(&

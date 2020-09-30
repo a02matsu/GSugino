@@ -1195,6 +1195,7 @@ allocate ( U1R_ratio(1:num_necessary_links) )
 
 do s=1,num_necessary_sites
   U1Rfactor_site(s)=global_U1Rfactor_site( global_site_of_local(s) )
+  !write(*,*) global_site_of_local(s), U1Rfactor_site(s)
 enddo
 
 do l=1,num_necessary_links

@@ -13,10 +13,13 @@ character(128), parameter :: PARAFILE="parameters_calcobs.dat"
 character(128) :: MEDFILE
 character(128) :: DinvFILE
 character(128) :: EigenFILE
-integer, parameter :: num_calcobs=84 ! 考えているobservableの数
+integer, parameter :: num_calcobs=87 ! 考えているobservableの数
 character(128) :: name_obs(1:num_calcobs) = (/ &
   "Re(phase Pf)",  &
   "Im(phase Pf)", &
+  "|Atr_pre|", &
+  "Re(phase Atr_pre)", &
+  "Im(phase Atr_pre)", &
   "SbS", &
   "SbL", &
   "SbF", &
@@ -118,6 +121,7 @@ integer :: sizeM,sizeN
 
 double precision :: Sb, SbS, SbL, SbF
 complex(kind(0d0)) :: SfL2
+complex(kind(0d0)) :: Acomp_trpre ! trace compensator
 complex(kind(0d0)) :: Acomp_tr ! trace compensator
 complex(kind(0d0)) :: Acomp_tr2 ! trace compensator2
 complex(kind(0d0)) :: Acomp_face ! face compensator
@@ -390,6 +394,14 @@ do
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble(phase_pf)
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble( (0d0,-1d0)*phase_pf)
       !if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble((0d0,-1d0)*Sf)
+
+    !"|Atr_pre|", &
+    Acomp_trpre=(0d0,0d0)
+      call calc_trace_compensator_pre(Acomp_trpre,PhiMat)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') cdabs(Acomp_trpre)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble(Acomp_trpre/cdabs(Acomp_trpre))
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble( (0d0,-1d0)*Acomp_trpre ) /cdabs(Acomp_trpre)
+
 
     Sb_computed=0
     !! SbS

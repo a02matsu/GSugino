@@ -37,6 +37,37 @@ Acomp=Acomp/dcmplx(dble(global_num_sites))
 end subroutine calc_trace_compensator
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! Atr_pre = 1/Ns ¥sum_s 1/N Tr( ¥phi^2 )
+subroutine calc_trace_compensator_pre(Acomp,PhiMat)
+use parallel
+implicit none
+
+complex(kind(0d0)), intent(out) :: Acomp
+complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_necessary_sites)
+complex(kind(0d0)) tmp,A_tmp
+integer :: s,i,j
+
+A_tmp=(0d0,0d0)
+do s=1,num_sites
+  tmp=(0d0,0d0)
+  do i=1,NMAT
+    do j=1,NMAT
+      tmp=tmp+PhiMat(i,j,s)*PhiMat(j,i,s)
+    enddo
+  enddo
+  A_tmp = A_tmp + tmp/dcmplx(NMAT)
+enddo
+
+Acomp=(0d0,0d0)
+call MPI_REDUCE(A_tmp,Acomp,1,MPI_DOUBLE_COMPLEX, &
+  MPI_SUM,0,MPI_COMM_WORLD,IERR)
+  
+Acomp=Acomp/dcmplx(dble(global_num_sites))
+
+end subroutine calc_trace_compensator_pre
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! ( 1/N_s sum_s( 1/N Tr( \phi_s^2 ) ) )^(-r/4)
 subroutine calc_trace_compensator2(Acomp,PhiMat)
 use parallel
