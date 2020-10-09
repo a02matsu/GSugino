@@ -414,7 +414,7 @@ contains
           D1Feta=(0d0,0d0)
           D1Slambda=(0d0,0d0)
           D1Flambda=(0d0,0d0)
-          call prod_Dirac_link1(D1Slambda,D1Fetq,PhiMat,Umat,& 
+          call prod_Dirac_link1(D1Slambda,D1Feta,PhiMat,Umat,& 
             Feta(:,:,:,j,i,ratio-p-1,gf),Slambda(:,:,:,i,j,p,gf)) !! it does not affect but fixed here (j,i) -> (i,j) in Slambda
           call prod_Dirac_link1(D1Flambda,D1Seta,PhiMat,Umat,&
             Seta(:,:,:,j,i,p,gf),Flambda(:,:,:,i,j,ratio-p-1,gf)) !! it does not affect but fixed here (j,i) -> (i,j) in Flambda
