@@ -562,10 +562,12 @@ contains
   !complex(kind(0d0)), allocatable :: Slambda(:,:,:,:,:,:,:) 
   !complex(kind(0d0)), allocatable :: Flambda(:,:,:,:,:,:,:) 
   !complex(kind(0d0)), allocatable :: phibar_p(:,:,:)
-  complex(kind(0d0)) :: DSchi(1:NMAT,1:NMAT,1:num_faces)
-  complex(kind(0d0)) :: DFchi(1:NMAT,1:NMAT,1:num_faces)
-  complex(kind(0d0)) :: DSlambda(1:NMAT,1:NMAT,1:num_links)
-  complex(kind(0d0)) :: DFlambda(1:NMAT,1:NMAT,1:num_links)
+  complex(kind(0d0)) :: D1Schi(1:NMAT,1:NMAT,1:num_faces)
+  complex(kind(0d0)) :: D1Fchi(1:NMAT,1:NMAT,1:num_faces)
+  complex(kind(0d0)) :: D2Schi(1:NMAT,1:NMAT,1:num_links)
+  complex(kind(0d0)) :: D2Fchi(1:NMAT,1:NMAT,1:num_links)
+  complex(kind(0d0)) :: D2Slambda(1:NMAT,1:NMAT,1:num_faces)
+  complex(kind(0d0)) :: D2Flambda(1:NMAT,1:NMAT,1:num_faces)
   complex(kind(0d0)) :: Xi_chi(1:NMAT,1:NMAT,1:num_necessary_faces)
   complex(kind(0d0)) :: trace, tmp
   !complex(kind(0d0)), allocatable :: tmp1(:,:,:,:)
@@ -654,36 +656,36 @@ contains
       do i=1,NMAT
         do j=1,NMAT
           !! face1
-          DSchi=(0d0,0d0)
-          DFchi=(0d0,0d0)
-          call prod_Dirac_face1(DFchi,PhiMat,&
+          D1Schi=(0d0,0d0)
+          D1Fchi=(0d0,0d0)
+          call prod_Dirac_face1(D1Fchi,PhiMat,&
             Fchi(:,:,:,j,i,ratio-p-1,gf))
-          call prod_Dirac_face1(DSchi,PhiMat,&
+          call prod_Dirac_face1(D1Schi,PhiMat,&
             Schi(:,:,:,j,i,p,gf))
           do lf=1,num_faces
             do b=1,NMAT
               do a=1,NMAT
                 tmp_CSF=tmp_CSF &
-                  - (0.5d0,0d0) * Schi(a,b,lf,i,j,p,gf) * DFchi(b,a,lf) &
-                  + (0.5d0,0d0) * Fchi(a,b,lf,i,j,ratio-p-1,gf) * DSchi(b,a,lf) 
+                  - (0.5d0,0d0) * Schi(a,b,lf,i,j,p,gf) * D1Fchi(b,a,lf) &
+                  + (0.5d0,0d0) * Fchi(a,b,lf,i,j,ratio-p-1,gf) * D1Schi(b,a,lf) 
               enddo
             enddo
           enddo !lf
           !! face2
-          DSchi=(0d0,0d0)
-          DFchi=(0d0,0d0)
-          DSlambda=(0d0,0d0)
-          DFlambda=(0d0,0d0)
-          call Dirac_Omega_adm(DFchi,DFlambda,Umat,&
-            Schi(:,:,:,j,i,p,gf), Flambda(:,:,:,j,i,ratio-p-1,gf) )
-          call Dirac_Omega_adm(DSchi,DSlambda,Umat,&
-            Fchi(:,:,:,j,i,ratio-p-1,gf), Slambda(:,:,:,j,i,p,gf)) 
+          D2Schi=(0d0,0d0)
+          D2Fchi=(0d0,0d0)
+          D2Slambda=(0d0,0d0)
+          D2Flambda=(0d0,0d0)
+          call Dirac_Omega_adm(D2Flambda,D2Schi,Umat,&
+            Flambda(:,:,:,j,i,ratio-p-1,gf), Schi(:,:,:,i,j,p,gf) )
+          call Dirac_Omega_adm(D2Slambda,D2Fchi,Umat,&
+            Slambda(:,:,:,j,i,p,gf), Fchi(:,:,:,i,j,ratio-p-1,gf) )
           do lf=1,num_faces
             do b=1,NMAT
               do a=1,NMAT
                 tmp_CSF=tmp_CSF &
-                  -  Schi(a,b,lf,i,j,p,gf) * DFchi(b,a,lf) &
-                  +  Fchi(a,b,lf,i,j,ratio-p-1,gf) * DSchi(b,a,lf) 
+                  -  Schi(a,b,lf,i,j,p,gf) * D2Flambda(b,a,lf) &
+                  +  Fchi(a,b,lf,i,j,ratio-p-1,gf) * D2Slambda(b,a,lf) 
               enddo
             enddo
           enddo !lf
