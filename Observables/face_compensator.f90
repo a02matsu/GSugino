@@ -317,10 +317,15 @@ contains
   complex(kind(0d0)) :: ttmp3(1:NMAT,1:NMAT,0:ratio,1:global_num_faces)
   complex(kind(0d0)) :: ttmp4(1:NMAT,1:NMAT,0:ratio,1:global_num_faces)
 
-  complex(kind(0d0)) :: DSeta(1:NMAT,1:NMAT,1:num_sites)
-  complex(kind(0d0)) :: DFeta(1:NMAT,1:NMAT,1:num_sites)
-  complex(kind(0d0)) :: DSlambda(1:NMAT,1:NMAT,1:num_links)
-  complex(kind(0d0)) :: DFlambda(1:NMAT,1:NMAT,1:num_links)
+  !complex(kind(0d0)) :: DSeta(1:NMAT,1:NMAT,1:num_sites)
+  !complex(kind(0d0)) :: DFeta(1:NMAT,1:NMAT,1:num_sites)
+  complex(kind(0d0)) :: D1Feta(1:NMAT,1:NMAT,1:num_links)
+  complex(kind(0d0)) :: D1Slambda(1:NMAT,1:NMAT,1:num_sites)
+  complex(kind(0d0)) :: D1Seta(1:NMAT,1:NMAT,1:num_links)
+  complex(kind(0d0)) :: D1Flambda(1:NMAT,1:NMAT,1:num_sites)
+  !!
+  complex(kind(0d0)) :: D2Slambda(1:NMAT,1:NMAT,1:num_links)
+  complex(kind(0d0)) :: D2Flambda(1:NMAT,1:NMAT,1:num_links)
   complex(kind(0d0)) :: Xi_lambda(1:NMAT,1:NMAT,1:num_necessary_links)
   complex(kind(0d0)) :: trace,tmp
 
@@ -393,7 +398,6 @@ contains
     enddo
   enddo
   call syncronize_sites_large(Seta,ratio)
-
   call syncronize_sites_large(Feta,ratio)
   call syncronize_links_large(Slambda,ratio)
   call syncronize_links_large(Flambda,ratio)
@@ -406,36 +410,36 @@ contains
       do i=1,NMAT
         do j=1,NMAT
           !! link1
-          DSeta=(0d0,0d0)
-          DFeta=(0d0,0d0)
-          DSlambda=(0d0,0d0)
-          DFlambda=(0d0,0d0)
-          call prod_Dirac_link1(DFeta,DFlambda,PhiMat,Umat,&
-            Feta(:,:,:,j,i,ratio-p-1,gf),Slambda(:,:,:,j,i,p,gf))
-          call prod_Dirac_link1(DSeta,DSlambda,PhiMat,Umat,&
-            Seta(:,:,:,j,i,p,gf),Flambda(:,:,:,j,i,ratio-p-1,gf))
+          D1Seta=(0d0,0d0)
+          D1Feta=(0d0,0d0)
+          D1Slambda=(0d0,0d0)
+          D1Flambda=(0d0,0d0)
+          call prod_Dirac_link1(D1Slambda,D1Fetq,PhiMat,Umat,& 
+            Feta(:,:,:,j,i,ratio-p-1,gf),Slambda(:,:,:,i,j,p,gf)) !! it does not affect but fixed here (j,i) -> (i,j) in Slambda
+          call prod_Dirac_link1(D1Flambda,D1Seta,PhiMat,Umat,&
+            Seta(:,:,:,j,i,p,gf),Flambda(:,:,:,i,j,ratio-p-1,gf)) !! it does not affect but fixed here (j,i) -> (i,j) in Flambda
           do ll=1,num_links
             do b=1,NMAT
               do a=1,NMAT
                 tmp_CSF=tmp_CSF &
-                  - Slambda(a,b,ll,i,j,p,gf) * DFlambda(b,a,ll) &
-                  + Flambda(a,b,ll,i,j,ratio-p-1,gf) * DSlambda(b,a,ll) 
+                  - Slambda(a,b,ll,i,j,p,gf) * D1Feta(b,a,ll) &
+                  + Flambda(a,b,ll,i,j,ratio-p-1,gf) * D1Seta(b,a,ll) 
               enddo
             enddo
           enddo !ll
           !! link2
           DSlambda=(0d0,0d0)
           DFlambda=(0d0,0d0)
-          call prod_Dirac_link2(DSlambda,PhiMat,Umat,&
+          call prod_Dirac_link2(D2Slambda,PhiMat,Umat,&
             Slambda(:,:,:,j,i,p,gf))
-          call prod_Dirac_link2(DFlambda,PhiMat,Umat,&
+          call prod_Dirac_link2(D2Flambda,PhiMat,Umat,&
             Flambda(:,:,:,j,i,ratio-p-1,gf))
           do ll=1,num_links
             do b=1,NMAT
               do a=1,NMAT
                 tmp_CSF=tmp_CSF &
-                  - (0.5d0,0d0) * Slambda(a,b,ll,i,j,p,gf) * DFlambda(b,a,ll) &
-                  + (0.5d0,0d0) * Flambda(a,b,ll,i,j,ratio-p-1,gf) * DSlambda(b,a,ll) 
+                  - (0.5d0,0d0) * Slambda(a,b,ll,i,j,p,gf) * D2Flambda(b,a,ll) &
+                  + (0.5d0,0d0) * Flambda(a,b,ll,i,j,ratio-p-1,gf) * D2Slambda(b,a,ll) 
               enddo
             enddo
           enddo !ll
