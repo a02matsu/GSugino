@@ -428,8 +428,8 @@ contains
             enddo
           enddo !ll
           !! link2
-          DSlambda=(0d0,0d0)
-          DFlambda=(0d0,0d0)
+          D2Slambda=(0d0,0d0)
+          D2Flambda=(0d0,0d0)
           call prod_Dirac_link2(D2Slambda,PhiMat,Umat,&
             Slambda(:,:,:,j,i,p,gf))
           call prod_Dirac_link2(D2Flambda,PhiMat,Umat,&
