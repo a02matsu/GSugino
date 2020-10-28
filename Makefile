@@ -246,7 +246,9 @@ simulation.o: \
   $(DIR_OBSERVABLES)/QS_3fermion_link.f90 \
   $(DIR_OBSERVABLES)/Xisite_Dinv.f90 \
   $(DIR_OBSERVABLES)/Xilink_Dinv.f90 \
-  $(DIR_OBSERVABLES)/Xiface_Dinv.f90 
+  $(DIR_OBSERVABLES)/Xiface_Dinv.f90 \
+  $(DIR_OBSERVABLES)/Qexact_operators.f90 \
+  $(DIR_OBSERVABLES)/IZ_compensator.f90 
 $(OBJ_CALCOBSMAIN): \
   global_parameters.o \
   differential_Dirac.o \
