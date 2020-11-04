@@ -1032,13 +1032,20 @@ real(8) LogPf
 !complex(kind(0d0)) phase
 
 NMAT=size(MAT,1)
-
-NB = NMAT*NMAT
-LWORK = NMAT*NB
+LDA = NMAT
 allocate ( IWORK(1:NMAT) )
 allocate ( RWORK(1:NMAT-1) )
+NB = NMAT*NMAT
+!LWORK = NMAT*NB
+
+! compute optimal workspace
+allocate( work(1) )
+call ZSKPFA('U','P',NMAT,MAT,LDA,LogPf,phase_pf,&
+IWORK,WORK,-1,RWORK,INFO)
+
+LWORK=WORK(1)
+deallocate( WORK )
 allocate ( WORK(LWORK) )
-LDA = NMAT
 
 call ZSKPFA('U','P',NMAT,MAT,LDA,LogPf,phase_pf,&
 IWORK,WORK,LWORK,RWORK,INFO)
