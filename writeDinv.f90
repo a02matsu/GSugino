@@ -93,7 +93,8 @@ endif
 
 if( MYRANK == 0 ) then
   open(N_MEDFILE, file=MEDFILE, status='OLD',action='READ',form='unformatted')
-  open(N_DinvFILE, file=DinvFILE, status='REPLACE')
+  !open(N_DinvFILE, file=DinvFILE, status='REPLACE')
+  open(N_DinvFILE, file=DinvFILE, status='REPLACE',form='unformatted')
   open(N_EigenFILE, file=EigenFILE, status='REPLACE')
 endif 
 
@@ -115,16 +116,20 @@ do
   if( MYRANK==0 ) call matrix_eigenvalues(eigenvals,Dirac)
   !! Dinvを書き出す
   if( MYRANK==0 ) then
-    write(N_DinvFILE,'(I10,2X)',advance='no') ite
-    do j=1,num_fermion
-      do i=1,num_fermion
-        write(N_DinvFILE,'(E23.15,2X,E23.15,2X)',advance='no') &
-          dble(Dinv(i,j)), dble(Dinv(i,j)*(0d0,-1d0))
-      enddo
-    enddo
-    write(N_DinvFILE,'(E23.15,2X,E23.15,2X)') &
-      dble(phase_pf), dble((0d0,-1d0)*phase_pf)
+    !write(N_DinvFILE,'(I10,2X)',advance='no') ite
+    !do j=1,num_fermion
+    !  do i=1,num_fermion
+    !    write(N_DinvFILE,'(E23.15,2X,E23.15,2X)',advance='no') &
+    !      dble(Dinv(i,j)), dble(Dinv(i,j)*(0d0,-1d0))
+    !  enddo
+    !enddo
+    !write(N_DinvFILE,'(E23.15,2X,E23.15,2X)') &
+    !  dble(phase_pf), dble((0d0,-1d0)*phase_pf)
     !! eigenvalues
+    write(N_DinvFILE) ite
+    write(N_DinvFILE) Dinv
+    write(N_DinvFILE) phase_pf
+    write(N_DinvFILE) 
     do i=1,num_fermion
       write(N_EigenFILE,'(E23.15,2X,E23.15,2X)',advance='no') &
         dble(eigenvals(i)), dble(eigenvals(i)*(0d0,-1d0))

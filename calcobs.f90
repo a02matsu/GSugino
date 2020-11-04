@@ -289,9 +289,11 @@ if( MYRANK == 0 ) then
   write(*,*) "##", trim(MEDFILE)
   open(N_MEDFILE, file=MEDFILE, status='OLD',action='READ',form='unformatted')
   if( exist_dinv==0 ) then 
-    open(N_DinvFILE, file=DinvFILE, status='OLD',action='READ')
+    !open(N_DinvFILE, file=DinvFILE, status='OLD',action='READ')
+    open(N_DinvFILE, file=DinvFILE, status='OLD',action='READ',form='unformatted')
   else
-    open(N_DinvFILE, file=DinvFILE, status='REPLACE')
+    !open(N_DinvFILE, file=DinvFILE, status='REPLACE')
+    open(N_DinvFILE, file=DinvFILE, status='REPLACE',form='unformatted')
     open(N_EigenFILE, file=EigenFILE, status='REPLACE')
   endif
 endif 
@@ -305,19 +307,22 @@ do
   !! Dinvが存在するときは読み込む
   if( exist_dinv==0 ) then 
     if( MYRANK==0 ) then 
-      read(N_DinvFILE,'(I10,2X)',advance='no',iostat=ios) ite2
+      !read(N_DinvFILE,'(I10,2X)',advance='no',iostat=ios) ite2
+      read(N_DinvFILE,iostat=ios) ite2
       if( ios == -1) then 
         control = 1
       else
-        do j=1,num_fermion
-          do i=1,num_fermion
-            read(N_DinvFILE,'(E23.15,2X,E23.15,2X)',advance='no') &
-              rtmp,ctmp
-              Dinv(i,j)=dcmplx(rtmp)+(0d0,1d0)*ctmp
-          enddo
-        enddo
-        read(N_DinvFILE,'(E23.15,2X,E23.15,2X)') re_phase, im_phase
-        phase_pf=dcmplx(re_phase)+(0d0,1d0)*dcmplx(im_phase)
+        !do j=1,num_fermion
+        !  do i=1,num_fermion
+        !    read(N_DinvFILE) rtmp,ctmp
+        !      Dinv(i,j)=dcmplx(rtmp)+(0d0,1d0)*ctmp
+        !  enddo
+        !enddo
+        !read(N_DinvFILE,'(E23.15,2X,E23.15,2X)') re_phase, im_phase
+        !phase_pf=dcmplx(re_phase)+(0d0,1d0)*dcmplx(im_phase)
+        read(N_DinvFILE) Dinv
+        read(N_DinvFILE) phase_pf
+        read(N_DinvFILE) 
       endif
     endif
     call MPI_BCAST(control, 1, MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
@@ -344,15 +349,19 @@ do
     !!
     if( MYRANK==0 ) call matrix_eigenvalues(eigenvals,Dirac)
 
-    write(N_DinvFILE,'(I10,2X)',advance='no') ite
-    do j=1,num_fermion
-      do i=1,num_fermion
-        write(N_DinvFILE,'(E23.15,2X,E23.15,2X)',advance='no') &
-          dble(Dinv(i,j)), dble(Dinv(i,j)*(0d0,-1d0))
-      enddo
-    enddo
-    write(N_DinvFILE,'(E23.15,2X,E23.15,2X)') &
-      dble(phase_pf), dble((0d0,-1d0)*phase_pf)
+    !write(N_DinvFILE,'(I10,2X)',advance='no') ite
+    write(N_DinvFILE) ite
+    !do j=1,num_fermion
+    !  do i=1,num_fermion
+    !    write(N_DinvFILE,'(E23.15,2X,E23.15,2X)',advance='no') &
+    !      dble(Dinv(i,j)), dble(Dinv(i,j)*(0d0,-1d0))
+    !  enddo
+    !enddo
+    write(N_DinvFILE) Dinv
+    !write(N_DinvFILE,'(E23.15,2X,E23.15,2X)') &
+      !dble(phase_pf), dble((0d0,-1d0)*phase_pf)
+    write(N_DinvFILE) phase_pf
+    write(N_DinvFILE) !! necessary?? 
     !! eigenvalues
     do i=1,num_fermion
       write(N_EigenFILE,'(E23.15,2X,E23.15,2X)',advance='no') &
