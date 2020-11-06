@@ -13,10 +13,9 @@ character(128), parameter :: PARAFILE="parameters_calcobs.dat"
 character(128) :: MEDFILE
 character(128) :: DinvFILE
 character(128) :: EigenFILE
-integer, parameter :: num_calcobs=84   ! 考えているobservableの数
+integer, parameter :: num_calcobs=83   ! 考えているobservableの数
 character(128) :: name_obs(1:num_calcobs) = (/ &
-  "Re(phase Pf)", &
-  "Im(phase Pf)", &
+  "arg(Pf)", &
   "SbS", &
   "SbL", &
   "SbF", &
@@ -396,8 +395,7 @@ do
     endif
 
     !! Pfaffian phase
-      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble(phase_pf)
-      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble( (0d0,-1d0)*phase_pf)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  argument(phase_pf)
 
     Sb_computed=0
     !! SbS
