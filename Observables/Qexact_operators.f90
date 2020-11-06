@@ -153,7 +153,7 @@ contains
           do k=1,NMAT
             do l=1,NMAT
               trace = trace + phibar_p(i,j,r,ls) * phibar_p(k,l,ratio-r,ls) &
-                * Geta_lambda(j,k,l,i,gs,ll)
+                * Geta_lambda(j,k,l,i,gs,ll)  
             enddo
           enddo
         enddo
@@ -185,7 +185,7 @@ contains
   complex(Kind(0d0)) :: tmp, trace
   complex(kind(0d0)) :: tmpmat1(1:NMAT,1:NMAT)
   complex(kind(0d0)) :: tmpmat2(1:NMAT,1:NMAT)
-  integer :: ls,lt,gs,ll,gl
+  integer :: ls,lt,gs,gt,ll,gl
   integer :: k,i,j,l,r
 
 
@@ -195,6 +195,7 @@ contains
     ls=link_org(ll)
     lt=link_tip(ll)
     gs=global_site_of_local(ls)
+    gt=global_site_of_local(lt)
 
 
     !! bosonic part
@@ -224,14 +225,14 @@ contains
     trace=(0d0,0d0)
     do r=0,ratio
       call matrix_product(tmpmat1, Umat(:,:,ll), phibar_p(:,:,r,lt))
-      call matrix_product(tmpmat2, phibar_p(:,:,ratio-k,lt),Umat(:,:,ll), 'N','C' )
+      call matrix_product(tmpmat2, phibar_p(:,:,ratio-r,lt),Umat(:,:,ll), 'N','C' )
       do i=1,NMAT
         do j=1,NMAT
           do k=1,NMAT
             do l=1,NMAT
               trace = trace &
                 -(0d0,1d0)*tmpmat1(i,j)*tmpmat2(k,l)&
-                 * Geta_lambda(j,k,l,i,gs,ll) 
+                 * Geta_lambda(j,k,l,i,gt,ll) 
                ! take care for the order of eta and lambda
             enddo
           enddo
@@ -249,7 +250,7 @@ contains
   subroutine calc_opF1(op, PhiMat, Umat, Geta_chi, Gchi_chi, phibar_p, ratio)
   use parallel
   use global_parameters
-  use matrix_functions, only : matrix_commutator, matrix_power, trace_mm, matrix_product, matrix_3_product
+  use matrix_functions, only : matrix_commutator, matrix_power, trace_mm, matrix_product, matrix_3_product, make_matrix_traceless
   implicit none
 
   complex(kind(0d0)), intent(out) :: op
@@ -271,7 +272,7 @@ contains
 
 
   tmp=(0d0,0d0)
-  do lf=1,num_links
+  do lf=1,num_faces
     gf=global_face_of_local(lf)
     ls=sites_in_f(lf)%label_(1)
     gs=global_site_of_local(ls)
@@ -280,6 +281,7 @@ contains
     call Make_face_variable(Uf,lf,UMAT)
     call Make_moment_map_adm(Ymat,Uf)
     Ymat = Ymat * (0d0,0.5d0)*beta_f(lf)
+    call make_matrix_traceless(Ymat)
 
     !! bosonic part
     trace=(0d0,0d0)
@@ -319,7 +321,7 @@ contains
         do l=1,NMAT
           do k=1,NMAT
             do j=1,NMAT
-              trace=trace+tmpmat1(i,j)*phibar_p(k,l,ratio-r-1,ls)&
+              trace = trace + tmpmat1(i,j)*phibar_p(k,l,ratio-r-1,ls)&
                 * Geta_chi(j,k,l,i,gs,lf)
             enddo
           enddo
@@ -401,7 +403,7 @@ contains
     do l_place=1,links_in_f(lf)%num_
       ll=links_in_f(lf)%link_labels_(l_place)
       dir=links_in_f(lf)%link_dirs_(l_place)
-      gl = global_link_of_local( links_in_f(lf)%link_labels_(l_place) )
+      gl = global_link_of_local(ll)
       call calc_XYmat(Xmat,Ymat,lf,l_place,UMAT)
       
       call matrix_product(tmpmat1,Ymat,phibar_p(:,:,ratio,ls))
@@ -445,7 +447,7 @@ contains
       enddo
       trace=(0d0,0d0)
       call trace_mm(trace,Tmat,tmpmat1)
-      tmp = tmp + dcmplx(dir)/(Bval*Bval*dcmplx(e_max*e_max))
+      tmp = tmp + dcmplx(dir)/(Bval*Bval*dcmplx(e_max*e_max))*trace
     enddo
 
   enddo

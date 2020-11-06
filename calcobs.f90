@@ -13,13 +13,10 @@ character(128), parameter :: PARAFILE="parameters_calcobs.dat"
 character(128) :: MEDFILE
 character(128) :: DinvFILE
 character(128) :: EigenFILE
-integer, parameter :: num_calcobs=87 ! 考えているobservableの数
+integer, parameter :: num_calcobs=84   ! 考えているobservableの数
 character(128) :: name_obs(1:num_calcobs) = (/ &
-  "Re(phase Pf)",  &
+  "Re(phase Pf)", &
   "Im(phase Pf)", &
-  "|Atr_pre|", &
-  "Re(phase Atr_pre)", &
-  "Im(phase Atr_pre)", &
   "SbS", &
   "SbL", &
   "SbF", &
@@ -47,33 +44,24 @@ character(128) :: name_obs(1:num_calcobs) = (/ &
   "Im(WT link)", &
   "Re(WT face)", &
   "Im(WT face)", &
+  "|A_IZ|", &
+  "arg(A_IZ))|", &
   "|Atr|", &
-  "Re(phase Atr)", &
-  "Im(phase Atr)", &
+  "arg(Atr)", &
   "|Atr2|", &
-  "Re(phase Atr2)", &
-  "Im(phase Atr2)", &
-  "|Areg(0.001)|", &
-  "Re(phase Areg(0.01))", &
-  "Im(phase Areg(0.01))", &
+  "arg(Atr2)", &
   "|Aface|", &
-  "Re(phase Aface)", &
-  "Im(phase Aface)", &
+  "arg(Aface)", &
   "|Af-SF4 site|", &
-  "Re(phase Af-SF4 site)", &
-  "Im(phase Af-SF4 site)", &
+  "arg(Af-SF4 site)", &
   "|Af-SF4 link|", &
-  "Re(phase Af-SF4 link)", &
-  "Im(phase Af-SF4 link)", &
+  "arg(Af-SF4 link)", &
   "|Af-SF4 face|", &
-  "Re(phase Af-SF4 face)", &
-  "Im(phase Af-SF4 face)", &
+  "arg(Af-SF4 face)", &
   "|AYphi|", &
-  "Re(phase AYphi)", &
-  "Im(phase AYphi)", &
+  "arg(AYphi)", &
   "|AYphibar|", &
-  "Re(phase AYphibar)", &
-  "Im(phase AYphibar)", &
+  "arg(AYphibar)", &
   "Re(Q(AYphibar)XiS)", &
   "Im(Q(AYphibar)XiS)", &
   "Re(Q(AYphibar)XiL)", &
@@ -81,8 +69,7 @@ character(128) :: name_obs(1:num_calcobs) = (/ &
   "Re(Q(AYphibar)XiF)", &
   "Im(Q(AYphibar)XiF)", &
   "|Aphibar|", &
-  "Re(phase Aphibar)", &
-  "Im(phase Aphibar)", &
+  "arg(Aphibar)", &
   "Re(Q(Aphibar)XiS)", &
   "Im(Q(Aphibar)XiS)", &
   "Re(Q(Aphibar)XiL)", &
@@ -101,20 +88,18 @@ character(128) :: name_obs(1:num_calcobs) = (/ &
   "Re(WT Aface link)", &
   "Im(WT Aface link)", &
   "Re(WT Aface face)", &
-  "Im(WT Aface face)" &
+  "Im(WT Aface face)", &
+  "|opS1|", &
+  "arg(opS1)", &
+  "|opL1|", &
+  "arg(opL1)", &
+  "|opL2|", &
+  "arg(opL2)", &
+  "|opF1|", &
+  "arg(opF1)", &
+  "|opF2|", &
+  "arg(opF2)" &
   /)
-  !"Re(exactSf_link1)", &
-  !"Im(exactSf_link1)", &
-  !"Re(exactSf_link2)", &
-  !"Im(exactSf_link2)", &
-  !"Re(exactSf_face2)", &
-  !"Im(exactSf_face2)"  &
-  !"Re(XiQS_site)", &
-  !"Im(XiQS_site)", &
-  !"Re(XiQS_link)", &
-  !"Im(XiQS_link)", &
-  !"Re(XiQS_face)", &
-  !"Im(XiQS_face)", &
 
 !integer :: trig_obs(1:num_calcobs)
 integer :: sizeM,sizeN
@@ -122,6 +107,7 @@ integer :: sizeM,sizeN
 double precision :: Sb, SbS, SbL, SbF
 complex(kind(0d0)) :: SfL2
 complex(kind(0d0)) :: Acomp_trpre ! trace compensator
+complex(kind(0d0)) :: Acomp_IZ ! IZ-compensator
 complex(kind(0d0)) :: Acomp_tr ! trace compensator
 complex(kind(0d0)) :: Acomp_tr2 ! trace compensator2
 complex(kind(0d0)) :: Acomp_face ! face compensator
@@ -149,6 +135,7 @@ complex(kind(0d0)) :: WT_site
 complex(kind(0d0)) :: WT_link
 complex(kind(0d0)) :: WT_face
 complex(kind(0d0)) :: Sf1, Sf2, Sf3, Sf4, Sf5
+complex(kind(0d0)) :: opS1,opL1,opL2,opF1,opF2
 complex(kind(0d0)) :: XiQS
 complex(kind(0d0)) :: tmp_obs
 !complex(kind(0d0)), allocatable :: WT1(:)
@@ -166,33 +153,47 @@ integer, parameter :: N_EigenFILE=103
 
 integer :: Sb_computed ! if Sb_computed=1, Sb has been already computed
 
+
 contains
 !!!
-subroutine make_format(FMT1,num)
-implicit none
+  subroutine make_format(FMT1,num)
+  implicit none
+  
+  character(128), intent(out) :: FMT1
+  integer, intent(in) :: num
+  character(128), parameter :: FMT0="E15.8,2X"
+  
+  character(128) :: tmp
+  integer :: i
+  
+  tmp = trim("(")
+  do i=1,num-1
+    FMT1 = tmp // trim(FMT0) // ","
+    tmp = FMT1
+    write(*,*)  tmp // trim(FMT0) // ","
+  enddo
+  FMT1 = tmp // trim(FMT0) // ")"
+  write(*,*) FMT1
+  end subroutine make_format
+  
+  
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  !! function to obtain the argument of a complex number z
+  real(8) function argument(z)
+  implicit none
+  
+    complex(kind(0d0)), intent(in) :: z
+    complex(kind(0d0)) :: phase
+  
+    phase = z / dcmplx( abs(z) )
+    argument=atan2( dble((0d0,-1d0)*phase), dble(phase) )
+  end function argument
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-character(128), intent(out) :: FMT1
-integer, intent(in) :: num
-character(128), parameter :: FMT0="E15.8,2X"
-
-character(128) :: tmp
-integer :: i
-
-tmp = trim("(")
-do i=1,num-1
-  FMT1 = tmp // trim(FMT0) // ","
-  tmp = FMT1
-  write(*,*)  tmp // trim(FMT0) // ","
-enddo
-FMT1 = tmp // trim(FMT0) // ")"
-write(*,*) FMT1
-end subroutine make_format
 
 #include "Measurement/FermionCorrelation_from_Dinv.f90"
 #include "Measurement/construct_Dirac.f90"
 #include "Measurement/writeout_Dirac.f90"
-
-
 
 end module global_calcobs
 
@@ -236,6 +237,8 @@ complex(kind(0d0)), allocatable :: eigenvals(:)
 complex(kind(0d0)) :: tmp,tmp1,tmp2
 integer :: k,s1,s2,l1,l2,f1,f2,a,b
 integer :: ios
+
+
 
 !!!!!
 complex(kind(0d0)), allocatable :: DJ1(:), DJ2(:)
@@ -392,25 +395,9 @@ do
       write(*,'(I7,2X)',advance='no') ite
     endif
 
-    !write(*,*) ite
-    !do ll=1,global_num_links
-    !  if(MYRANK==local_link_of_global(ll)%rank_) then
-    !    write(*,*) Umat(:,:,local_link_of_global(ll)%label_)
-    !  endif
-    !enddo
-
     !! Pfaffian phase
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble(phase_pf)
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble( (0d0,-1d0)*phase_pf)
-      !if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble((0d0,-1d0)*Sf)
-
-    !"|Atr_pre|", &
-    Acomp_trpre=(0d0,0d0)
-      call calc_trace_compensator_pre(Acomp_trpre,PhiMat)
-      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') cdabs(Acomp_trpre)
-      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble(Acomp_trpre/cdabs(Acomp_trpre))
-      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble( (0d0,-1d0)*Acomp_trpre ) /cdabs(Acomp_trpre)
-
 
     Sb_computed=0
     !! SbS
@@ -489,25 +476,29 @@ do
        if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble(WT_face)
        if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble((0d0,-1d0)*WT_face)
 
+    !"|A_IZ|", &
+    Acomp_tr=(0d0,0d0)
+      call calc_IZ_compensator(Acomp_IZ,Umat,PhiMat,Glambda_lambda)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') cdabs(Acomp_IZ)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') argument(Acomp_IZ)
+      !if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble(Acomp_IZ/cdabs(Acomp_IZ))
+      !if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble( (0d0,-1d0)*Acomp_IZ/cdabs(Acomp_IZ))
+
     !"|Atr|", &
     Acomp_tr=(0d0,0d0)
       call calc_trace_compensator(Acomp_tr,PhiMat)
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') cdabs(Acomp_tr)
-      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble(Acomp_tr/cdabs(Acomp_tr))
-      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble( (0d0,-1d0)*Acomp_tr/cdabs(Acomp_tr))
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') argument(Acomp_tr)
+      !if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble(Acomp_tr/cdabs(Acomp_tr))
+      !if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble( (0d0,-1d0)*Acomp_tr/cdabs(Acomp_tr))
 
     !"|Atr|", &
     Acomp_tr=(0d0,0d0)
       call calc_trace_compensator2(Acomp_tr2,PhiMat)
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') cdabs(Acomp_tr2)
-      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble(Acomp_tr2/cdabs(Acomp_tr2))
-      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble( (0d0,-1d0)*Acomp_tr2/cdabs(Acomp_tr2))
-
-    !"|Areg(0.1)|", &
-      call calc_regularized_compensator(Acomp_reg01,PhiMat,1d-3)
-      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') cdabs(Acomp_reg01)
-      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble(Acomp_reg01/cdabs(Acomp_reg01))
-      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble( (0d0,-1d0)*Acomp_reg01/cdabs(Acomp_reg01))
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') argument(Acomp_tr2)
+      !if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble(Acomp_tr2/cdabs(Acomp_tr2))
+      !if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble( (0d0,-1d0)*Acomp_tr2/cdabs(Acomp_tr2))
 
     !! Face compensator
       call calc_face_compensator(&
@@ -516,39 +507,45 @@ do
         Geta_eta, Geta_lambda, Geta_chi, Gchi_eta, Gchi_lambda, Gchi_chi) 
      !call calc_face_compensator(Acomp_face,Umat,PhiMat,Geta_chi)
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') cdabs(Acomp_face)
-      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble(Acomp_face/cdabs(Acomp_face))
-      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble( (0d0,-1d0)*Acomp_face/cdabs(Acomp_face))
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') argument(Acomp_face)
+      !if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble(Acomp_face/cdabs(Acomp_face))
+      !if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble( (0d0,-1d0)*Acomp_face/cdabs(Acomp_face))
 
     !"|Af-SF4_site|", &
       !call calc_4fermi_in_CSFsite(CSF_site, Umat, Phimat, Geta_eta, Gchi_eta )
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') cdabs(CSF_site)
-      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble(CSF_site/cdabs(CSF_site))
-      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble( (0d0,-1d0)*CSF_site/cdabs(CSF_site))
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') argument(CSF_site)
+      !if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble(CSF_site/cdabs(CSF_site))
+      !if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble( (0d0,-1d0)*CSF_site/cdabs(CSF_site))
 
     !"|Af-SF4_link|", &
       !call calc_4fermi_in_CSFlink(CSF_link, Umat, Phimat, Geta_eta, Gchi_eta, Geta_lambda, Gchi_lambda )
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') cdabs(CSF_link)
-      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble(CSF_link/cdabs(CSF_link))
-      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble( (0d0,-1d0)*CSF_link/cdabs(CSF_link))
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') argument(CSF_link)
+      !if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble(CSF_link/cdabs(CSF_link))
+      !if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble( (0d0,-1d0)*CSF_link/cdabs(CSF_link))
 
     !"|Af-SF4_face|", &
       !call calc_4fermi_in_CSFface(CSF_face, Umat, Phimat, Geta_eta, Gchi_eta, Geta_chi, Gchi_chi, Geta_lambda, Gchi_lambda )
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') cdabs(CSF_face)
-      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble(CSF_face/cdabs(CSF_face))
-      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble( (0d0,-1d0)*CSF_face/cdabs(CSF_face))
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') argument(CSF_face)
+      !if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble(CSF_face/cdabs(CSF_face))
+      !if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble( (0d0,-1d0)*CSF_face/cdabs(CSF_face))
 
 
     !"|AYphi|", &
       call calc_Yphi_compensator(Acomp_Yphi,PhiMat,Umat)
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') cdabs(Acomp_Yphi)
-      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble(Acomp_Yphi/cdabs(Acomp_Yphi))
-      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble( (0d0,-1d0)*Acomp_Yphi/cdabs(Acomp_Yphi))
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') argument(Acomp_Yphi)
+      !if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble(Acomp_Yphi/cdabs(Acomp_Yphi))
+      !if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble( (0d0,-1d0)*Acomp_Yphi/cdabs(Acomp_Yphi))
 
     !"|AYphibar|", &
       call calc_Yphibar_compensator(Acomp_phibar,PhiMat,Umat)
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') cdabs(Acomp_phibar)
-      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble(Acomp_phibar/cdabs(Acomp_phibar))
-      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble( (0d0,-1d0)*Acomp_phibar/cdabs(Acomp_phibar))
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') argument(Acomp_phibar)
+      !if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble(Acomp_phibar/cdabs(Acomp_phibar))
+      !if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble( (0d0,-1d0)*Acomp_phibar/cdabs(Acomp_phibar))
 
     !"QCYphibar_Xi", &
       call calc_QCYphibar_Xi(QC_Xi_site,QC_Xi_link,QC_Xi_face,&
@@ -572,8 +569,9 @@ do
     !"|Aphibar|", &
       call calc_phibar_compensator(Acomp_phibar,PhiMat)
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') cdabs(Acomp_phibar)
-      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble(Acomp_phibar/cdabs(Acomp_phibar))
-      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble( (0d0,-1d0)*Acomp_phibar/cdabs(Acomp_phibar))
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') argument(Acomp_phibar)
+      !if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble(Acomp_phibar/cdabs(Acomp_phibar))
+      !if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble( (0d0,-1d0)*Acomp_phibar/cdabs(Acomp_phibar))
 
     !"QCphibar_Xi", &
       call calc_QCphibar_Xi(QC_Xi_site,QC_Xi_link,QC_Xi_face,Geta_eta,Geta_lambda,Geta_chi,Umat,PhiMat)
@@ -594,72 +592,6 @@ do
     !"tr|\phi^2|", &
       call calc_trphi2(trphi2,PhiMat)
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') trphi2
-
-!    !! Sf_link1
-!      call calc_Qexact_Sf_link1(Sf2,Geta_lambda,Umat,PhiMat)
-!      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble(Sf2)
-!      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble((0d0,-1d0)*Sf2)
-!
-!    !! Sf_link2
-!      call calc_Qexact_Sf_link2(Sf3, PhiMat, Umat, Glambda_lambda)
-!      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble(Sf3)
-!      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble((0d0,-1d0)*Sf3)
-!
-!    !! Sf_face2
-!      call calc_Qexact_Sf_face2(Sf5,Glambda_chi,Umat)
-!      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble(Sf5)
-!      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble((0d0,-1d0)*Sf5)
-      !if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble((0d0,-1d0)*Sf)
-
-    !! XiQS_site
-      !call calc_Xisite_QS(XiQS,Geta_eta,Glambda_eta,Gchi_eta,PhiMat,Umat)
-      !if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble(XiQS)
-      !if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble((0d0,-1d0)*XiQS)
-
-    !! XiQS_link
-      !call calc_Xilink_QS(XiQS,Geta_lambda,Glambda_lambda,Gchi_lambda,PhiMat,Umat)
-      !if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble(XiQS)
-      !if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble((0d0,-1d0)*XiQS)
-
-    !! XiQS_face
-      !call calc_Xiface_QS(XiQS,Geta_chi,Glambda_chi,Gchi_chi,PhiMat,Umat)
-      !if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble(XiQS)
-      !if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no')  dble((0d0,-1d0)*XiQS)
-
-!      !! divergence of U(1)V current
-!      call calc_DJ_U1V(DJ1,DJ2,Glambda_eta,Glambda_chi,Umat)
-!      tmp=(0d0,0d0)
-!      do j=1,NMAT
-!        do i=1,NMAT
-!          tmp=tmp+PhiMat(i,j,1)*dconjg(PhiMat(i,j,1))
-!        enddo
-!      enddo
-!      do gf=1,global_num_faces
-!        rank=local_face_of_global(gf)%rank_
-!        lf=local_face_of_global(gf)%label_
-!        tag=gf
-!        if( MYRANK == 0 ) then 
-!          if( MYRANK == rank ) then
-!            tmp1 = DJ1(lf)
-!            tmp2 = DJ2(lf)
-!          else
-!            call MPI_RECV(tmp1,1,MPI_DOUBLE_COMPLEX,rank,2*tag-1,MPI_COMM_WORLD,ISTATUS,IERR)
-!            call MPI_RECV(tmp2,1,MPI_DOUBLE_COMPLEX,rank,2*tag,MPI_COMM_WORLD,ISTATUS,IERR)
-!          endif
-!        else
-!          if( MYRANK == rank ) then
-!            call MPI_SEND(DJ1(lf),1,MPI_DOUBLE_COMPLEX,0,2*tag-1,MPI_COMM_WORLD,IERR)
-!            call MPI_SEND(DJ2(lf),1,MPI_DOUBLE_COMPLEX,0,2*tag,MPI_COMM_WORLD,IERR)
-!          endif
-!        endif
-!        tmp=(1d0,0d0)
-!        if( MYRANK == 0 ) then 
-!          write(*,'(E15.8,2X)',advance='no')  dble(tmp*tmp1)
-!          write(*,'(E15.8,2X)',advance='no')  dble((0d0,-1d0)*tmp*tmp1)
-!          write(*,'(E15.8,2X)',advance='no')  dble(tmp*tmp2)
-!          write(*,'(E15.8,2X)',advance='no')  dble((0d0,-1d0)*tmp*tmp2)
-!        endif
-!      enddo
 
     ! WT with Atr site
       tmp_obs=WT_site*cdabs(Acomp_tr)
@@ -690,6 +622,29 @@ do
       tmp_obs=WT_face*cdabs(Acomp_face) + CSF_link*dconjg(Acomp_face)/cdabs(Acomp_face)
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble(tmp_obs)
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble((0d0,-1d0)*tmp_obs)
+
+
+    ! local operators 
+      call calc_Qexact_operators(&
+        opS1, opL1, opL2, opF1, opF2, &
+        Umat,PhiMat, Geta_eta, Geta_lambda, Geta_chi, Glambda_lambda, &
+        Glambda_chi, Gchi_eta, Gchi_lambda, Gchi_chi) 
+
+      ! opS1
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') cdabs(opS1)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') argument(opS1)
+      ! opL1
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') cdabs(opL1)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') argument(opL1)
+      ! opL2
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') cdabs(opL2)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') argument(opL2)
+      ! opF1
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') cdabs(opF1)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') argument(opF1)
+      ! opF2
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') cdabs(opF2)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') argument(opF2)
 
     if(MYRANK==0) write(*,*)
   else
