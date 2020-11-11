@@ -13,7 +13,7 @@ character(128), parameter :: PARAFILE="parameters_calcobs.dat"
 character(128) :: MEDFILE
 character(128) :: DinvFILE
 character(128) :: EigenFILE
-integer, parameter :: num_calcobs=83   ! 考えているobservableの数
+integer, parameter :: num_calcobs=93   ! 考えているobservableの数
 character(128) :: name_obs(1:num_calcobs) = (/ &
   "arg(Pf)", &
   "SbS", &
@@ -90,14 +90,24 @@ character(128) :: name_obs(1:num_calcobs) = (/ &
   "Im(WT Aface face)", &
   "|opS1|", &
   "arg(opS1)", &
+  "|opS1+massS1|", &
+  "arg(opS1+massS1)", &
   "|opL1|", &
   "arg(opL1)", &
+  "|opL1+massL1|", &
+  "arg(opL1+massL1)", &
   "|opL2|", &
   "arg(opL2)", &
+  "|opL2+massL2|", &
+  "arg(opL2+massL2)", &
   "|opF1|", &
   "arg(opF1)", &
+  "|opF1+massF1|", &
+  "arg(opF1+massF1)", &
   "|opF2|", &
-  "arg(opF2)" &
+  "arg(opF2)", &
+  "|opF2+massF2|+", &
+  "arg(opF2+massF2)" &
   /)
 
 !integer :: trig_obs(1:num_calcobs)
@@ -135,6 +145,7 @@ complex(kind(0d0)) :: WT_link
 complex(kind(0d0)) :: WT_face
 complex(kind(0d0)) :: Sf1, Sf2, Sf3, Sf4, Sf5
 complex(kind(0d0)) :: opS1,opL1,opL2,opF1,opF2
+complex(kind(0d0)) :: massS1,massL1,massL2,massF1,massF2
 complex(kind(0d0)) :: XiQS
 complex(kind(0d0)) :: tmp_obs
 !complex(kind(0d0)), allocatable :: WT1(:)
@@ -625,24 +636,35 @@ do
     ! local operators 
       call calc_Qexact_operators(&
         opS1, opL1, opL2, opF1, opF2, &
+        massS1, massL1, massL2, massF1, massF2, &
         Umat,PhiMat, Geta_eta, Geta_lambda, Geta_chi, Glambda_lambda, &
         Glambda_chi, Gchi_eta, Gchi_lambda, Gchi_chi) 
 
       ! opS1
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') cdabs(opS1)
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') argument(opS1)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') cdabs(opS1+massS1)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') argument(opS1+massS1)
       ! opL1
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') cdabs(opL1)
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') argument(opL1)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') cdabs(opL1+massL1)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') argument(opL1+massL1)
       ! opL2
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') cdabs(opL2)
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') argument(opL2)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') cdabs(opL2+massL2)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') argument(opL2+massL2)
       ! opF1
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') cdabs(opF1)
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') argument(opF1)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') cdabs(opF1+massF1)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') argument(opF1+massF1)
       ! opF2
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') cdabs(opF2)
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') argument(opF2)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') cdabs(opF2+massF2)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') argument(opF2+massF2)
 
     if(MYRANK==0) write(*,*)
   else
