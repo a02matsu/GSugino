@@ -1,7 +1,7 @@
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! 
 subroutine calc_face_compensator(&
-    Acomp,CSF_site,CSF_link,CSF_face,CF_mass&
+    Acomp,CSF_site,CSF_link,CSF_face,CF_mass,&
     Umat,PhiMat,&
     Geta_eta, Geta_lambda, Geta_chi, Gchi_eta, Gchi_lambda, Gchi_chi) 
 use parallel
