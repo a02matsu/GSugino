@@ -791,7 +791,7 @@ contains
   integer :: lf,ls,gs
   integer :: i,j,k,l
 
-  factor = -dcmplx(overall_factor * mass_square_phi * 0.5d0) / dcmplx(global_num_faces)
+  factor = -dcmplx(overall_factor * mass_square_phi * 0.5d0) / dcmplx(NMAT*global_num_faces)
 
   do gs=1,global_num_sites 
     rank=local_site_of_global(gs)%rank_
