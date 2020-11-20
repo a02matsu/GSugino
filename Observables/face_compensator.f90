@@ -805,7 +805,7 @@ contains
   tmp=(0d0,0d0)
   do lf=1,num_faces
     ls=sites_in_f(lf)%label_(1)
-    call hermitian_conjugate(tmpmat, Phimat(:,:,ls)
+    call hermitian_conjugate(tmpmat, Phimat(:,:,ls))
     call matrix_power(phibar_r, tmpmat, ratio)
 
     do gs=1,global_num_sites
