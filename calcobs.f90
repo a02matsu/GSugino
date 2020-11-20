@@ -514,7 +514,7 @@ do
 
     !! Face compensator
       call calc_face_compensator(&
-        Acomp_face,CSF_site,CSF_link,CSF_face,AF_mass&
+        Acomp_face,CSF_site,CSF_link,CSF_face,AF_mass,&
         Umat,PhiMat,&
         Geta_eta, Geta_lambda, Geta_chi, Gchi_eta, Gchi_lambda, Gchi_chi) 
      !call calc_face_compensator(Acomp_face,Umat,PhiMat,Geta_chi)
