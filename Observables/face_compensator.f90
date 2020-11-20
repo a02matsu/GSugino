@@ -764,11 +764,67 @@ contains
   
   
   
-  
   end subroutine calc_4fermi_in_CSFface
   
-  
-  
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  subroutine calc_CF_mass(&
+    CF_mass,&
+    Umat,PhiMat,Geta_chi,ratio)
+  use parallel
+  use matrix_functions, only : hermitian_conjugate, matrix_power, trace_mm, matrix_product, matrix_3_product
+
+  use global_parameters
+  implicit none
+  complex(kind(0d0)), intent(out) :: CF_mass
+  complex(kind(0d0)), intent(in) :: Umat(1:NMAT,1:NMAT,1:num_necessary_links)
+  complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_necessary_sites)
+  complex(kind(0d0)), intent(in) :: Geta_chi(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_sites,1:num_faces) 
+  integer, intent(in) :: ratio
+
+  complex(kind(0d0)) :: factor
+  complex(kind(0d0)) :: tmp
+  complex(kind(0d0)) :: tmpmat(1:NMAT,1:NMAT)
+  complex(kind(0d0)) :: Gmat(1:NMAT,1:NMAT,1:global_num_sites)
+  complex(kind(0d0)) :: phibar_r(1:NMAT,1:NMAT)
+
+  integer :: rank
+  integer :: lf,ls,gs
+  integer :: i,j,k,l
+
+  factor = -dcmplx(overall_factor * mass_square_phi * 0.5d0) / dcmplx(global_num_faces)
+
+  do gs=1,global_num_sites 
+    rank=local_site_of_global(gs)%rank_
+    if(MYRANK==rank) then
+      ls=local_site_of_global(gs)%label_
+      Gmat(:,:,gs)=phimat(:,:,ls)
+    endif
+    call MPI_BCAST(Gmat(:,:,gs), NMAT*NMAT, MPI_DOUBLE_COMPLEX,rank,MPI_COMM_WORLD,IERR)
+  enddo
+
+  tmp=(0d0,0d0)
+  do lf=1,num_faces
+    ls=sites_in_f(lf)%label_(1)
+    call hermitian_conjugate(tmpmat, Phimat(:,:,ls)
+    call matrix_power(phibar_r, tmpmat, ratio)
+
+    do gs=1,global_num_sites
+      do l=1,NMAT
+        do k=1,NMAT
+          do j=1,NMAT
+            do i=1,NMAT
+              tmp = tmp + Geta_chi(i,j,k,l,gs,lf) * Gmat(j,i,gs) * phibar_r(l,k)
+            enddo
+          enddo
+        enddo
+      enddo
+    enddo
+  enddo
+  tmp = tmp * factor
+  call MPI_REDUCE(tmp,CF_mass,1,MPI_DOUBLE_COMPLEX,MPI_SUM,0,MPI_COMM_WORLD,IERR)
+
+  end subroutine calc_CF_mass
+
   
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   subroutine make_phibar_p(phibar_p,PhiMat,ratio,gf)
