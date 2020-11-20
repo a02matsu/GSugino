@@ -1117,7 +1117,7 @@ contains
     ls=sites_in_f(lf)%label_(1)
     call Make_face_variable(Uf,lf,UMAT)
     call Make_moment_map_adm(Omega,Uf)
-    call matrix_product(tmpmat,Omega,phibar_p(:,:,ratio+1,ls))
+    call matrix_product(tmpmat,Omega,phibar_p(:,:,ratio,ls))
     tmpmat=tmpmat*(0d0,0.5d0)*dcmplx(beta_f(lf))
 
     do gs=1,global_num_sites
@@ -1176,7 +1176,7 @@ contains
     ls=sites_in_f(lf)%label_(1)
     call Make_face_variable(Uf,lf,UMAT)
     call Make_moment_map_adm(Omega,Uf)
-    call matrix_product(tmpmat,Omega,phibar_p(:,:,ratio+1,ls))
+    call matrix_product(tmpmat,Omega,phibar_p(:,:,ratio,ls))
 
     do gs=1,global_num_sites
       do j=1,NMAT
