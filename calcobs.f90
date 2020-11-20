@@ -13,7 +13,7 @@ character(128), parameter :: PARAFILE="parameters_calcobs.dat"
 character(128) :: MEDFILE
 character(128) :: DinvFILE
 character(128) :: EigenFILE
-integer, parameter :: num_calcobs=93   ! 考えているobservableの数
+integer, parameter :: num_calcobs=95   ! 考えているobservableの数
 character(128) :: name_obs(1:num_calcobs) = (/ &
   "arg(Pf)", &
   "SbS", &
@@ -51,6 +51,8 @@ character(128) :: name_obs(1:num_calcobs) = (/ &
   "arg(Atr2)", &
   "|Aface|", &
   "arg(Aface)", &
+  "|Af-mass|", &
+  "arg(AF-mass)", &
   "|Af-SF4 site|", &
   "arg(Af-SF4 site)", &
   "|Af-SF4 link|", &
@@ -120,6 +122,7 @@ complex(kind(0d0)) :: Acomp_IZ ! IZ-compensator
 complex(kind(0d0)) :: Acomp_tr ! trace compensator
 complex(kind(0d0)) :: Acomp_tr2 ! trace compensator2
 complex(kind(0d0)) :: Acomp_face ! face compensator
+complex(kind(0d0)) :: AF_mass ! mass contribution to face compensator
 complex(kind(0d0)) :: Acomp_Yphi ! face compensator
 complex(kind(0d0)) :: Acomp_reg3 ! regularized compensator
 complex(kind(0d0)) :: Acomp_reg2 ! regularized compensator
@@ -511,12 +514,14 @@ do
 
     !! Face compensator
       call calc_face_compensator(&
-        Acomp_face,CSF_site,CSF_link,CSF_face,&
+        Acomp_face,CSF_site,CSF_link,CSF_face,AF_mass&
         Umat,PhiMat,&
         Geta_eta, Geta_lambda, Geta_chi, Gchi_eta, Gchi_lambda, Gchi_chi) 
      !call calc_face_compensator(Acomp_face,Umat,PhiMat,Geta_chi)
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') cdabs(Acomp_face)
       if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') argument(Acomp_face)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') cdabs(AF_mass)
+      if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') argument(AF_mass)
       !if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble(Acomp_face/cdabs(Acomp_face))
       !if( MYRANK == 0 ) write(*,'(E15.8,2X)',advance='no') dble( (0d0,-1d0)*Acomp_face/cdabs(Acomp_face))
 

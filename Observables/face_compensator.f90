@@ -1,14 +1,14 @@
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! 
 subroutine calc_face_compensator(&
-    Acomp,CSF_site,CSF_link,CSF_face,&
+    Acomp,CSF_site,CSF_link,CSF_face,CF_mass&
     Umat,PhiMat,&
     Geta_eta, Geta_lambda, Geta_chi, Gchi_eta, Gchi_lambda, Gchi_chi) 
 use parallel
 use global_parameters
 implicit none
 
-complex(kind(0d0)), intent(out) :: Acomp, CSF_site, CSF_link, CSF_face
+complex(kind(0d0)), intent(out) :: Acomp, CSF_site, CSF_link, CSF_face,CF_mass
 complex(kind(0d0)), intent(in) :: Umat(1:NMAT,1:NMAT,1:num_necessary_links)
 complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_necessary_sites)
 complex(kind(0d0)), intent(in) :: Geta_eta(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_sites,1:num_sites) 
@@ -24,7 +24,7 @@ call calc_face_compensator_main(Acomp,Umat,PhiMat,Geta_chi)
 call calc_4fermi_in_CSFsite(CSF_site, Umat, Phimat, Geta_eta, Gchi_eta, ratio)
 call calc_4fermi_in_CSFlink(CSF_link, Umat, Phimat, Geta_eta, Gchi_eta, Geta_lambda, Gchi_lambda, ratio )
 call calc_4fermi_in_CSFface(CSF_face, Umat, Phimat, Geta_eta, Gchi_eta, Geta_chi, Gchi_chi, Geta_lambda, Gchi_lambda ,ratio)
-
+call calc_CF_mass( CF_mass, Umat,PhiMat,Geta_chi,ratio)
 
 contains
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
