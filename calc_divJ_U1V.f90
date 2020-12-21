@@ -71,7 +71,7 @@ allocate( divJ2(1:num_faces) )
 
 if( MYRANK==0 ) then
   open(N_MEDFILE, file=MEDFILE, status='OLD',action='READ',form='unformatted')
-  open(N_DinvFILE, file=DinvFILE, status='OLD',action='READ')
+  open(N_DinvFILE, file=DinvFILE, status='OLD',action='READ',form='unformatted')
   open(N_divJFILE, file=divJFILE, status='REPLACE')
 
   write(N_divJFILE,*) "# ite, Re(rot(J1)), Im(rot(J1), Re(div(J2)), Im(div(J2)), Re(DJ), Im(DJ)"
