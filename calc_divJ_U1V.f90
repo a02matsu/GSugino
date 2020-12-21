@@ -86,18 +86,13 @@ do
   call read_config_from_medfile(Umat,PhiMat,ite,N_MEDFILE,control)
   
   if( MYRANK==0 ) then
-    read(N_DinvFILE,'(I10,2X)',advance='no',iostat=ios) ite2
-    if( ios == -1) control=1
-    if( control==0 ) then 
-      do j=1,num_fermion
-        do i=1,num_fermion
-          read(N_DinvFILE,'(E23.15,2X,E23.15,2X)',advance='no') &
-            rtmp,itmp
-            Dinv(i,j)=dcmplx(rtmp)+(0d0,1d0)*itmp
-        enddo
-      enddo
-      read(N_DinvFILE,'(E23.15,2X,E23.15,2X)') rtmp, itmp
-      phase_pf=dcmplx(rtmp)+(0d0,1d0)*dcmplx(itmp)
+    read(N_DinvFILE,iostat=ios) ite2
+    if( ios == -1) then
+      control=1
+    else
+      read(N_DinvFILE) Dinv
+      read(N_DinvFILE) phase_pf
+      read(N_DinvFILE) 
     endif
   endif
   call MPI_BCAST(control, 1, MPI_INTEGER,0,MPI_COMM_WORLD,IERR)

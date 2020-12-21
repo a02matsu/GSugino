@@ -7,7 +7,7 @@
 !!  DJ1 = d.vec1, DJ2 = d.vec2
 !! where \chi(f) is associated with the link variable Uf
 !! as in the fermionic part of the face action
-subroutine calc_DJ_U1V(DJ1,DJ2,Glambda_eta,Glambda_chi,UMAT)
+subroutine calc_DJ_U1V(DJ1,DJ2,Geta_lambda,Gchi_lambda,UMAT)
 use global_parameters
 !use initialization_calcobs
 use parallel
@@ -17,14 +17,13 @@ implicit none
 
 complex(kind(0d0)), intent(out) :: DJ1(1:num_faces)
 complex(kind(0d0)), intent(out) :: DJ2(1:num_faces)
-complex(kind(0d0)), intent(in) :: Glambda_eta(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_links,1:num_sites) 
-complex(kind(0d0)), intent(in) :: Glambda_chi(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_links,1:num_faces) 
+complex(kind(0d0)), intent(in) :: Geta_lambda(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_sites,1:num_links) 
+complex(kind(0d0)), intent(in) :: Gchi_lambda(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_faces,1:num_links) 
 complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_necessary_links)
 
 
 complex(kind(0d0)) :: trvec1(1:num_necessary_links)
 complex(kind(0d0)) :: trvec2(1:num_necessary_links)
-!complex(kind(0d0)) :: vec1(1:NMAT,1:NMAT,1:num_necessary_links)
 complex(kind(0d0)) :: U_fs(1:NMAT,1:NMAT)
 complex(kind(0d0)) :: U_sf(1:NMAT,1:NMAT)
 complex(kind(0d0)) :: Uf(1:NMAT,1:NMAT)
@@ -38,7 +37,7 @@ integer :: info
 
 
 !!  DJ1 ~ 1/2 rot Tr(\lambda(l) \eta(s))
-call make_trV1(trvec1,Glambda_eta)
+call make_trV1(trvec1,Geta_lambda)
 !! rotation
 DJ1=(0d0,0d0)
 do lf=1,num_faces
@@ -57,18 +56,19 @@ DJ2=(0d0,0d0)
 do lf=1,num_faces
   do kk=1,sites_in_f(lf)%num_
     ls=sites_in_f(lf)%label_(kk)
-    !gs=global_site_of_local(ls)
+    gs=global_site_of_local(ls)
     !! contribution of [link FROM gs]
-    !do a=1,global_linktip_from_s(gs)%num_
-    do a=1,linktip_from_s(ls)%num_
+    do a=1,global_linktip_from_s(gs)%num_
       tmp=(0d0,0d0)
-      ll=linktip_from_s(ls)%labels_(a)
+      gl=global_linktip_from_s(gs)%labels_(a)
+      ll=local_link_of_global(gl)%label_
       DJ2(lf) = DJ2(lf) + trvec2(ll) * dcmplx(alpha_l(ll))/dcmplx( num_faces_in_s(ls) )
     enddo
     !! contribution of [link TO gs]
-    do a=1,linkorg_to_s(ls)%num_
+    do a=1,global_linkorg_to_s(gs)%num_
       tmp=(0d0,0d0)
-      ll=linkorg_to_s(ls)%labels_(a)
+      gl=global_linkorg_to_s(gs)%labels_(a)
+      ll=local_link_of_global(gl)%label_
       DJ2(lf) = DJ2(lf) - trvec2(ll) * dcmplx(alpha_l(ll))/dcmplx( num_faces_in_s(ls) )
     enddo
   enddo
@@ -82,27 +82,27 @@ end subroutine calc_DJ_U1V
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! calculate 1/2 Tr(\lambda(l) \eta(s(l)))
-subroutine make_trV1(trvec1,Glambda_eta)
+subroutine make_trV1(trvec1,Geta_lambda)
 use global_parameters
 use parallel
 use global_subroutines, only : syncronize_linkval
 implicit none
 
 complex(kind(0d0)), intent(out) :: trvec1(1:num_necessary_links) ! 1/2 Tr(\lambda(l) \eta(s))
-complex(kind(0d0)), intent(in) :: Glambda_eta(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_links,1:num_sites) 
+complex(kind(0d0)), intent(in) :: Geta_lambda(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_sites,1:num_links) 
 
 integer :: ll,ls
-integer :: gl
+integer :: gs
 integer :: org_ll
 integer :: i,j
 
 trvec1=(0d0,0d0)
 do ll=1,num_links
-  gl=global_link_of_local(ll)
   ls=link_org(ll)
+  gs=global_site_of_local(ls)
   do j=1,NMAT
     do i=1,NMAT
-      trvec1(ll)=trvec1(ll) + (0.5d0,0d0)*Glambda_eta(i,j,j,i,gl,ls)
+      trvec1(ll)=trvec1(ll) - (0.5d0,0d0)*Geta_lambda(i,j,j,i,gs,ll)
     enddo
   enddo
 enddo
@@ -497,8 +497,8 @@ do ii=1,face_in_l(ll)%num_
 
   !! face lf の中の ll の位置と向きを検索
   do i=1,links_in_f(lf)%num_
-    if( links_in_f(lf)%link_labels_(org_ll) == ll ) then 
-      dir=links_in_f(lf)%link_dirs_(org_ll)
+    if( links_in_f(lf)%link_labels_(i) == ll ) then 
+      dir=links_in_f(lf)%link_dirs_(i)
       if( dir == 1 ) then 
         org_ll = i
       else
@@ -508,13 +508,13 @@ do ii=1,face_in_l(ll)%num_
           org_ll = i+1
         endif
       endif
+      !!!!!!!!!!!!!!!!! !!!!!!!!!!!!!!!!! !!!!!!!!!!!!!!!!!
+      !! special treatment of the present discretization
+      if(gf==1) dir=-dir
+      !!!!!!!!!!!!!!!!! !!!!!!!!!!!!!!!!! !!!!!!!!!!!!!!!!!
       exit
     endif
   enddo
-  !!!!!!!!!!!!!!!!! !!!!!!!!!!!!!!!!! !!!!!!!!!!!!!!!!!
-  !! special treatment of the present discretization
-  if(gf==1) dir=-dir
-  !!!!!!!!!!!!!!!!! !!!!!!!!!!!!!!!!! !!!!!!!!!!!!!!!!!
 
   if( dir==1 ) then 
     info=0
@@ -522,7 +522,7 @@ do ii=1,face_in_l(ll)%num_
   endif 
 enddo
 if( info==1 ) then
-  write(*,*) "check if the link", ll, "in rank", MYRANK, "is in the global face", gf
+  write(*,*) "check if the global link", global_link_of_local(ll), "is in the global face", gf
   stop
 endif
 
