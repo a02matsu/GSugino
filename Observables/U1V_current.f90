@@ -59,16 +59,16 @@ do lf=1,num_faces
     gs=global_site_of_local(ls)
     !! contribution of [link FROM gs]
     do a=1,global_linktip_from_s(gs)%num_
-      tmp=(0d0,0d0)
       gl=global_linktip_from_s(gs)%labels_(a)
       ll=local_link_of_global(gl)%label_
+      !write(*,*) global_face_of_local(lf), "go:", gs, gl, dble(trvec2(ll))
       DJ2(lf) = DJ2(lf) + trvec2(ll) * dcmplx(alpha_l(ll))/dcmplx( num_faces_in_s(ls) )
     enddo
     !! contribution of [link TO gs]
     do a=1,global_linkorg_to_s(gs)%num_
-      tmp=(0d0,0d0)
       gl=global_linkorg_to_s(gs)%labels_(a)
       ll=local_link_of_global(gl)%label_
+      !write(*,*) global_face_of_local(lf), "to:", gs, gl, dble(trvec2(ll) )
       DJ2(lf) = DJ2(lf) - trvec2(ll) * dcmplx(alpha_l(ll))/dcmplx( num_faces_in_s(ls) )
     enddo
   enddo
@@ -133,9 +133,12 @@ integer :: i,j,k,l
 trvec2=(0d0,0d0)
 do ll=1,num_links
   call find_origin_of_dual_link(lf,org_ll,ll)
+  !write(*,*) global_link_of_local(ll),global_face_of_local(lf),org_ll
   gf=global_face_of_local(lf)
-  !! Ucarry = U1 ... U_orgll
-  call calc_prodUl_from_n1_to_n2_in_Uf(Ucarry,lf,1,org_ll,Umat)
+  !!  org_ll : position of the origin of the link ll in the face lf
+  !!  ProdU connects n1's site and (n2+1)'s site in the face f
+  call calc_prodUl_from_n1_to_n2_in_Uf(Ucarry,lf,1,org_ll-1,Umat)
+  !write(*,*) global_link_of_local(ll),gf,Gchi_lambda(:,:,:,:,gf,ll)
   do l=1,NMAT
     do k=1,NMAT
       do j=1,NMAT
@@ -150,11 +153,71 @@ do ll=1,num_links
   !! special treatment of the present discretization
   !if(gf==1) trvec2(ll)=-trvec2(ll)
   !!!!!!!!!!!!!!!!! !!!!!!!!!!!!!!!!! !!!!!!!!!!!!!!!!!
-  !write(*,*) global_link_of_local(ll), dble(vec2(ll)), dble((0d0,-1d0)*vec2(ll))
+  !write(*,*) global_link_of_local(ll), dble(trvec2(ll))
 enddo
 call syncronize_linkval(trvec2)
+!do ll=1,num_necessary_links
+  !write(*,*) global_link_of_local(ll), dble(trvec2(ll))
+!enddo
+
 end subroutine make_trV2
 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! find the origin face of the dual link
+!!  lf     : local face label of the origin of the dual link of ll
+!!  org_ll : position of the origin of the link ll in the face lf
+subroutine find_origin_of_dual_link(lf,org_ll,ll)
+use global_parameters
+use parallel
+implicit none
+
+integer, intent(out) :: lf, org_ll
+integer, intent(in) :: ll
+
+integer :: gf
+integer :: ii
+integer :: dir
+integer :: info, i
+
+info=1
+!! 
+do ii=1,face_in_l(ll)%num_
+  lf=face_in_l(ll)%label_(ii)
+  gf=global_face_of_local(lf)
+
+  !! face lf の中の ll の位置と向きを検索
+  do i=1,links_in_f(lf)%num_
+    if( links_in_f(lf)%link_labels_(i) == ll ) then 
+      dir=links_in_f(lf)%link_dirs_(i)
+      if( dir == 1 ) then 
+        org_ll = i
+      else
+        if( i==links_in_f(lf)%num_ ) then
+          org_ll = 1
+        else
+          org_ll = i+1
+        endif
+      endif
+      !!!!!!!!!!!!!!!!! !!!!!!!!!!!!!!!!! !!!!!!!!!!!!!!!!!
+      !! special treatment of the present discretization
+      if(gf==1) dir=-dir
+      !!!!!!!!!!!!!!!!! !!!!!!!!!!!!!!!!! !!!!!!!!!!!!!!!!!
+      exit
+    endif
+  enddo
+
+  if( dir==1 ) then 
+    info=0
+    exit
+  endif 
+enddo
+if( info==1 ) then
+  write(*,*) "check if the global link", global_link_of_local(ll), "is in the global face", gf
+  stop
+endif
+
+end subroutine find_origin_of_dual_link
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -471,62 +534,6 @@ end subroutine make_trV2_likeSf
 
 
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!! find the origin face of the dual link
-!!  lf     : local face label of the origin of the dual link of ll
-!!  org_ll : position of the origin of the link ll in the face lf
-subroutine find_origin_of_dual_link(lf,org_ll,ll)
-use global_parameters
-use parallel
-implicit none
-
-integer, intent(out) :: lf, org_ll
-integer, intent(in) :: ll
-
-integer :: gf
-integer :: ii
-integer :: dir
-integer :: info, i
-
-info=1
-!! 
-do ii=1,face_in_l(ll)%num_
-  lf=face_in_l(ll)%label_(ii)
-  gf=global_face_of_local(lf)
-
-  !! face lf の中の ll の位置と向きを検索
-  do i=1,links_in_f(lf)%num_
-    if( links_in_f(lf)%link_labels_(i) == ll ) then 
-      dir=links_in_f(lf)%link_dirs_(i)
-      if( dir == 1 ) then 
-        org_ll = i
-      else
-        if( i==links_in_f(lf)%num_ ) then 
-          org_ll = 1
-        else
-          org_ll = i+1
-        endif
-      endif
-      !!!!!!!!!!!!!!!!! !!!!!!!!!!!!!!!!! !!!!!!!!!!!!!!!!!
-      !! special treatment of the present discretization
-      if(gf==1) dir=-dir
-      !!!!!!!!!!!!!!!!! !!!!!!!!!!!!!!!!! !!!!!!!!!!!!!!!!!
-      exit
-    endif
-  enddo
-
-  if( dir==1 ) then 
-    info=0
-    exit
-  endif 
-enddo
-if( info==1 ) then
-  write(*,*) "check if the global link", global_link_of_local(ll), "is in the global face", gf
-  stop
-endif
-
-end subroutine find_origin_of_dual_link
 
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
