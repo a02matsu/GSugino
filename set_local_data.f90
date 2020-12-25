@@ -10,30 +10,38 @@ integer :: s,l,f,i,j
   !! global {site,link,face} から local {site,link,face}へのmapを作成
   !!   global_num_{sites,links,faces} 
   !!   num_sites, num_links, num_faces
+  write(*,*) MYRANK, "test1"
   call set_global_to_local(local_site_list)
   !! 各ノードが計算に必要なsiteの情報と、site情報の送り先、受信元を設定する
   !!   num_necessary_sites
   !!   global_site_of_local(s)
   !!   send_sites(s)
   !!   recv_sites(s)
+  write(*,*) MYRANK, "test2"
   call set_local_sites
   !! 各ノードが計算に必要なlinkの情報と、link情報の送り先、受信元を設定する
   !!   num_necessary_links
   !!   global_link_of_local(l)
   !!   send_links(l)
   !!   recv_links(l)
+  write(*,*) MYRANK, "test3"
   call set_local_links
   !! 各ノードが計算に必要なfaceの情報を設定する
   !!   num_necessary_faces
   !!   global_face_of_local(l)
+  write(*,*) MYRANK, "test4"
   call set_local_faces
   !! localなlinkのorgとtipを設定
+  write(*,*) MYRANK, "test5"
   call set_local_link_org_and_tip
   !! localなsiteから出入りするlocal linkのラベルを設定
+  write(*,*) MYRANK, "test6"
   call set_local_link_fromto_site
   !! localなfaceに含まれるlinkのlocalラベルを設定
+  write(*,*) MYRANK, "test7"
   call set_local_links_in_f
   !! localなlinkを共有するfaceのlocalラベルを設定
+  write(*,*) MYRANK, "test8"
   call set_local_face_in_l
 !  do l=1,num_links
 !    do i=1,face_in_l(l)%num_
@@ -49,13 +57,17 @@ integer :: s,l,f,i,j
   !! localなfaceに含まれるsiteのlocalラベルを設定
   !! ただし、使うのは sites_in_f(f)%label_(1)だけなので、
   !! はじめから size=1 にしておく。
+  write(*,*) MYRANK, "test9"
   call set_local_sites_in_f
 
+  write(*,*) MYRANK, "test10"
   call set_num_local_faces_in_s
 
   !! alpha と beta を割り振る
+  write(*,*) MYRANK, "test11"
   call set_local_alpha_beta
   !! U(1)_R mass を割り振る
+  write(*,*) MYRANK, "test12"
   call set_local_U1Rmass
   !call set_U1Rfactor_on_sites
 #else

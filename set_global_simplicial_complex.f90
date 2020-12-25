@@ -6,12 +6,17 @@ implicit none
 integer l,origin,tip
 integer s,f
 integer :: fsize
+character(15) :: c_fsize,c_f
 integer, allocatable :: fsites(:), faces_l(:), sites_f(:)
 integer :: FaceSize
 integer, allocatable :: sites(:)
 integer k,j,i
 character(128) tmp
 double precision :: alpha, tmp_U1Rmass
+integer :: time1, time2
+
+
+
 ! open SC_FILE 
 if(MYRANK==0) then
   open(SC_FILE, file=SC_FILE_NAME, status='old',action='READ')
@@ -63,6 +68,7 @@ do k=1,global_num_links
     global_alpha_l(l)=alpha
     !global_U1Rfactor_link(l)=global_U1Rfactor_site(tip)/global_U1Rfactor_site(origin)
     global_U1Rfactor_link(l)=cdexp( (0d0,2d0)*dacos(-1d0)*tmp_U1Rmass )
+    !write(*,*) l,origin,tip,alpha,tmp_U1Rmass
   endif
   call MPI_BCAST(l,1,MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
   call MPI_BCAST(origin,1,MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
@@ -86,12 +92,13 @@ do k=1,global_num_faces
 
   allocate( fsites(1:fsize ) )
 
+
 ! set sites constructing i'th face
   if (MYRANK==0) then
     do j=1,fsize
       read(SC_FILE,'(I6,X)',advance='no') fsites(j) 
     enddo
-    !write(*,*) fsites
+    !write(*,*) f,fsize,fsites
     read(SC_FILE,*) global_alpha_f(f),global_beta_f(f)
   endif
   call MPI_BCAST(fsites,fsize,MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
@@ -105,8 +112,7 @@ if (MYRANK==0) then
   close(SC_FILE)
 endif
 
-
-!write(*,*) "test"
+!if(MYRANK==0) write(*,*) "test3-1"
 !ここまでで、global_alpha,betaがRANK 0に設定された。
 
 ! set links
@@ -115,6 +121,7 @@ allocate(global_link_tip(1:global_num_links))
 do l=1,global_num_links
   call get_link_sc(sc,l,global_link_org(l),global_link_tip(l))
 enddo
+!if(MYRANK==0) write(*,*) "test3-1.1"
 
 ! tips of links from s
 allocate(global_linktip_from_s(1:global_num_sites))
@@ -124,6 +131,7 @@ do s=1,global_num_sites
     global_linktip_from_s(s)%sites_)
   global_linktip_from_s(s)%num_=size(global_linktip_from_s(s)%labels_)
 enddo
+!if(MYRANK==0) write(*,*) "test3-1.2"
 
 ! origins of links to s
 allocate(global_linkorg_to_s(1:global_num_sites))
@@ -133,6 +141,7 @@ do s=1,global_num_sites
     global_linkorg_to_s(s)%sites_)
   global_linkorg_to_s(s)%num_=size(global_linkorg_to_s(s)%labels_)
 enddo
+!if(MYRANK==0) write(*,*) "test3-1.3"
 
 ! links included in a face f
 allocate(global_links_in_f(1:global_num_faces))
@@ -143,6 +152,7 @@ do f=1,global_num_faces
     global_links_in_f(f)%link_labels_,&
     global_links_in_f(f)%link_dirs_)
 enddo
+!if(MYRANK==0) write(*,*) "test3-1.4"
 
 !write(*,*) "test4"
 ! faces included in a link l
@@ -153,6 +163,7 @@ do l=1,global_num_links
   allocate(global_face_in_l(l)%label_(1:size(faces_l)))
   global_face_in_l(l)%label_=faces_l
 enddo
+!if(MYRANK==0) write(*,*) "test3-1.5"
   
 ! sites included in a face f
 allocate(global_sites_in_f(1:global_num_faces))
@@ -186,13 +197,13 @@ do f=1,global_num_faces
   enddo
 enddo
 
-!write(*,*) "test3"
+!if(MYRANK==0) write(*,*) "test3-2"
 !! set global_U1Rfactor_site from global_U1Rfactor_link
 call set_global_U1Rfactor_site
-!write(*,*) "test1"
+!if(MYRANK==0) write(*,*) "test3-3"
 !! set global_U1R_ratio
 call set_global_U1R_ratio
-!write(*,*) "test2"
+!if(MYRANK==0) write(*,*) "test3-4"
 
 contains
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

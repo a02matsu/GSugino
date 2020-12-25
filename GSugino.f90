@@ -37,6 +37,9 @@ character(128) DIRNAME,COMMAND,CONFDIR0,CONFDIR1
 character(128) tmpc,tmpc2
 
 integer :: root
+integer :: t_start, t_end, t_rate, t_max
+double precision :: diff
+
 
 iarg=iargc()
 if( iarg==0 ) then 
@@ -79,12 +82,16 @@ allocate(local_site_list(0:NPROCS-1) )
 !! set the parameters in the module "global_parameters"
 ! read input parameter from the parameter file
 
+call system_clock(t_start)
 
 call set_theory_parameters(seed)
+!if(MYRANK==0) write(*,*) "test1"
 ! set the structure constant of SU(NMAT)
 call set_NZF
+!if(MYRANK==0) write(*,*) "test2"
 ! set global data of the simplicial complex
 call set_global_simplicial_complex 
+!if(MYRANK==0) write(*,*) "test3"
 ! set global parameters
 overall_factor=dble(NMAT)/(2d0*LatticeSpacing*LatticeSpacing)
 mass_square_phi = phys_mass_square_phi * (LatticeSpacing*latticeSpacing)
@@ -95,6 +102,7 @@ mass_square_phi = phys_mass_square_phi * (LatticeSpacing*latticeSpacing)
 !      num_sites,num_links,num_faces
 !      local_{site,link,face}_of_globalの(1:num_{sites,links,faces})が確定する。
 call set_simulation_parameters(local_site_list)
+!if(MYRANK==0) write(*,*) "test4"
 
 !! set directories
 #ifdef PARALLEL
@@ -263,6 +271,15 @@ endif
     !stop
   !endif
 
+  call system_clock(t_end, t_rate, t_max)
+  if( MYRANK==0 ) then
+    if ( t_end < t_start ) then
+      diff = dble((t_max - t_start) + t_end + 1) / dble(t_rate)
+    else
+      diff = dble(t_end - t_start) / dble(t_rate)
+    endif
+    write(*,*) "# time used for preparation: ",diff,"[s]"
+  endif
   if (test_mode==1) then
     !call check_Dirac(UMAT,Phi)
     call test_hamiltonian(UMAT,PhiMat,seed)

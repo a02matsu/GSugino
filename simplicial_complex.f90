@@ -412,7 +412,7 @@ subroutine put_face_sc(sc,f,sites)
             endif
         enddo
         if ( dirs(i) == 0 ) then
-            write(*,*) "no link <",s,t,"> or <",t,s,">"
+            write(*,*) "face",f,": no link <",s,t,"> or <",t,s,">"
             stop
         endif
     enddo
