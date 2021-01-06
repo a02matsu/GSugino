@@ -3,6 +3,7 @@ program main
 use global_parameters
 use initialization_calcobs
 use simulation
+use matrix_functions 
 use parallel
 implicit none
 
@@ -24,6 +25,8 @@ complex(kind(0d0)), allocatable :: divJ1(:)
 complex(kind(0d0)), allocatable :: divJ2(:)
 complex(kind(0d0)), allocatable :: divJ(:)
 complex(kind(0d0)), allocatable :: Dinv(:,:)
+complex(kind(0d0)), allocatable :: Dirac(:,:)
+complex(kind(0d0)), allocatable :: DDinv(:,:)
 integer :: num_fermion
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! misc
@@ -69,6 +72,8 @@ call initialization
 
 num_fermion=(global_num_sites+global_num_links+global_num_faces)*(NMAT*NMAT-1)
 allocate( Dinv(1:num_fermion, 1:num_fermion) )
+allocate( Dirac(1:num_fermion, 1:num_fermion) )
+allocate( DDinv(1:num_fermion, 1:num_fermion) )
 allocate( divJ(1:num_faces) )
 allocate( divJ1(1:num_faces) )
 allocate( divJ2(1:num_faces) )
@@ -99,15 +104,25 @@ do
       read(N_DinvFILE) 
     endif
   endif
+  !! for test
+  !call construct_Dirac(Dirac,Umat,PhiMat) 
+  !if( MYRANK==0 ) then
+    !call matrix_product(DDinv,Dirac,Dinv)
+    !write(*,*) DDinv
+    !write(*,*) "======================"
+  !endif
+
   call MPI_BCAST(control, 1, MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
   if( control == 1 ) exit
 
+  !if( MYRANK==0 ) write(*,*) Dinv
   call make_fermion_correlation_from_Dinv(&
       Geta_eta, Glambda_eta, Gchi_eta, &
       Geta_lambda, Glambda_lambda, Gchi_lambda, &
       Geta_chi, Glambda_chi, Gchi_chi, &
       Dinv,num_fermion)
 
+<<<<<<< HEAD
   !write(*,*) size(Geta_lambda,1), &
              !size(Geta_lambda,2), &
              !size(Geta_lambda,3), &
@@ -136,6 +151,11 @@ do
 
 
 
+=======
+    write(*,*) Gchi_eta
+
+  stop
+>>>>>>> 3b3feceb21c5f6e02ec2a5d934003691e2f8482f
 
   if( control == 0 ) then 
     if( MYRANK == 0 ) then
@@ -217,4 +237,5 @@ end program main
 
 #include  "Measurement/FermionCorrelation_from_Dinv.f90"
 
+#include "Measurement/construct_Dirac.f90"
 
