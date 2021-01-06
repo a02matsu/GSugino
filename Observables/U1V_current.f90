@@ -7,7 +7,7 @@
 !!  DJ1 = d.vec1, DJ2 = d.vec2
 !! where \chi(f) is associated with the link variable Uf
 !! as in the fermionic part of the face action
-subroutine calc_DJ_U1V(DJ1,DJ2,Geta_lambda,Gchi_lambda,UMAT)
+subroutine calc_DJ_U1V(DJ1,DJ2,Glambda_eta,Glambda_chi,UMAT)
 use global_parameters
 !use initialization_calcobs
 use parallel
@@ -17,13 +17,13 @@ implicit none
 
 complex(kind(0d0)), intent(out) :: DJ1(1:num_faces)
 complex(kind(0d0)), intent(out) :: DJ2(1:num_faces)
-complex(kind(0d0)), intent(in) :: Geta_lambda(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_sites,1:num_necessary_links) 
-complex(kind(0d0)), intent(in) :: Gchi_lambda(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_faces,1:num_necessary_links) 
+complex(kind(0d0)), intent(in) :: Glambda_eta(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_links,1:num_sites) 
+complex(kind(0d0)), intent(in) :: Glambda_chi(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_links,1:num_faces) 
 complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_necessary_links)
 
 
 complex(kind(0d0)) :: trvec1(1:num_necessary_links)
-complex(kind(0d0)) :: trvec2(1:num_necessary_links)
+!complex(kind(0d0)) :: vec1(1:NMAT,1:NMAT,1:num_necessary_links)
 complex(kind(0d0)) :: U_fs(1:NMAT,1:NMAT)
 complex(kind(0d0)) :: U_sf(1:NMAT,1:NMAT)
 complex(kind(0d0)) :: Uf(1:NMAT,1:NMAT)
@@ -33,28 +33,15 @@ complex(kind(0d0)) :: tmp
 complex(kind(0d0)) :: tmpmat(1:NMAT,1:NMAT)
 integer :: ls,ll,lf,gs,gl,gf,kk,dir
 integer :: i,j,k,l,a,b
-integer :: info
 
 
 !!  DJ1 ~ 1/2 rot Tr(\lambda(l) \eta(s))
-!write(*,*) Gchi_lambda
-!do ll=1,num_links
-!  do gs=1,global_num_sites
-!    do l=1,NMAT
-!      do k=1,NMAT
-!        do j=1,NMAT
-!          do i=1,NMAT
-!            write(*,*) MYRANK, gs, ll, Geta_lambda(i,j,k,l,gs,ll)
-!          enddo
-!        enddo
-!      enddo
-!    enddo
-!  enddo
-!enddo
-call make_trV1(trvec1,Geta_lambda)
-!! rotation
+call make_trV1(trvec1,Glambda_eta)
+!call make_V1(vec1,Glambda_eta)
 DJ1=(0d0,0d0)
 do lf=1,num_faces
+  !call make_unit_matrix(mat1)
+  !tmp=(1d0,0d0)
   do kk=1,links_in_f(lf)%num_
     ll=links_in_f(lf)%link_labels_(kk)
     dir=links_in_f(lf)%link_dirs_(kk)
@@ -64,31 +51,48 @@ do lf=1,num_faces
 enddo
 
 !! DJ2 ~ div Tr(\lambda(l) \chi(f))
-!write(*,*) Geta_lambda
-call make_trV2(trvec2,Gchi_lambda,UMAT)
-do ll=1,num_necessary_links 
-  write(*,*) MYRANK, global_link_of_local(ll),  trvec1(ll), trvec2(ll)
-enddo
-!! divergence
 DJ2=(0d0,0d0)
 do lf=1,num_faces
   do kk=1,sites_in_f(lf)%num_
     ls=sites_in_f(lf)%label_(kk)
     gs=global_site_of_local(ls)
+    call calc_prodUl_from_n1_to_n2_in_Uf(U_fs,lf,1,kk-1,Umat) ! 4's argument must be kk-1 
+    call hermitian_conjugate(U_sf,U_fs)
     !! contribution of [link FROM gs]
     do a=1,global_linktip_from_s(gs)%num_
+      tmp=(0d0,0d0)
       gl=global_linktip_from_s(gs)%labels_(a)
-      ll=local_link_of_global(gl)%label_
-      !write(*,*) global_face_of_local(lf), "go:", gs, gl, dble(trvec2(ll))
-      DJ2(lf) = DJ2(lf) + trvec2(ll) * dcmplx(alpha_l(ll))/dcmplx( num_faces_in_s(ls) )
+      do l=1,NMAT
+        do k=1,NMAT
+          do j=1,NMAT
+            do i=1,NMAT
+              tmp=tmp + Glambda_chi(i,j,k,l,gl,lf)*U_sf(j,k)*U_fs(l,i)
+            enddo
+          enddo
+        enddo
+      enddo
+      DJ2(lf) = DJ2(lf) + tmp * dcmplx(global_alpha_l(gl))/dcmplx( num_faces_in_s(ls) )
     enddo
     !! contribution of [link TO gs]
     do a=1,global_linkorg_to_s(gs)%num_
+      tmp=(0d0,0d0)
       gl=global_linkorg_to_s(gs)%labels_(a)
-      ll=local_link_of_global(gl)%label_
-      !write(*,*) global_face_of_local(lf), "to:", gs, gl, dble(trvec2(ll) )
-      DJ2(lf) = DJ2(lf) - trvec2(ll) * dcmplx(alpha_l(ll))/dcmplx( num_faces_in_s(ls) )
+      do ll=1,num_necessary_links
+        if( global_link_of_local(ll) == gl ) exit
+      enddo
+      call matrix_product(mat1,Umat(:,:,ll),U_sf)
+      call matrix_product(mat2,U_fs,Umat(:,:,ll),'N','C')
+      do l=1,NMAT
+        do k=1,NMAT
+          do j=1,NMAT
+            do i=1,NMAT
+              tmp=tmp + Glambda_chi(i,j,k,l,gl,lf)*mat1(j,k)*mat2(l,i)*dcmplx(global_alpha_l(gl))
+            enddo
+          enddo
+        enddo
+      enddo
     enddo
+    DJ2(lf) = DJ2(lf) - tmp / dcmplx( num_faces_in_s(ls) )
   enddo
 enddo
 
@@ -100,27 +104,27 @@ end subroutine calc_DJ_U1V
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! calculate 1/2 Tr(\lambda(l) \eta(s(l)))
-subroutine make_trV1(trvec1,Geta_lambda)
+subroutine make_trV1(trvec1,Glambda_eta)
 use global_parameters
 use parallel
 use global_subroutines, only : syncronize_linkval
 implicit none
 
 complex(kind(0d0)), intent(out) :: trvec1(1:num_necessary_links) ! 1/2 Tr(\lambda(l) \eta(s))
-complex(kind(0d0)), intent(in) :: Geta_lambda(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_sites,1:num_links) 
+complex(kind(0d0)), intent(in) :: Glambda_eta(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_links,1:num_sites) 
 
 integer :: ll,ls
-integer :: gs
+integer :: gl
 integer :: org_ll
 integer :: i,j
 
 trvec1=(0d0,0d0)
 do ll=1,num_links
+  gl=global_link_of_local(ll)
   ls=link_org(ll)
-  gs=global_site_of_local(ls)
   do j=1,NMAT
     do i=1,NMAT
-      trvec1(ll)=trvec1(ll) - (0.5d0,0d0)*Geta_lambda(i,j,j,i,gs,ll)
+      trvec1(ll)=trvec1(ll) + (0.5d0,0d0)*Glambda_eta(i,j,j,i,gl,ls)
     enddo
   enddo
 enddo
@@ -151,91 +155,29 @@ integer :: i,j,k,l
 trvec2=(0d0,0d0)
 do ll=1,num_links
   call find_origin_of_dual_link(lf,org_ll,ll)
-  !write(*,*) global_link_of_local(ll),global_face_of_local(lf),org_ll
   gf=global_face_of_local(lf)
-  !!  org_ll : position of the origin of the link ll in the face lf
-  !!  ProdU connects n1's site and (n2+1)'s site in the face f
-  call calc_prodUl_from_n1_to_n2_in_Uf(Ucarry,lf,1,org_ll-1,Umat)
-  !write(*,*) global_link_of_local(ll),gf,Gchi_lambda(:,:,:,:,gf,ll)
+  !write(*,*) gf,global_site_of_local(link_org(ll)),global_site_of_local(link_tip(ll))
+  !! Ucarry = U1 ... U_orgll
+  call calc_prodUl_from_n1_to_n2_in_Uf(Ucarry,lf,1,org_ll,Umat)
   do l=1,NMAT
     do k=1,NMAT
       do j=1,NMAT
         do i=1,NMAT
           trvec2(ll)=trvec2(ll)&
-            - dconjg(Ucarry(i,l)) * (Ucarry(j,k)) * Gchi_lambda(i,j,k,l,gf,ll)
+            + Ucarry(j,k) * dconjg(Ucarry(i,l)) * Gchi_lambda(i,j,k,l,gf,ll)
         enddo
       enddo
     enddo
   enddo  
   !!!!!!!!!!!!!!!!! !!!!!!!!!!!!!!!!! !!!!!!!!!!!!!!!!!
   !! special treatment of the present discretization
-  !if(gf==1) trvec2(ll)=-trvec2(ll)
+  if(gf==1) trvec2(ll)=-trvec2(ll)
   !!!!!!!!!!!!!!!!! !!!!!!!!!!!!!!!!! !!!!!!!!!!!!!!!!!
-  !write(*,*) global_link_of_local(ll), dble(trvec2(ll))
+  !write(*,*) global_link_of_local(ll), dble(vec2(ll)), dble((0d0,-1d0)*vec2(ll))
 enddo
 call syncronize_linkval(trvec2)
-!do ll=1,num_necessary_links
-  !write(*,*) global_link_of_local(ll), dble(trvec2(ll))
-!enddo
-
 end subroutine make_trV2
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!! find the origin face of the dual link
-!!  lf     : local face label of the origin of the dual link of ll
-!!  org_ll : position of the origin of the link ll in the face lf
-subroutine find_origin_of_dual_link(lf,org_ll,ll)
-use global_parameters
-use parallel
-implicit none
-
-integer, intent(out) :: lf, org_ll
-integer, intent(in) :: ll
-
-integer :: gf
-integer :: ii
-integer :: dir
-integer :: info, i
-
-info=1
-!! 
-do ii=1,face_in_l(ll)%num_
-  lf=face_in_l(ll)%label_(ii)
-  gf=global_face_of_local(lf)
-
-  !! face lf の中の ll の位置と向きを検索
-  do i=1,links_in_f(lf)%num_
-    if( links_in_f(lf)%link_labels_(i) == ll ) then 
-      dir=links_in_f(lf)%link_dirs_(i)
-      if( dir == 1 ) then 
-        org_ll = i
-      else
-        if( i==links_in_f(lf)%num_ ) then
-          org_ll = 1
-        else
-          org_ll = i+1
-        endif
-      endif
-      !!!!!!!!!!!!!!!!! !!!!!!!!!!!!!!!!! !!!!!!!!!!!!!!!!!
-      !! special treatment of the present discretization
-      if(gf==1) dir=-dir
-      !!!!!!!!!!!!!!!!! !!!!!!!!!!!!!!!!! !!!!!!!!!!!!!!!!!
-      exit
-    endif
-  enddo
-
-  if( dir==1 ) then 
-    info=0
-    exit
-  endif 
-enddo
-if( info==1 ) then
-  write(*,*) "check if the global link", global_link_of_local(ll), "is in the global face", gf
-  stop
-endif
-
-end subroutine find_origin_of_dual_link
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -552,6 +494,46 @@ end subroutine make_trV2_likeSf
 
 
 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! find the origin face of the dual link
+!!  lf     : local face label of the origin of the dual link of ll
+!!  org_ll : position of the origin of the link ll in the face lf
+subroutine find_origin_of_dual_link(lf,org_ll,ll)
+use global_parameters
+use parallel
+implicit none
+
+integer, intent(out) :: lf, org_ll
+integer, intent(in) :: ll
+
+integer :: gf
+integer :: ii
+integer :: dir
+
+do ii=1,face_in_l(ll)%num_
+  lf=face_in_l(ll)%label_(ii)
+  gf=global_face_of_local(lf)
+
+  do org_ll=1,links_in_f(lf)%num_
+    if( links_in_f(lf)%link_labels_(org_ll) == ll ) then 
+      dir=links_in_f(lf)%link_dirs_(org_ll)
+      exit
+    endif
+  enddo
+  !!!!!!!!!!!!!!!!! !!!!!!!!!!!!!!!!! !!!!!!!!!!!!!!!!!
+  !! special treatment of the present discretization
+  if(gf==1) dir=-dir
+  !!!!!!!!!!!!!!!!! !!!!!!!!!!!!!!!!! !!!!!!!!!!!!!!!!!
+  if( dir==1 ) then 
+    if( links_in_f(lf)%link_dirs_(org_ll) == 1 ) then
+      org_ll = org_ll - 1
+    endif
+    exit
+  endif 
+enddo
+
+end subroutine find_origin_of_dual_link
 
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
