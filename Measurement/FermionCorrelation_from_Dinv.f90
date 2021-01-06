@@ -300,6 +300,8 @@ do lf=1,num_faces
   enddo
 enddo
 
+
+
 call syncronize_Dirac_sites(Geta_eta)
 call syncronize_Dirac_sites(Glambda_eta)
 call syncronize_Dirac_sites(Gchi_eta)
@@ -324,7 +326,7 @@ call syncronize_Dirac_faces(Gchi_chi)
 !    Dinv, &
 !    Geta_eta, Glambda_eta, Gchi_eta, &
 !    Geta_lambda, Glambda_lambda, Gchi_lambda, &
-!    Geta_chi, Glambda_chi, Gchi_chi,T)
+!    Geta_chi, Glambda_chi, Gchi_chi,T, numF)
 
 
 contains
@@ -815,13 +817,14 @@ subroutine correlation_to_Dinv(&
     Dinv, &
     Geta_eta, Glambda_eta, Gchi_eta, &
     Geta_lambda, Glambda_lambda, Gchi_lambda, &
-    Geta_chi, Glambda_chi, Gchi_chi,T)
+    Geta_chi, Glambda_chi, Gchi_chi,T, numF)
 use global_parameters
 use SUN_generators, only : make_SUN_generators
 use parallel
 implicit none
 
-complex(kind(0d0)), intent(in) :: Dinv(:,:)
+integer, intent(in) :: numF
+complex(kind(0d0)), intent(in) :: Dinv(numF,numF)
 complex(kind(0d0)), intent(in) :: Geta_eta(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_sites,1:num_sites) 
 complex(kind(0d0)), intent(in) :: Glambda_eta(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_links,1:num_sites) 
 complex(kind(0d0)), intent(in) :: Gchi_eta(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_faces,1:num_sites) 
@@ -835,7 +838,6 @@ complex(kind(0d0)), intent(in) :: Glambda_chi(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:glob
 complex(kind(0d0)), intent(in) :: Gchi_chi(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_faces,1:num_faces) 
 complex(kind(0d0)), intent(in) :: T(1:NMAT,1:NMAT,1:dimG) 
 
-integer :: numF
 
 complex(kind(0d0)), allocatable :: mode_eta(:,:,:)
 complex(kind(0d0)), allocatable :: mode_lambda(:,:,:)
@@ -851,7 +853,7 @@ integer :: a,b,i,j,k,l
 integer :: Dlabel
 integer :: rank,tag
 
-numF=(global_num_sites+global_num_links+global_num_faces)*(NMAT*NMAT-1)
+!numF=(global_num_sites+global_num_links+global_num_faces)*(NMAT*NMAT-1)
 allocate(mode_eta(1:numF,1:dimG,1:num_sites))
 allocate(mode_lambda(1:numF,1:dimG,1:num_links))
 allocate(mode_chi(1:numF,1:dimG,1:num_faces))
@@ -861,33 +863,41 @@ mode_lambda=(0d0,0d0)
 mode_chi=(0d0,0d0)
 Dinv_check=(0d0,0d0)
 
-do ls=1,num_sites; do a=1,dimG
-  Dlabel=0
-  do gs=1,global_num_sites; do b=1,dimG
-    Dlabel=Dlabel+1 
-    do l=1,NMAT; do k=1,NMAT; do j=1,NMAT; do i=1,NMAT
-      mode_eta(Dlabel,a,ls)=mode_eta(Dlabel,a,ls)&
-        + Geta_eta(i,j,k,l,gs,ls)*T(j,i,b)*T(l,k,a)
-    enddo; enddo; enddo; enddo
-    !write(*,*) MYRANK,Dlabel, (global_site_of_local(ls)-1)+a,  mode_eta(Dlabel,a,ls)
-  enddo; enddo
-  !!
-  do gl=1,global_num_links; do b=1,dimG
-    Dlabel=Dlabel+1 
-    do l=1,NMAT; do k=1,NMAT; do j=1,NMAT; do i=1,NMAT
-      mode_eta(Dlabel,a,ls)=mode_eta(Dlabel,a,ls)&
-        + Glambda_eta(i,j,k,l,gl,ls)*T(j,i,b)*T(l,k,a)
-    enddo; enddo; enddo; enddo
-  enddo; enddo
-  !!
-  do gf=1,global_num_faces; do b=1,dimG
-    Dlabel=Dlabel+1 
-    do l=1,NMAT; do k=1,NMAT; do j=1,NMAT; do i=1,NMAT
-      mode_eta(Dlabel,a,ls)=mode_eta(Dlabel,a,ls)&
-        + Gchi_eta(i,j,k,l,gf,ls)*T(j,i,b)*T(l,k,a)
-    enddo; enddo; enddo; enddo
-  enddo; enddo
-enddo; enddo
+
+do ls=1,num_sites 
+  do a=1,dimG
+    Dlabel=0
+    do gs=1,global_num_sites 
+      do b=1,dimG
+        Dlabel=Dlabel+1 
+        do l=1,NMAT; do k=1,NMAT; do j=1,NMAT; do i=1,NMAT
+          mode_eta(Dlabel,a,ls)=mode_eta(Dlabel,a,ls)&
+            + Geta_eta(i,j,k,l,gs,ls)*T(j,i,b)*T(l,k,a)
+        enddo; enddo; enddo; enddo
+      enddo 
+    enddo
+    !!
+    do gl=1,global_num_links 
+      do b=1,dimG
+        Dlabel=Dlabel+1 
+        do l=1,NMAT; do k=1,NMAT; do j=1,NMAT; do i=1,NMAT
+          mode_eta(Dlabel,a,ls)=mode_eta(Dlabel,a,ls)&
+            + Glambda_eta(i,j,k,l,gl,ls)*T(j,i,b)*T(l,k,a)
+        enddo; enddo; enddo; enddo
+      enddo 
+    enddo
+    !!
+    do gf=1,global_num_faces
+      do b=1,dimG
+        Dlabel=Dlabel+1 
+        do l=1,NMAT; do k=1,NMAT; do j=1,NMAT; do i=1,NMAT
+          mode_eta(Dlabel,a,ls)=mode_eta(Dlabel,a,ls)&
+            + Gchi_eta(i,j,k,l,gf,ls)*T(j,i,b)*T(l,k,a)
+        enddo; enddo; enddo; enddo
+      enddo 
+    enddo
+  enddo 
+enddo
 !!!!!!!!!!!!!!!!!
 do ll=1,num_links; do a=1,dimG
   Dlabel=0

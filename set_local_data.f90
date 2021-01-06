@@ -10,38 +10,38 @@ integer :: s,l,f,i,j
   !! global {site,link,face} から local {site,link,face}へのmapを作成
   !!   global_num_{sites,links,faces} 
   !!   num_sites, num_links, num_faces
-  write(*,*) MYRANK, "test1"
+!  write(*,*) MYRANK, "test1"
   call set_global_to_local(local_site_list)
   !! 各ノードが計算に必要なsiteの情報と、site情報の送り先、受信元を設定する
   !!   num_necessary_sites
   !!   global_site_of_local(s)
   !!   send_sites(s)
   !!   recv_sites(s)
-  write(*,*) MYRANK, "test2"
+!  write(*,*) MYRANK, "test2"
   call set_local_sites
   !! 各ノードが計算に必要なlinkの情報と、link情報の送り先、受信元を設定する
   !!   num_necessary_links
   !!   global_link_of_local(l)
   !!   send_links(l)
   !!   recv_links(l)
-  write(*,*) MYRANK, "test3"
+!  write(*,*) MYRANK, "test3"
   call set_local_links
   !! 各ノードが計算に必要なfaceの情報を設定する
   !!   num_necessary_faces
   !!   global_face_of_local(l)
-  write(*,*) MYRANK, "test4"
+!  write(*,*) MYRANK, "test4"
   call set_local_faces
   !! localなlinkのorgとtipを設定
-  write(*,*) MYRANK, "test5"
+!  write(*,*) MYRANK, "test5"
   call set_local_link_org_and_tip
   !! localなsiteから出入りするlocal linkのラベルを設定
-  write(*,*) MYRANK, "test6"
+!  write(*,*) MYRANK, "test6"
   call set_local_link_fromto_site
   !! localなfaceに含まれるlinkのlocalラベルを設定
-  write(*,*) MYRANK, "test7"
+!  write(*,*) MYRANK, "test7"
   call set_local_links_in_f
   !! localなlinkを共有するfaceのlocalラベルを設定
-  write(*,*) MYRANK, "test8"
+!  write(*,*) MYRANK, "test8"
   call set_local_face_in_l
 !  do l=1,num_links
 !    do i=1,face_in_l(l)%num_
@@ -57,17 +57,17 @@ integer :: s,l,f,i,j
   !! localなfaceに含まれるsiteのlocalラベルを設定
   !! ただし、使うのは sites_in_f(f)%label_(1)だけなので、
   !! はじめから size=1 にしておく。
-  write(*,*) MYRANK, "test9"
+!  write(*,*) MYRANK, "test9"
   call set_local_sites_in_f
 
-  write(*,*) MYRANK, "test10"
+!  write(*,*) MYRANK, "test10"
   call set_num_local_faces_in_s
 
   !! alpha と beta を割り振る
-  write(*,*) MYRANK, "test11"
+  !write(*,*) MYRANK, "test11"
   call set_local_alpha_beta
   !! U(1)_R mass を割り振る
-  write(*,*) MYRANK, "test12"
+  !write(*,*) MYRANK, "test12"
   call set_local_U1Rmass
   !call set_U1Rfactor_on_sites
 #else
@@ -137,6 +137,7 @@ do f=1,num_faces
   sites_in_f(f)%label_=sites_f
 enddo
 #endif
+
 end subroutine set_local_data
 
 #ifdef PARALLEL
@@ -158,6 +159,7 @@ allocate(local_face_of_global(1:global_num_faces))
 !! local_site_of_global(s)
 if(MYRANK==0)  then
   do rank=0,NPROCS-1
+    !write(*,*) rank, local_site_list(rank)%site_list_
     tmp_num_sites=local_site_list(rank)%num_sites_
     if(rank==0) then 
       num_sites=tmp_num_sites
@@ -170,6 +172,9 @@ if(MYRANK==0)  then
       local_site_of_global(s)%label_=i
     enddo
   enddo
+  !do s=1,global_num_sites
+    !write(*,*) s, local_site_of_global(s)
+  !enddo
 else
   call MPI_RECV(num_sites,1,MPI_INTEGER,0,1,MPI_COMM_WORLD,ISTATUS,IERR)
 endif
@@ -258,9 +263,12 @@ tmp_global_site_of_local=0
 do s=1,global_num_sites
   if( local_site_of_global(s)%rank_ == MYRANK ) then
     num_necessary_sites = num_necessary_sites + 1
-    tmp_global_site_of_local(num_necessary_sites)=s
+    tmp_global_site_of_local(local_site_of_global(s)%label_)=s
+    !tmp_global_site_of_local(num_necessary_sites)=s
   endif
 enddo
+
+!write(*,*) MYRANK, tmp_global_site_of_local
 !! この段階で、num_necesarry_sites=num_sites
 !! linkの始点と終点が別のnodeに属していたら、
 !! tipの位置を、orgを担当するnodeに送る必要がある
@@ -271,12 +279,15 @@ enddo
 !! 重複があり得るので、逐一チェックしながら進める
 nsend=0
 nrecv=0
-!! (1) 担当するlinkの始点と終点
+!! (1) 担当するlinkの終点を始点を持つrankに送る
 do l=1,global_num_links
+  !write(*,*) MYRANK, l, global_link_org(l), global_link_tip(l), &
+             !local_site_of_global(global_link_org(l))%rank_, &
+             !local_site_of_global(global_link_tip(l))%rank_
   if( local_site_of_global(global_link_org(l))%rank_ &
         /= local_site_of_global(global_link_tip(l))%rank_ ) then
     !!!!!!!!!!!
-    if( local_site_of_global(global_link_tip(l))%rank_ == MYRANK ) then
+    if( local_site_of_global(global_link_tip(l))%rank_ == MYRANK ) then 
       !! 重複チェック
       info=0
       do i=1,nsend
@@ -287,10 +298,13 @@ do l=1,global_num_links
           exit
         endif
       enddo
+      !write(*,*) MYRANK, l, local_site_of_global(global_link_org(l))%rank_, &
+            !global_link_tip(l), info
       if (info==0) then 
         nsend=nsend+1
         tmp_send_sites(nsend)%rank_ = local_site_of_global(global_link_org(l))%rank_ 
         tmp_send_sites(nsend)%label_ = global_link_tip(l) 
+        !write(*,*) MYRANK, nsend, tmp_send_sites(nsend)%rank_, tmp_send_sites(nsend)%label_ 
       endif
     !!!!!!!!!!!
     elseif( local_site_of_global(global_link_org(l))%rank_ == MYRANK ) then
@@ -313,105 +327,155 @@ do l=1,global_num_links
     endif
   endif
 enddo
+!write(*,*) MYRANK, tmp_send_sites
 !! (2) 担当するサイトを終点とするlinkの始点
-do s=1,global_num_sites
-  do k=1,global_linkorg_to_s(s)%num_
-    if( local_site_of_global(global_linkorg_to_s(s)%sites_(k))%rank_ &
-        /= local_site_of_global(s)%rank_ ) then
-      if(local_site_of_global(global_linkorg_to_s(s)%sites_(k))%rank_ == MYRANK) then
-        !! 重複チェック
-        info=0
-        do i=1,nsend
-          if( tmp_send_sites(i)%rank_ &
-              == local_site_of_global(s)%rank_ &
-            .and. &
-              tmp_send_sites(i)%label_  &
-              == global_linkorg_to_s(s)%sites_(k) &
-              ) then
-            info=1
-            exit
-          endif
-        enddo
-        if (info==0) then 
-          !write(*,*) "(S)site",linkorg_to_s(s)%sites_(k),"from",MYRANK,"to",local_site_of_global(s)%rank_
-          nsend=nsend+1
-          tmp_send_sites(nsend)%rank_ = local_site_of_global(s)%rank_ 
-          tmp_send_sites(nsend)%label_ = global_linkorg_to_s(s)%sites_(k)
+do l=1,global_num_links
+  if( local_site_of_global(global_link_org(l))%rank_ &
+        /= local_site_of_global(global_link_tip(l))%rank_ ) then
+    !!!!!!!!!!!
+    if( local_site_of_global(global_link_org(l))%rank_ == MYRANK ) then
+      !! 重複チェック
+      info=0
+      do i=1,nsend
+        !write(*,*) MYRANK, l, tmp_send_sites(i)
+        if( tmp_send_sites(i)%rank_ == local_site_of_global(global_link_tip(l))%rank_ &
+          .and. &
+            tmp_send_sites(i)%label_ == global_link_org(l) ) then
+          info=1
+          exit
         endif
-  !!!!!!!!!!!
-      elseif( local_site_of_global(s)%rank_ == MYRANK ) then
-        !! 重複チェック
-        info=0
-        do i=1,nrecv
-          if( tmp_recv_sites(i)%rank_ &
-            == local_site_of_global(global_linkorg_to_s(s)%sites_(k))%rank_ &
-            .and. &
-              tmp_recv_sites(i)%label_ == global_linkorg_to_s(s)%sites_(k) ) then
-            info=1
-            exit
-          endif
-        enddo
-        if (info==0) then 
-          !write(*,*) "(R)site",linkorg_to_s(s)%sites_(k),"from",local_site_of_global(linkorg_to_s(s)%sites_(k))%rank_,"to",MYRANK
-          nrecv=nrecv+1
-          tmp_recv_sites(nrecv)%rank_  &
-            = local_site_of_global(global_linkorg_to_s(s)%sites_(k))%rank_ 
-          tmp_recv_sites(nrecv)%label_ = global_linkorg_to_s(s)%sites_(k)
-          tmp_global_site_of_local(num_sites+nrecv) = global_linkorg_to_s(s)%sites_(k)
+      enddo
+      !write(*,*) MYRANK, l, local_site_of_global(global_link_tip(l))%rank_, &
+            !global_link_org(l), info
+      if (info==0) then 
+        nsend=nsend+1
+        tmp_send_sites(nsend)%rank_ = local_site_of_global(global_link_tip(l))%rank_ 
+        tmp_send_sites(nsend)%label_ = global_link_org(l) 
+        !write(*,*) MYRANK, nsend, tmp_send_sites(nsend)%rank_, tmp_send_sites(nsend)%label_ 
+      endif
+    !!!!!!!!!!!
+    elseif( local_site_of_global(global_link_tip(l))%rank_ == MYRANK ) then
+      !! 重複チェック
+      info=0
+      do i=1,nrecv
+        if( tmp_recv_sites(i)%rank_ == local_site_of_global(global_link_org(l))%rank_ &
+          .and. &
+            tmp_recv_sites(i)%label_ == global_link_org(l) ) then
+          info=1
+          exit
         endif
+      enddo
+      if (info==0) then 
+        nrecv=nrecv+1
+        tmp_recv_sites(nrecv)%rank_ = local_site_of_global(global_link_org(l))%rank_ 
+        tmp_recv_sites(nrecv)%label_ = global_link_org(l) 
+        tmp_global_site_of_local(num_sites+nrecv)=global_link_org(l)
       endif
     endif
-  enddo
+  endif
 enddo
 
+!do s=1,global_num_sites
+!  do k=1,global_linkorg_to_s(s)%num_
+!    if( local_site_of_global(global_linkorg_to_s(s)%sites_(k))%rank_ &
+!        /= local_site_of_global(s)%rank_ ) then
+!      if(local_site_of_global(global_linkorg_to_s(s)%sites_(k))%rank_ == MYRANK) then
+!        !! 重複チェック
+!        info=0
+!        do i=1,nsend
+!          if( tmp_send_sites(i)%rank_ &
+!              == local_site_of_global(s)%rank_ &
+!            .and. &
+!              tmp_send_sites(i)%label_  &
+!              == global_linkorg_to_s(s)%sites_(k) &
+!              ) then
+!            info=1
+!            exit
+!          endif
+!        enddo
+!        if (info==0) then 
+!          !write(*,*) "(S)site",linkorg_to_s(s)%sites_(k),"from",MYRANK,"to",local_site_of_global(s)%rank_
+!          nsend=nsend+1
+!          tmp_send_sites(nsend)%rank_ = local_site_of_global(s)%rank_ 
+!          tmp_send_sites(nsend)%label_ = global_linkorg_to_s(s)%sites_(k)
+!        endif
+!  !!!!!!!!!!!
+!      elseif( local_site_of_global(s)%rank_ == MYRANK ) then
+!        !! 重複チェック
+!        info=0
+!        do i=1,nrecv
+!          if( tmp_recv_sites(i)%rank_ &
+!            == local_site_of_global(global_linkorg_to_s(s)%sites_(k))%rank_ &
+!            .and. &
+!              tmp_recv_sites(i)%label_ == global_linkorg_to_s(s)%sites_(k) ) then
+!            info=1
+!            exit
+!          endif
+!        enddo
+!        if (info==0) then 
+!          !write(*,*) "(R)site",linkorg_to_s(s)%sites_(k),"from",local_site_of_global(linkorg_to_s(s)%sites_(k))%rank_,"to",MYRANK
+!          nrecv=nrecv+1
+!          tmp_recv_sites(nrecv)%rank_  &
+!            = local_site_of_global(global_linkorg_to_s(s)%sites_(k))%rank_ 
+!          tmp_recv_sites(nrecv)%label_ = global_linkorg_to_s(s)%sites_(k)
+!          tmp_global_site_of_local(num_sites+nrecv) = global_linkorg_to_s(s)%sites_(k)
+!        endif
+!      endif
+!    endif
+!  enddo
+!enddo
+
 !! (3) 担当するサイトを始点とするlinkの終点
-do s=1,global_num_sites
-!write(*,*) s,global_linktip_from_s(s)%num_
-  do k=1,global_linktip_from_s(s)%num_
-    if( local_site_of_global(global_linktip_from_s(s)%sites_(k))%rank_  &
-        /= local_site_of_global(s)%rank_ ) then
-      if(local_site_of_global(global_linktip_from_s(s)%sites_(k))%rank_ == MYRANK) then
-        !! 重複チェック
-        info=0
-        do i=1,nsend
-          if( tmp_send_sites(i)%rank_ &
-              == local_site_of_global(s)%rank_ &
-            .and. &
-              tmp_send_sites(i)%label_  &
-              == global_linktip_from_s(s)%sites_(k)) then
-            info=1
-            exit
-          endif
-        enddo
-        if (info==0) then 
-          nsend=nsend+1
-          tmp_send_sites(nsend)%rank_ = local_site_of_global(s)%rank_ 
-          tmp_send_sites(nsend)%label_ = global_linktip_from_s(s)%sites_(k)
-        endif
-  !!!!!!!!!!!
-      elseif( local_site_of_global(s)%rank_ == MYRANK ) then
-        !! 重複チェック
-        info=0
-        do i=1,nrecv
-          if( tmp_recv_sites(i)%rank_ &
-            == local_site_of_global(global_linktip_from_s(s)%sites_(k))%rank_ &
-            .and. &
-              tmp_recv_sites(i)%label_ == global_linktip_from_s(s)%sites_(k) ) then
-            info=1
-            exit
-          endif
-        enddo
-        if (info==0) then 
-          nrecv=nrecv+1
-          tmp_recv_sites(nrecv)%rank_  &
-            = local_site_of_global(global_linktip_from_s(s)%sites_(k))%rank_ 
-          tmp_recv_sites(nrecv)%label_ = global_linktip_from_s(s)%sites_(k)
-          tmp_global_site_of_local(num_sites+nrecv)=global_linktip_from_s(s)%sites_(k)
-        endif
-      endif
-    endif
-  enddo
-enddo
+!! これは(1)で尽きている
+!do s=1,global_num_sites
+!!write(*,*) s,global_linktip_from_s(s)%num_
+!  do k=1,global_linktip_from_s(s)%num_
+!    if( local_site_of_global(global_linktip_from_s(s)%sites_(k))%rank_  &
+!        /= local_site_of_global(s)%rank_ ) then
+!      if(local_site_of_global(global_linktip_from_s(s)%sites_(k))%rank_ == MYRANK) then
+!        !! 重複チェック
+!        info=0
+!        do i=1,nsend
+!          if( tmp_send_sites(i)%rank_ &
+!              == local_site_of_global(s)%rank_ &
+!            .and. &
+!              tmp_send_sites(i)%label_  &
+!              == global_linktip_from_s(s)%sites_(k)) then
+!            info=1
+!            exit
+!          endif
+!        enddo
+!        write(*,*) info
+!        if (info==0) then 
+!          nsend=nsend+1
+!          tmp_send_sites(nsend)%rank_ = local_site_of_global(s)%rank_ 
+!          tmp_send_sites(nsend)%label_ = global_linktip_from_s(s)%sites_(k)
+!        endif
+!  !!!!!!!!!!!
+!      elseif( local_site_of_global(s)%rank_ == MYRANK ) then
+!        !! 重複チェック
+!        info=0
+!        do i=1,nrecv
+!          if( tmp_recv_sites(i)%rank_ &
+!            == local_site_of_global(global_linktip_from_s(s)%sites_(k))%rank_ &
+!            .and. &
+!              tmp_recv_sites(i)%label_ == global_linktip_from_s(s)%sites_(k) ) then
+!            info=1
+!            exit
+!          endif
+!        enddo
+!        write(*,*) info
+!        if (info==0) then 
+!          nrecv=nrecv+1
+!          tmp_recv_sites(nrecv)%rank_  &
+!            = local_site_of_global(global_linktip_from_s(s)%sites_(k))%rank_ 
+!          tmp_recv_sites(nrecv)%label_ = global_linktip_from_s(s)%sites_(k)
+!          tmp_global_site_of_local(num_sites+nrecv)=global_linktip_from_s(s)%sites_(k)
+!        endif
+!      endif
+!    endif
+!  enddo
+!enddo
 
 !! (4) 担当するfaceを作る全てのsite
 do f=1,global_num_faces
@@ -523,6 +587,7 @@ allocate( global_site_of_local(1:num_necessary_sites) )
 do s=1,num_send_sites
   send_sites(s)%rank_ = tmp_send_sites(s)%rank_
   send_sites(s)%label_ = local_site_of_global(tmp_send_sites(s)%label_)%label_
+  !write(*,*) MYRANK, send_sites(s)%rank_, send_sites(s)%label_, tmp_send_sites(s)%label_
 enddo
 do s=1,num_recv_sites
   recv_sites(s)%rank_ = tmp_recv_sites(s)%rank_
@@ -561,7 +626,8 @@ tmp_global_link_of_local=0
 do l=1,global_num_links
   if( local_link_of_global(l)%rank_ == MYRANK ) then
     num_necessary_links = num_necessary_links + 1
-    tmp_global_link_of_local(num_necessary_links)=l
+    tmp_global_link_of_local(local_link_of_global(l)%label_)=l
+    !tmp_global_link_of_local(num_necessary_links)=l
   endif
 enddo
 !! この段階で、num_necesarry_links=num_links
@@ -848,7 +914,8 @@ num_necessary_faces=0
 do f=1,global_num_faces
   if( local_face_of_global(f)%rank_ == MYRANK ) then
     num_necessary_faces = num_necessary_faces + 1
-    tmp_global_face_of_local(num_necessary_faces)=f
+    tmp_global_face_of_local(local_face_of_global(f)%label_)=f
+    !tmp_global_face_of_local(num_necessary_faces)=f
   endif
 enddo
 
@@ -1470,3 +1537,82 @@ end subroutine syncronize_ab
 #endif
 
 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
+!! local なラベルを出力する
+subroutine check_local_sc2
+use parallel
+implicit none
+
+integer :: rank, turn
+integer :: local,global
+
+turn=0
+if ( turn .ne. MYRANK ) then
+  call MPI_RECV(turn,1,MPI_INTEGER,MYRANK-1,MYRANK,MPI_COMM_WORLD,ISTATUS,IERR)
+endif
+write(*,*) "#####",MYRANK,"#####"
+
+write(*,*) "#!!!! local data to global data !!!!"
+write(*,*) "### site ###"
+do local=1,num_necessary_sites
+  write(*,*) "local site",local,"->","global",global_site_of_local(local)
+enddo
+!write(*,*) "### link ###"
+!do local=1,num_necessary_links
+!  write(*,*) "local link",local,"->","global",global_link_of_local(local)
+!enddo
+!write(*,*) "### face ###"
+!do local=1,num_necessary_faces
+!  write(*,*) "local face",local,"->","global",global_face_of_local(local)
+!enddo
+
+
+write(*,*) "#!!!! SEND and RECV !!!!"
+write(*,*) "### send site ###"
+do local=1,size(send_sites,1)
+  write(*,*) "send site",global_site_of_local(send_sites(local)%label_),"(local",send_sites(local)%label_,") to RANK",send_sites(local)%rank_
+enddo
+!write(*,*) "### send link ###"
+!do local=1,size(send_links,1)
+!  write(*,*) "send local link",send_links(local)%label_,"to RANK",send_links(local)%rank_
+!enddo
+!write(*,*) "### send face ###"
+!do local=1,size(send_faces,1)
+!  write(*,*) "send local face",send_faces(local)%label_,"to RANK",send_faces(local)%rank_
+!enddo
+write(*,*) "### recv site ###"
+do local=1,size(recv_sites,1)
+  write(*,*) "recv site",global_site_of_local(recv_sites(local)%label_),"(local",recv_sites(local)%label_,") from RANK",recv_sites(local)%rank_
+enddo
+!write(*,*) "### recv link ###"
+!do local=1,size(recv_links,1)
+!  write(*,*) "recv local link",recv_links(local)%label_,"from RANK",recv_links(local)%rank_
+!enddo
+!write(*,*) "### recv face ###"
+!do local=1,size(recv_faces,1)
+!  write(*,*) "recv local face",recv_faces(local)%label_,"from RANK",recv_faces(local)%rank_
+!enddo
+
+!write(*,*) "#!!!! SITE-LINK  !!!!"
+!do local = 1,num_links
+!  write(*,*) "local link",local,"is",link_org(local),link_tip(local)
+!enddo
+!
+!write(*,*) "###"
+!do local=1,num_sites
+!  write(*,*) "local links from",local,";",linktip_from_s(local)%labels_
+!enddo
+!write(*,*) "###"
+!do local=1,num_sites
+!  write(*,*) "local links to",local,";",linkorg_to_s(local)%labels_
+!enddo
+
+
+write(*,*)
+write(*,*)
+turn=MYRANK+1
+if( MYRANK .ne. NPROCS-1 ) then
+  call MPI_SEND(turn,1,MPI_INTEGER,MYRANK+1,MYRANK+1,MPI_COMM_WORLD,IERR)
+endif
+
+end subroutine check_local_sc2

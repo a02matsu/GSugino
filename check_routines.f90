@@ -304,6 +304,37 @@ if( MYRANK .ne. NPROCS-1 ) then
   call MPI_SEND(turn,1,MPI_INTEGER,MYRANK+1,MYRANK+1,MPI_COMM_WORLD,IERR)
 endif
 
+call sleep(1)
+call MPI_BARRIER(MPI_COMM_WORLD,IERR)
+if( MYRANK==0 ) write(*,*) "### global-local corresponence"
+! site
+do global=1,global_num_sites
+  local=local_site_of_global(global)%label_
+  rank=local_site_of_global(global)%rank_
+  if( MYRANK==rank ) then
+    write(*,*) "gs=",global,"local(gs)=",local,"global(ls)=",global_site_of_local(local)
+    if( global .ne. global_site_of_local(local) ) write(*,*) "correspondence broken in global",global
+  endif
+enddo
+! link
+do global=1,global_num_links
+  local=local_link_of_global(global)%label_
+  rank=local_link_of_global(global)%rank_
+  if( MYRANK==rank ) then
+    write(*,*) "gl=",global,"local(gl)=",local,"global(ll)=",global_link_of_local(local)
+    if( global .ne. global_link_of_local(local) ) write(*,*) "correspondence broken in global", global
+  endif
+enddo
+! face
+do global=1,global_num_faces
+  local=local_face_of_global(global)%label_
+  rank=local_face_of_global(global)%rank_
+  if( MYRANK==rank ) then
+    write(*,*) "gf=",global,"local(gf)=",local,"global(lf)=",global_face_of_local(local)
+    if( global .ne. global_face_of_local(local) ) write(*,*) "correspondence broken in global", global
+  endif
+enddo
+
 end subroutine check_local_sc
 #endif
 

@@ -17,8 +17,8 @@ implicit none
 
 complex(kind(0d0)), intent(out) :: DJ1(1:num_faces)
 complex(kind(0d0)), intent(out) :: DJ2(1:num_faces)
-complex(kind(0d0)), intent(in) :: Geta_lambda(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_sites,1:num_links) 
-complex(kind(0d0)), intent(in) :: Gchi_lambda(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_faces,1:num_links) 
+complex(kind(0d0)), intent(in) :: Geta_lambda(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_sites,1:num_necessary_links) 
+complex(kind(0d0)), intent(in) :: Gchi_lambda(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_faces,1:num_necessary_links) 
 complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_necessary_links)
 
 
@@ -37,6 +37,20 @@ integer :: info
 
 
 !!  DJ1 ~ 1/2 rot Tr(\lambda(l) \eta(s))
+!write(*,*) Gchi_lambda
+!do ll=1,num_links
+!  do gs=1,global_num_sites
+!    do l=1,NMAT
+!      do k=1,NMAT
+!        do j=1,NMAT
+!          do i=1,NMAT
+!            write(*,*) MYRANK, gs, ll, Geta_lambda(i,j,k,l,gs,ll)
+!          enddo
+!        enddo
+!      enddo
+!    enddo
+!  enddo
+!enddo
 call make_trV1(trvec1,Geta_lambda)
 !! rotation
 DJ1=(0d0,0d0)
@@ -50,7 +64,11 @@ do lf=1,num_faces
 enddo
 
 !! DJ2 ~ div Tr(\lambda(l) \chi(f))
+!write(*,*) Geta_lambda
 call make_trV2(trvec2,Gchi_lambda,UMAT)
+do ll=1,num_necessary_links 
+  write(*,*) MYRANK, global_link_of_local(ll),  trvec1(ll), trvec2(ll)
+enddo
 !! divergence
 DJ2=(0d0,0d0)
 do lf=1,num_faces

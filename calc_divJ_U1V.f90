@@ -29,11 +29,15 @@ integer :: num_fermion
 !! misc
 integer :: ite, ite2
 integer :: rank,tag
-integer :: lf, gf
-integer :: jj,j,i,ios
+integer :: ls, ll, lf
+integer :: gs, gl, gf
+integer :: jj,i,j,k,l,ios
 double precision :: rtmp, itmp
-complex(kind(0d0)) :: ctmp
+complex(kind(0d0)) :: ctmp, tmp
 complex(kind(0d0)) :: phase_pf
+
+!complex(kind(0d0)),allocatable :: tttt(:,:)
+!allocate(tttt(1:2,1:3))
 
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -104,11 +108,58 @@ do
       Geta_chi, Glambda_chi, Gchi_chi, &
       Dinv,num_fermion)
 
+  !write(*,*) size(Geta_lambda,1), &
+             !size(Geta_lambda,2), &
+             !size(Geta_lambda,3), &
+             !size(Geta_lambda,4), &
+             !size(Geta_lambda,5), &
+             !size(Geta_lambda,6)
+  !do ll=1,num_links
+  !  do gf=1,global_num_faces
+  !    tmp=(0d0,0d0)
+  !    do l=1,NMAT
+  !      do k=1,NMAT
+  !        do j=1,NMAT
+  !          do i=1,NMAT
+  !            !tmp = tmp + Geta_lambda(i,j,k,l,gs,ll)*dconjg(Geta_lambda(j,i,k,l,gs,ll))
+  !            !tmp = Geta_lambda(i,j,k,l,gs,ll)*dconjg(Geta_lambda(j,i,k,l,gs,ll))
+  !            !if( dabs(dble(tmp)) < 1d-8  ) write(*,*) MYRANK, lf, gs,i,j,k,l, dble(tmp)
+  !            write(*,*) MYRANK, Gchi_lambda(i,j,k,l,gf,ll)
+  !          enddo
+  !        enddo
+  !      enddo
+  !    enddo
+  !    !if( dabs(dble(tmp)) < 1d0  ) write(*,*) MYRANK, lf, gs, dble(tmp)
+  !  enddo
+  !enddo
+  !write(*,*) "#####",MYRANK, "#################"
+
+
+
+
   if( control == 0 ) then 
     if( MYRANK == 0 ) then
       write(N_divJFILE,'(I7,2X)',advance='no') ite
     endif
     !!!!!!!!!!!!!!!!
+    !write(*,*) Gchi_lambda
+    !call MPI_BARRIER(MPI_COMM_WORLD, IERR)
+    !write(*,*) Gchi_lambda
+!do ll=1,num_necessary_links
+!  do gs=1,global_num_sites
+!    do l=1,NMAT
+!      do k=1,NMAT
+!        do j=1,NMAT
+!          do i=1,NMAT
+!            if( cdabs(Geta_lambda(i,j,k,l,gs,ll)) < 1d-5 ) then
+!              write(*,*) MYRANK, gs, ll
+!            endif
+!          enddo
+!        enddo
+!      enddo
+!    enddo
+!  enddo
+!enddo
     call calc_DJ_U1V(DivJ1,DivJ2,Glambda_eta,Glambda_chi,Umat)
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

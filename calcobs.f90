@@ -278,6 +278,7 @@ endif
 INPUT_FILE_NAME="inputfile"
   
 call initialization 
+
 num_fermion=(global_num_sites+global_num_links+global_num_faces)*(NMAT*NMAT-1)
 num_sitelink=(global_num_sites+global_num_links)*(NMAT*NMAT-1)
 

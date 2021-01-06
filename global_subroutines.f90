@@ -3422,7 +3422,7 @@ do s_send=1,num_send_links
   rank=send_links(s_send)%rank_
   tag=10000*rank + global_link_of_local(local)
 
-  call MPI_ISEND(lambda(:,:,:,:,:,local),global_num,MPI_DOUBLE_COMPLEX,rank,tag,MPI_COMM_WORLD,ISEND(s_send),IERR)
+  call MPI_ISEND(lambda(:,:,:,:,:,local),data_size,MPI_DOUBLE_COMPLEX,rank,tag,MPI_COMM_WORLD,ISEND(s_send),IERR)
 enddo
 
 do s_recv=1,num_recv_links
@@ -3430,7 +3430,7 @@ do s_recv=1,num_recv_links
   rank=recv_links(s_recv)%rank_
   tag=10000*MYRANK + global_link_of_local(local)
 
-  call MPI_IRECV(lambda(:,:,:,:,:,local),global_num,MPI_DOUBLE_COMPLEX,rank,tag,MPI_COMM_WORLD,IRECV(s_recv),IERR)
+  call MPI_IRECV(lambda(:,:,:,:,:,local),data_size,MPI_DOUBLE_COMPLEX,rank,tag,MPI_COMM_WORLD,IRECV(s_recv),IERR)
 enddo
 
 do s_send=1,num_send_links
@@ -3471,7 +3471,7 @@ do s_send=1,num_send_faces
   rank=send_faces(s_send)%rank_
   tag=10000*rank + global_face_of_local(local)
 
-  call MPI_ISEND(chi(:,:,:,:,:,local),global_num,MPI_DOUBLE_COMPLEX,rank,tag,MPI_COMM_WORLD,ISEND(s_send),IERR)
+  call MPI_ISEND(chi(:,:,:,:,:,local),data_size,MPI_DOUBLE_COMPLEX,rank,tag,MPI_COMM_WORLD,ISEND(s_send),IERR)
 enddo
 
 do s_recv=1,num_recv_faces
@@ -3479,7 +3479,7 @@ do s_recv=1,num_recv_faces
   rank=recv_faces(s_recv)%rank_
   tag=10000*MYRANK + global_face_of_local(local)
 
-  call MPI_IRECV(chi(:,:,:,:,:,local),global_num,MPI_DOUBLE_COMPLEX,rank,tag,MPI_COMM_WORLD,IRECV(s_recv),IERR)
+  call MPI_IRECV(chi(:,:,:,:,:,local),data_size,MPI_DOUBLE_COMPLEX,rank,tag,MPI_COMM_WORLD,IRECV(s_recv),IERR)
 enddo
 
 do s_send=1,num_send_faces
