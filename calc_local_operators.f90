@@ -3,7 +3,7 @@ program main
 use global_parameters
 use initialization_calcobs
 use simulation
-use matrix_functions, only : trace_mm, hermitian_conjugate, matrix_power, matrix_inverse
+use matrix_functions, only : trace_mm, hermitian_conjugate, matrix_power, matrix_inverse, matrix_3_product
 use parallel
 implicit none
 
@@ -38,6 +38,8 @@ complex(kind(0d0)), allocatable :: tmpmat(:,:) !tmpmat(1:NMAT,1:NMAT)
 complex(kind(0d0)), allocatable :: tmpmat2(:,:) !tmpmat2(1:NMAT,1:NMAT)
 complex(kind(0d0)), allocatable :: Uf(:,:) !Uf(1:NMAT,1:NMAT)
 complex(kind(0d0)), allocatable :: Ymat(:,:) !Ymat(1:NMAT,1:NMAT)
+complex(kind(0d0)), allocatable :: Ucarry(:,:) 
+complex(kind(0d0)), allocatable :: UYU(:,:) 
 integer :: num_fermion
 integer :: eular, ratio
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -78,6 +80,8 @@ allocate(tmpmat(1:NMAT,1:NMAT))
 allocate(tmpmat2(1:NMAT,1:NMAT))
 allocate(Uf(1:NMAT,1:NMAT))
 allocate(Ymat(1:NMAT,1:NMAT))
+allocate(Ucarry(1:NMAT,1:NMAT))
+allocate(UYU(1:NMAT,1:NMAT))
 !! for 1) tr(\phibar^2)^{r/2}(f)
 operatorFILE(1)=trim(adjustl(OBSDIR)) // trim("/trphibar"//MEDFILE(18:))
 allocate( phibar(1:num_faces) )
@@ -117,31 +121,6 @@ do
   call read_config_from_medfile(Umat,PhiMat,ite,N_MEDFILE,control)
   call MPI_BCAST(control, 1, MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
   if( control == 1 ) exit
-
-  !! read Dirac inverse
-!  if( MYRANK==0 ) then
-!    read(N_DinvFILE,'(I10,2X)',advance='no',iostat=ios) ite2
-!    if( ios == -1) control=1
-!    if( control==0 ) then 
-!      do j=1,num_fermion
-!        do i=1,num_fermion
-!          read(N_DinvFILE,'(E23.15,2X,E23.15,2X)',advance='no') &
-!            rtmp,itmp
-!            Dinv(i,j)=dcmplx(rtmp)+(0d0,1d0)*itmp
-!        enddo
-!      enddo
-!      read(N_DinvFILE,'(E23.15,2X,E23.15,2X)') rtmp, itmp
-!      phase_pf=dcmplx(rtmp)+(0d0,1d0)*dcmplx(itmp)
-!    endif
-!  endif
-!  call MPI_BCAST(control, 1, MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
-!  if( control == 1 ) exit
-  !! make Dinv
-!  call make_fermion_correlation_from_Dinv(&
-!      Geta_eta, Glambda_eta, Gchi_eta, &
-!      Geta_lambda, Glambda_lambda, Gchi_lambda, &
-!      Geta_chi, Glambda_chi, Gchi_chi, &
-!      Dinv,num_fermion)
 
   if( control == 0 ) then 
     if( MYRANK == 0 ) then
@@ -199,19 +178,27 @@ do
       call Make_face_variable(Uf,lf,UMAT)
       call Make_moment_map_adm(Ymat,Uf)
       Ymat = Ymat * (0d0,0.5d0)*beta_f(lf)*Ymat
-      !! Yphibar
-      ls=sites_in_f(lf)%label_(1)
-      call hermitian_conjugate(tmpmat2,phimat(:,:,ls))
-      call matrix_power(tmpmat,tmpmat2,ratio)
-      call trace_mm(Yphibar(lf), Ymat, tmpmat)
-      !! Yphi
-      tmpmat2=phimat(:,:,ls)
-      call matrix_inverse(tmpmat2)
-      call matrix_power(tmpmat,tmpmat2,ratio)
-      call trace_mm(Yphi(lf), Ymat, tmpmat)
+      do i=1,sites_in_f(lf)%num_
+        ls=sites_in_f(lf)%label_(i)
+        call calc_prodUl_from_n1_to_n2_in_Uf(Ucarry,lf,1,i-1,Umat)
+        call matrix_3_product(UYU,Ucarry,Ymat,Ucarry,'C','N','N')
+
+        !! Yphibar
+        !ls=sites_in_f(lf)%label_(1)
+        call hermitian_conjugate(tmpmat2,phimat(:,:,ls))
+        call matrix_power(tmpmat,tmpmat2,ratio)
+        call trace_mm(ctmp, UYU, tmpmat)
+        Yphibar(lf) = Yphibar(lf) + ctmp
+        !! Yphi
+        tmpmat2=phimat(:,:,ls)
+        call matrix_inverse(tmpmat2)
+        call matrix_power(tmpmat,tmpmat2,ratio)
+        call trace_mm(ctmp, UYU, tmpmat)
+        Yphi(lf) = Yphi(lf) + ctmp
+      enddo
+      Yphibar(lf)=Yphibar(lf)/dcmplx(NMAT*sites_in_f(lf)%num_)
+      Yphi(lf)=Yphi(lf)/dcmplx(NMAT*sites_in_f(lf)%num_)
     enddo
-    Yphibar=Yphibar/dcmplx(NMAT)
-    Yphi=Yphi/dcmplx(NMAT)
     
     call write_operator(Yphibar, N_operatorFILE(3))
     call write_operator(Yphi, N_operatorFILE(4))
