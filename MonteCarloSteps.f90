@@ -1099,7 +1099,7 @@ if (MYRANK == 0) then
 #endif 
 
 local_info=1
-if( delta_Ham <= 0d0 .or. new_config >= 2 ) then 
+if( delta_Ham <= 0d0 .or. new_config == 2 .or. new_config==3 .or. new_config==4 ) then 
   local_info=0
   accept=accept+1
 else
