@@ -293,6 +293,7 @@ do ite=total_ite+1,total_ite+num_ite
   !enddo
   !! calculate Hamiltonian 
   call Make_Hamiltonian(Hold,CGite1,info1,UMAT,PhiMat,PF_eta,PF_lambda,PF_chi,P_AMat,P_PhiMat)
+  if(MYRANK==0) write(*,*) Hold
 
   !! backup
   PhiMat_BAK=PhiMat
@@ -340,6 +341,7 @@ do ite=total_ite+1,total_ite+num_ite
     !call check_vacuum(UMAT)
     !! calculate Hamiltonian 
     call Make_Hamiltonian(Hnew,CGite2,info2,UMAT,PhiMat,PF_eta,PF_lambda,PF_chi,P_AMat,P_PhiMat)
+  if(MYRANK==0) write(*,*) "after:",Hnew
     !! metropolice
 #ifdef PARALLEL
     if(MYRANK==0) then
