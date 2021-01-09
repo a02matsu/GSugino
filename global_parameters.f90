@@ -56,7 +56,8 @@ integer, parameter :: pb_link=0
 integer, parameter :: pb_face=0 
 !integer, parameter :: p_U1Rmass=0
 
-integer, parameter :: pf=0 ! set 1 if you do NOT want to include fermion
+!integer, parameter :: pf=0 ! set 1 if you do NOT want to include fermion
+integer :: pf=0 ! set 1 if you do NOT want to include fermion
 integer, parameter :: p1=0
 integer, parameter :: p2=0
 integer, parameter :: p3=0

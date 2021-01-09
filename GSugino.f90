@@ -199,22 +199,36 @@ endif
   endif
 ! at this stage, seed is fixed to some value
 
+!! 
+! newconfig = 0 ; normal start 
+! newconfig = 1 ; new config, cold, with Metropolice
+! newconfig = 2 ; new config, cold, without Metropolice
+! newconfig = 3 ; old config, without Metropolice
+! newconfig = 4 ; new config, hot, without Metropolice
+! newconfig = 5 ; new config, cold, only boson, with metropolice
 ! set the variables depending on simulation_mode and test_mode
-  !if (test_mode==1 .or. new_config==1) then
-  if (new_config == 1 .or. new_config == 2) then ! new config
+  !!! ignore fermion or not
+  if( new_config == 5 ) then
+    pf=1
+  else
+    pf=0
+  endif
+  !!! cold start
+  if (new_config == 1 .or. new_config == 2 .or. new_config == 5) then ! new config
     total_ite=0
     job_number=1
     !!! when cold start, evaluation of Dirac is time-consuming
     eval_eigen=0
     call set_cold_config(UMAT,PHIMAT) 
     !call set_cold_config(UMAT,PHIMAT)
+  !!! hot start
   elseif( new_config == 4 ) then
     total_ite=0
     job_number=1
     eval_eigen=0
     call set_hot_config(UMAT,PhiMat)
-  else ! read config from CONF directory
- 
+  !!! read config from CONF director
+  else 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !! branch modeによる読み込み先の分岐
     !! branch_mode=0 : branchは作らず、"branch_use"上で継続的にシミュレーション
