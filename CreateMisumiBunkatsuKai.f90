@@ -205,7 +205,7 @@ enddo
 write(OUT,'(A)') "# alpha_f: f, size(f), s_1, ..., s_Sf, alpha(f), beta(f)"
 f=1
 write(OUT,'(I6,X,I6,X)',advance='no') f, sizeM
-do i=1,sizeM
+do i=sizeM,1,-1
   write(OUT,'(I6,X)',advance='no') i
 enddo
 write(OUT,'(E15.8,X,E15.8)') alpha_f(f), beta_f(f)
