@@ -21,6 +21,9 @@ open(PAR_FILE, file=PAR_FILE_NAME, status='old',action='READ')
 !! mass_phi2 : physical mass square of \Phi
   read(PAR_FILE,'()') 
   read(PAR_FILE,*) phys_mass_square_phi
+!! pf, p1, p2, p3, p4, p5, p_mass : set 1 for omitting each fermion action(pf means all femrions)
+  read(PAR_FILE,'()') 
+  read(PAR_FILE,*) pf, p1, p2, p3, p4, p5, p_mass
 !! mass_f; fermion mass
   read(PAR_FILE,'()') 
   read(PAR_FILE,*) mass_f
@@ -45,6 +48,12 @@ open(PAR_FILE, file=PAR_FILE_NAME, status='old',action='READ')
 !! new_config ; 0:Old Config 1:New Config
   read(PAR_FILE,'()') 
   read(PAR_FILE,*) new_config
+!!  cold_hot : 0: cold start, 1: hot start
+  read(PAR_FILE,'()') 
+  read(PAR_FILE,*) cold_hot
+!! omit_metroplis : 0: with metropolice test, 1: all accept
+  read(PAR_FILE,'()') 
+  read(PAR_FILE,*) omit_metropolis
 !! fix_seed ; 0:previous value 1:fix 2:system time 
   read(PAR_FILE,'()') 
   read(PAR_FILE,*) fix_seed
@@ -90,6 +99,16 @@ endif
 ! send all parameters to all the other rank
 !  read(PAR_FILE,*) NMAT
 call MPI_BCAST(NMAT,1,MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
+  !read(PAR_FILE,*) pf, p1, p2, p3, p4, p5
+call MPI_BCAST(pf,1,MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
+call MPI_BCAST(p1,1,MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
+call MPI_BCAST(p2,1,MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
+call MPI_BCAST(p3,1,MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
+call MPI_BCAST(p4,1,MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
+call MPI_BCAST(p5,1,MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
+call MPI_BCAST(p_mass,1,MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
+  !read(PAR_FILE,*) mass_f
+call MPI_BCAST(mass_f,1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERR)
   !read(PAR_FILE,*) SC_FILE_NAME
 call MPI_BCAST(SC_FILE_NAME,128,MPI_CHARACTER,0,MPI_COMM_WORLD,IERR)
   !read(PAR_FILE,*) test_mode
@@ -104,6 +123,10 @@ call MPI_BCAST(new_branch_label,1,MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
 call MPI_BCAST(force_measurement,1,MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
   !read(PAR_FILE,*) new_config
 call MPI_BCAST(new_config,1,MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
+  !read(PAR_FILE,*) cold_hot
+call MPI_BCAST(cold_hot,1,MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
+  !read(PAR_FILE,*) omit_metropolis
+call MPI_BCAST(omit_metropolis,1,MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
   !read(PAR_FILE,*) fix_seed
 call MPI_BCAST(fix_seed,1,MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
   !read(PAR_FILE,*) reset_ite
@@ -114,8 +137,6 @@ call MPI_BCAST(seed,1,MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
 call MPI_BCAST(m_omega,1,MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
   !read(PAR_FILE,*) phys_mass_square_phi
 call MPI_BCAST(phys_mass_square_phi,1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERR)
-  !read(PAR_FILE,*) mass_f
-call MPI_BCAST(mass_f,1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERR)
   !read(PAR_FILE,*) Remez_1ovminus4
 call MPI_BCAST(Remez_1ovminus4,128,MPI_CHARACTER,0,MPI_COMM_WORLD,IERR)
   !read(PAR_FILE,*) Remez_1ov8

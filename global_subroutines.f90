@@ -70,6 +70,40 @@ do i=1,N
 enddo
 end subroutine BoxMuller2
 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! Gaussian random number
+!!  BoxMuller3(gauss)
+!!
+!! output N gaussian randum numbers
+subroutine BoxMuller3(gauss)
+  use mt95
+  implicit none
+
+  double precision, parameter :: PI=dacos(-1d0)
+  integer :: N
+  double precision :: gauss(:)
+  double precision, allocatable :: rand(:) !(1:2*N)
+  integer i
+
+  N=size(gauss)
+  if( mod(N,2)==0 ) then
+    allocate( rand(1:N) )
+  else
+    allocate( rand(1:N+1) )
+  endif
+
+  call genrand_real3(rand)
+
+  do i=1,N/2
+    gauss(2*i-1) = dsqrt(-2d0*dlog(rand(2*i-1)))*dsin(2d0*Pi*rand(2*i))
+    gauss(2*i) = dsqrt(-2d0*dlog(rand(2*i-1)))*dcos(2d0*Pi*rand(2*i))
+  enddo
+  if( mod(N,2)==1 ) then
+    gauss(N) = dsqrt(-2d0*dlog(rand(N)))*dsin(2d0*Pi*rand(N+1))
+  endif
+
+end subroutine BoxMuller3
+
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! Compute forward covariant difference of Phi

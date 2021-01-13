@@ -200,33 +200,21 @@ endif
 ! at this stage, seed is fixed to some value
 
 !! 
-! newconfig = 0 ; normal start 
-! newconfig = 1 ; new config, cold, with Metropolice
-! newconfig = 2 ; new config, cold, without Metropolice
-! newconfig = 3 ; old config, without Metropolice
-! newconfig = 4 ; new config, hot, without Metropolice
-! newconfig = 5 ; new config, cold, only boson, with metropolice
-! set the variables depending on simulation_mode and test_mode
-  !!! ignore fermion or not
-  if( new_config == 5 ) then
-    pf=1
-  else
-    pf=0
-  endif
-  !!! cold start
-  if (new_config == 1 .or. new_config == 2 .or. new_config == 5) then ! new config
+!! new_config ; 0:Old Config 1:New Config
+!! cold_hot : 0: cold start, 1: hot start
+!! omit_metropolis : 0: with metropolice test, 1: all accept
+  if (new_config == 1 ) then 
     total_ite=0
     job_number=1
     !!! when cold start, evaluation of Dirac is time-consuming
-    eval_eigen=0
-    call set_cold_config(UMAT,PHIMAT) 
-    !call set_cold_config(UMAT,PHIMAT)
-  !!! hot start
-  elseif( new_config == 4 ) then
-    total_ite=0
-    job_number=1
-    eval_eigen=0
-    call set_hot_config(UMAT,PhiMat)
+    if( cold_hot == 0 ) then 
+      eval_eigen=0
+      call set_cold_config(UMAT,PHIMAT) 
+    !!! hot start
+    else 
+      eval_eigen=0
+      call set_hot_config(UMAT,PhiMat)
+    endif
   !!! read config from CONF director
   else 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -251,7 +239,7 @@ endif
       else
         write(Fconfigin, '("CONFIG",i1.1,"/inputconf_", i4.4, ".dat")') root,job_number-1
       endif
-   endif
+    endif
     call read_config(UMAT,PhiMat,state_mt95,seed)
   endif
 

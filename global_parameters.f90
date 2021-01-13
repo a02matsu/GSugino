@@ -58,12 +58,12 @@ integer, parameter :: pb_face=0
 
 !integer, parameter :: pf=0 ! set 1 if you do NOT want to include fermion
 integer :: pf=0 ! set 1 if you do NOT want to include fermion
-integer, parameter :: p1=0
-integer, parameter :: p2=0
-integer, parameter :: p3=0
-integer, parameter :: p4=0
-integer, parameter :: p5=0
-integer, parameter :: p_mass=1
+integer :: p1=0
+integer :: p2=0
+integer :: p3=0
+integer :: p4=0
+integer :: p5=0
+integer :: p_mass=1
 
 integer, parameter :: Dirac_write=0
 
@@ -242,6 +242,8 @@ integer, save :: fix_seed !! 0: use the value at the end of the previous simulat
                     !! 1: fix seed to the value in the parameter file
                     !! 2: determine by the system time
 integer, save :: new_config !! 0: Old config, 1: New config
+integer, save :: cold_hot !! 0: cold start, 1: hot start
+integer, save :: omit_metropolis !! 0: with metropolis test, 1: all accept
 integer, save :: branch_use !! in which branch simulation is performed
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
