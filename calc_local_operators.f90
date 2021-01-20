@@ -142,6 +142,7 @@ do
       enddo
       phibar(lf)=phibar(lf)/dcmplx( sites_in_f(lf)%num_ )
     enddo
+    phibar = phibar / dcmplx(LatticeSpacing**ratio)
     call write_operator(phibar, N_operatorFILE(1))
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -166,6 +167,7 @@ do
       enddo
       phi_face(lf)=phi_face(lf)/dcmplx( sites_in_f(lf)%num_ )
     enddo
+    phi_face = phi_face * dcmplx(LatticeSpacing**ratio)
     call write_operator(phi_face, N_operatorFILE(2))
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -196,8 +198,12 @@ do
         call trace_mm(ctmp, UYU, tmpmat)
         Yphi(lf) = Yphi(lf) + ctmp
       enddo
-      Yphibar(lf)=Yphibar(lf)/dcmplx(NMAT*sites_in_f(lf)%num_)
-      Yphi(lf)=Yphi(lf)/dcmplx(NMAT*sites_in_f(lf)%num_)
+      Yphibar(lf)=Yphibar(lf) & 
+        / dcmplx(NMAT*sites_in_f(lf)%num_) 
+        / dcmplx(LatticeSpacing**(ratio+2)
+      Yphi(lf)=Yphi(lf) &
+        / dcmplx(NMAT*sites_in_f(lf)%num_)
+        * dcmplx(LatticeSpacing**(ratio-2))
     enddo
     
     call write_operator(Yphibar, N_operatorFILE(3))
