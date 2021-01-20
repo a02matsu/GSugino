@@ -199,10 +199,10 @@ do
         Yphi(lf) = Yphi(lf) + ctmp
       enddo
       Yphibar(lf)=Yphibar(lf) & 
-        / dcmplx(NMAT*sites_in_f(lf)%num_) 
-        / dcmplx(LatticeSpacing**(ratio+2)
+        / dcmplx(NMAT*sites_in_f(lf)%num_)  &
+        / dcmplx(LatticeSpacing**(ratio+2))
       Yphi(lf)=Yphi(lf) &
-        / dcmplx(NMAT*sites_in_f(lf)%num_)
+        / dcmplx(NMAT*sites_in_f(lf)%num_) &
         * dcmplx(LatticeSpacing**(ratio-2))
     enddo
     
