@@ -179,7 +179,7 @@ do
       !! Omega
       call Make_face_variable(Uf,lf,UMAT)
       call Make_moment_map_adm(Ymat,Uf)
-      Ymat = Ymat * (0d0,0.5d0)*beta_f(lf)*Ymat
+      Ymat = Ymat * (0d0,0.5d0)*beta_f(lf) ! *Ymat <= what are you doing!?? 
       do i=1,sites_in_f(lf)%num_
         ls=sites_in_f(lf)%label_(i)
         call calc_prodUl_from_n1_to_n2_in_Uf(Ucarry,lf,1,i-1,Umat)
@@ -200,7 +200,7 @@ do
       enddo
       Yphibar(lf)=Yphibar(lf) & 
         / dcmplx(NMAT*sites_in_f(lf)%num_)  &
-        / dcmplx(LatticeSpacing**(ratio+2))
+        / dcmplx(LatticeSpacing**(2+ratio))
       Yphi(lf)=Yphi(lf) &
         / dcmplx(NMAT*sites_in_f(lf)%num_) &
         * dcmplx(LatticeSpacing**(ratio-2))
