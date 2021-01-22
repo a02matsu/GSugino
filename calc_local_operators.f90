@@ -12,13 +12,14 @@ implicit none
 integer :: iarg
 character(128) :: config_file
 
-integer, parameter :: num_operators=6
+integer, parameter :: num_operators=7
 !! 1) tr(\phibar^2)^{r/2}(f)
 !! 2) tr(\phi^2)^{-r/2}(f)
 !! 3) tr(Y\phibar^r)
 !! 4) tr(Y\phi^{-r})
 !! 5) tr(Y\phibar^r) only the representation point 
 !! 6) tr(Y\phi^{-r}) only the representation point 
+!! 6) Qtr(\chi \phibar^{r})
 
 integer :: control
 character(128) :: MEDFILE
@@ -28,7 +29,7 @@ character(32) :: OBSDIR
 !character(128) :: DinvFILE
 character(128) :: operatorFILE(1:num_operators)
 integer, parameter :: N_MEDFILE=100
-!integer, parameter :: N_DinvFILE=101
+integer, parameter :: N_DinvFILE=101
 integer :: N_operatorFILE(1:num_operators) !=102
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -47,6 +48,8 @@ complex(kind(0d0)), allocatable :: Uf(:,:) !Uf(1:NMAT,1:NMAT)
 complex(kind(0d0)), allocatable :: Ymat(:,:) !Ymat(1:NMAT,1:NMAT)
 complex(kind(0d0)), allocatable :: Ucarry(:,:) 
 complex(kind(0d0)), allocatable :: UYU(:,:) 
+complex(kind(0d0)), allocatable :: phibar_p(:,:,:)
+complex(kind(0d0)), allocatable :: Dinv(:,:)
 
 
 integer :: num_fermion
@@ -77,9 +80,9 @@ if( iarg < 1 ) then
 endif
 call getarg(1,MEDFILE)
 !DinvFILE=trim("MEDCONF/Dinv"//MEDFILE(18:))
-!k=index(MEDFILE,"/") ! should be 8
-!p=index(MEDFILE,"_") ! should be 18 when it is "MEDCONF/medconfig_***"
-DinvFILE=trim(MEDFILE(1:index(MEDFILE,"/"))//"Dinv"//MEDFILE(index(MEDFILE,"_"):))
+k=index(MEDFILE,"/") ! should be 8
+p=index(MEDFILE,"_") ! should be 18 when it is "MEDCONF/medconfig_***"
+DinvFILE=trim(MEDFILE(1:k)//"Dinv"//MEDFILE(p:))
 
 if( iarg == 1 ) then
   OBSDIR=trim(adjustl("OBS"))
@@ -91,6 +94,7 @@ INPUT_FILE_NAME="inputfile"
 call initialization 
 
 num_fermion=(global_num_sites+global_num_links+global_num_faces)*(NMAT*NMAT-1)
+allocate( Dinv(1:num_fermion, 1:num_fermion) )
 
 allocate(tmpmat(1:NMAT,1:NMAT))
 allocate(tmpmat2(1:NMAT,1:NMAT))
@@ -98,6 +102,7 @@ allocate(Uf(1:NMAT,1:NMAT))
 allocate(Ymat(1:NMAT,1:NMAT))
 allocate(Ucarry(1:NMAT,1:NMAT))
 allocate(UYU(1:NMAT,1:NMAT))
+allocate( phibar_p(1:NMAT,1:NMAT,0:ratio) )
 
 !! for 1) tr(\phibar^2)^{r/2}(f)
 operatorFILE(1)=trim(adjustl(OBSDIR)) // trim("/trphibar"//MEDFILE(index(MEDFILE,"_"):))
@@ -119,6 +124,9 @@ allocate( Yphibar2(1:num_faces) )
 !! for 6) tr(Y\phi^{-r}) with only the representation point
 operatorFILE(6)=trim(adjustl(OBSDIR)) // trim("/Yphi2"//MEDFILE(index(MEDFILE,"_"):))
 allocate( Yphi2(1:num_faces) )
+!! for 7) Qtr(\chi\phibar^{r}) local face-compensator
+operatorFILE(7)=trim(adjustl(OBSDIR)) // trim("/localFC"//MEDFILE(index(MEDFILE,"_"):))
+allocate( localFC(1:num_faces) )
 
 
 
@@ -132,6 +140,8 @@ if( MYRANK==0 ) then
   do i=1,num_operators
     open(N_operatorFILE(i), file=operatorFILE(i), status='REPLACE')
   enddo
+  !! Dinv
+  open(N_DinvFILE, file=DinvFILE, status='OLD',action='READ',form='unformatted')
 endif
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
@@ -143,7 +153,30 @@ do
   call read_config_from_medfile(Umat,PhiMat,ite,N_MEDFILE,control)
   call MPI_BCAST(control, 1, MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
 
+  !! read Dinv
+  if( MYRANK==0 ) then 
+    read(N_DinvFILE,iostat=ios) ite2
+    if( ios == -1) then 
+      control = 1
+    else
+      read(N_DinvFILE) Dinv
+      read(N_DinvFILE) phase_pf
+      read(N_DinvFILE) 
+    endif
+  endif
+
   if( control == 1 ) exit
+  if( ite .ne. ite2 ) then
+    write(*,*) "mismatch in medconfig and Dinv"
+    exit
+  endif
+
+  call make_fermion_correlation_from_Dinv(&
+    Geta_eta, Glambda_eta, Gchi_eta, &
+    Geta_lambda, Glambda_lambda, Gchi_lambda, &
+    Geta_chi, Glambda_chi, Gchi_chi, &
+    Dinv,num_fermion)
+
 
   if( control == 0 ) then 
     if( MYRANK == 0 ) then
@@ -243,22 +276,63 @@ do
       call hermitian_conjugate(tmpmat2,phimat(:,:,ls))
       call matrix_power(tmpmat,tmpmat2,ratio)
       call trace_mm(ctmp, Ymat, tmpmat)
-      Yphibar2(lf) = Yphibar2(lf) + ctmp
+      Yphibar(lf) = Yphibar(lf) + ctmp
       !! Yphi
       tmpmat2=phimat(:,:,ls)
       call matrix_inverse(tmpmat2)
       call matrix_power(tmpmat,tmpmat2,ratio)
       call trace_mm(ctmp, Ymat, tmpmat)
-      Yphi2(lf) = Yphi2(lf) + ctmp
+      Yphi(lf) = Yphi(lf) + ctmp
 
-      Yphibar2(lf)=Yphibar2(lf)/dcmplx(NMAT)
-      Yphi2(lf)=Yphi2(lf)/dcmplx(NMAT)
+      Yphibar(lf)=Yphibar(lf)/dcmplx(NMAT)
+      Yphi(lf)=Yphi(lf)/dcmplx(NMAT)
     enddo
     
-    call write_operator(Yphibar2, N_operatorFILE(5))
-    call write_operator(Yphi2, N_operatorFILE(6))
+    call write_operator(Yphibar, N_operatorFILE(5))
+    call write_operator(Yphi, N_operatorFILE(6))
 
     
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !! 7) Qtr(\chi\phibar^r) 
+    localFC=(0d0,0d0)
+    do lf=1, num_faces
+      ls=sites_in_f(lf)%label_(1)
+      gf=global_face_of_local(lf)
+      gs=global_sites_in_f(gf)%label_(1)
+    
+      !! phibar_p = \bar(\PhiMat)^p
+      call make_unit_matrix(phibar_p(:,:,0))
+      call hermitian_conjugate(phibar_p(:,:,1), PhiMat(:,:,ls))
+      do k=2,ratio
+        call matrix_product(phibar_p(:,:,k),phibar_p(:,:,k-1),phibar_p(:,:,1))
+      enddo
+      !! Omega
+      call Make_face_variable(Uf,lf,UMAT)
+      call Make_moment_map_adm(Ymat,Uf)
+      Ymat = Ymat * (0d0,0.5d0)*beta_f(lf)
+
+      !! bosonic part
+      call trace_mm(ctmp, Ymat, tmpmat)
+      localFC(lf) = localFC(lf) + ctmp / dcmplx(NMAT)
+      !! fermionic part
+      do p=0,ratio-1
+        do l=1,NMAT
+          do k=1,NMAT
+            do j=1,NMAT
+              do i=1,NMAT
+                localFC(lf) = localFC(lf) + phibar_p(i,j,ratio-1-p)*phibar_p(k,l,p)&
+                  *Geta_chi(j,k,l,i,gs,lf) / dcmplx(NMAT)
+              enddo
+            enddo
+          enddo
+        enddo
+      enddo
+    enddo
+
+    call write_operator(localFC, N_operatorFILE(7))
+
+
+
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     if( MYRANK==0 ) then
       do i=1,num_operators
