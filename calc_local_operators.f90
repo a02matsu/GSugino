@@ -12,7 +12,7 @@ implicit none
 integer :: iarg
 character(128) :: config_file
 
-integer, parameter :: num_operators=4
+integer, parameter :: num_operators=6
 !! 1) tr(\phibar^2)^{r/2}(f)
 !! 2) tr(\phi^2)^{-r/2}(f)
 !! 3) tr(Y\phibar^r)
