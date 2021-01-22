@@ -102,7 +102,7 @@ operatorFILE(4)=trim(adjustl(OBSDIR)) // trim("/Yphi"//MEDFILE(18:))
 allocate( Yphi(1:num_faces) )
 !! for 5) tr(Y\phibar^{-r}) with only the representation point
 operatorFILE(5)=trim(adjustl(OBSDIR)) // trim("/Yphibar"//MEDFILE(18:))
-allocate( Yphi(1:num_faces) )
+allocate( Yphibar2(1:num_faces) )
 !! for 6) tr(Y\phi^{-r}) with only the representation point
 operatorFILE(6)=trim(adjustl(OBSDIR)) // trim("/Yphi2"//MEDFILE(18:))
 allocate( Yphi2(1:num_faces) )
