@@ -77,9 +77,9 @@ if( iarg < 1 ) then
 endif
 call getarg(1,MEDFILE)
 !DinvFILE=trim("MEDCONF/Dinv"//MEDFILE(18:))
-k=index(MEDFILE,"/") ! should be 8
-p=index(MEDFILE,"_") ! should be 18 when it is "MEDCONF/medconfig_***"
-DinvFILE=trim(MEDFILE(1:k)//"Dinv"//MEDFILE(p:))
+!k=index(MEDFILE,"/") ! should be 8
+!p=index(MEDFILE,"_") ! should be 18 when it is "MEDCONF/medconfig_***"
+DinvFILE=trim(MEDFILE(1:index(MEDFILE,"/"))//"Dinv"//MEDFILE(index(MEDFILE,"_"):))
 
 if( iarg == 1 ) then
   OBSDIR=trim(adjustl("OBS"))
@@ -100,24 +100,24 @@ allocate(Ucarry(1:NMAT,1:NMAT))
 allocate(UYU(1:NMAT,1:NMAT))
 
 !! for 1) tr(\phibar^2)^{r/2}(f)
-operatorFILE(1)=trim(adjustl(OBSDIR)) // trim("/trphibar"//MEDFILE(18:))
+operatorFILE(1)=trim(adjustl(OBSDIR)) // trim("/trphibar"//MEDFILE(index(MEDFILE,"_"):))
 allocate( phibar(1:num_faces) )
 allocate( phibar_site(1:num_necessary_sites) )
 !! for 2) tr(\phi^2)^{-r/2}(f)
-operatorFILE(2)=trim(adjustl(OBSDIR)) // trim("/trphi"//MEDFILE(18:))
+operatorFILE(2)=trim(adjustl(OBSDIR)) // trim("/trphi"//MEDFILE(index(MEDFILE,"_"):))
 allocate( phi_face(1:num_faces) )
 allocate( phi_site(1:num_necessary_sites) )
 !! for 3) tr(Y\phibar^r)
-operatorFILE(3)=trim(adjustl(OBSDIR)) // trim("/Yphibar"//MEDFILE(18:))
+operatorFILE(3)=trim(adjustl(OBSDIR)) // trim("/Yphibar"//MEDFILE(index(MEDFILE,"_"):))
 allocate( Yphibar(1:num_faces) )
 !! for 4) tr(Y\phi^{-r})
-operatorFILE(4)=trim(adjustl(OBSDIR)) // trim("/Yphi"//MEDFILE(18:))
+operatorFILE(4)=trim(adjustl(OBSDIR)) // trim("/Yphi"//MEDFILE(index(MEDFILE,"_"):))
 allocate( Yphi(1:num_faces) )
 !! for 5) tr(Y\phibar^{-r}) with only the representation point
-operatorFILE(5)=trim(adjustl(OBSDIR)) // trim("/Yphibar2"//MEDFILE(18:))
+operatorFILE(5)=trim(adjustl(OBSDIR)) // trim("/Yphibar2"//MEDFILE(index(MEDFILE,"_"):))
 allocate( Yphibar2(1:num_faces) )
 !! for 6) tr(Y\phi^{-r}) with only the representation point
-operatorFILE(6)=trim(adjustl(OBSDIR)) // trim("/Yphi2"//MEDFILE(18:))
+operatorFILE(6)=trim(adjustl(OBSDIR)) // trim("/Yphi2"//MEDFILE(index(MEDFILE,"_"):))
 allocate( Yphi2(1:num_faces) )
 
 
@@ -243,20 +243,20 @@ do
       call hermitian_conjugate(tmpmat2,phimat(:,:,ls))
       call matrix_power(tmpmat,tmpmat2,ratio)
       call trace_mm(ctmp, Ymat, tmpmat)
-      Yphibar(lf) = Yphibar(lf) + ctmp
+      Yphibar2(lf) = Yphibar2(lf) + ctmp
       !! Yphi
       tmpmat2=phimat(:,:,ls)
       call matrix_inverse(tmpmat2)
       call matrix_power(tmpmat,tmpmat2,ratio)
       call trace_mm(ctmp, Ymat, tmpmat)
-      Yphi(lf) = Yphi(lf) + ctmp
+      Yphi2(lf) = Yphi2(lf) + ctmp
 
-      Yphibar(lf)=Yphibar(lf)/dcmplx(NMAT*sites_in_f(lf)%num_)
-      Yphi(lf)=Yphi(lf)/dcmplx(NMAT*sites_in_f(lf)%num_)
+      Yphibar2(lf)=Yphibar2(lf)/dcmplx(NMAT)
+      Yphi2(lf)=Yphi2(lf)/dcmplx(NMAT)
     enddo
     
-    call write_operator(Yphibar, N_operatorFILE(5))
-    call write_operator(Yphi, N_operatorFILE(6))
+    call write_operator(Yphibar2, N_operatorFILE(5))
+    call write_operator(Yphi2, N_operatorFILE(6))
 
     
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
