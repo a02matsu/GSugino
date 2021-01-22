@@ -37,7 +37,6 @@ integer :: i,j,k,l,a,b
 
 !!  DJ1 ~ 1/2 rot Tr(\lambda(l) \eta(s))
 call make_trV1(trvec1,Glambda_eta)
-!call make_V1(vec1,Glambda_eta)
 DJ1=(0d0,0d0)
 do lf=1,num_faces
   !call make_unit_matrix(mat1)
@@ -51,48 +50,23 @@ do lf=1,num_faces
 enddo
 
 !! DJ2 ~ div Tr(\lambda(l) \chi(f))
+call make_trV2(trvec2,Gchi_lambda,UMAT)
 DJ2=(0d0,0d0)
 do lf=1,num_faces
   do kk=1,sites_in_f(lf)%num_
     ls=sites_in_f(lf)%label_(kk)
-    gs=global_site_of_local(ls)
-    call calc_prodUl_from_n1_to_n2_in_Uf(U_fs,lf,1,kk-1,Umat) ! 4's argument must be kk-1 
-    call hermitian_conjugate(U_sf,U_fs)
     !! contribution of [link FROM gs]
-    do a=1,global_linktip_from_s(gs)%num_
-      tmp=(0d0,0d0)
-      gl=global_linktip_from_s(gs)%labels_(a)
-      do l=1,NMAT
-        do k=1,NMAT
-          do j=1,NMAT
-            do i=1,NMAT
-              tmp=tmp + Glambda_chi(i,j,k,l,gl,lf)*U_sf(j,k)*U_fs(l,i)
-            enddo
-          enddo
-        enddo
-      enddo
-      DJ2(lf) = DJ2(lf) + tmp * dcmplx(global_alpha_l(gl))/dcmplx( num_faces_in_s(ls) )
+    do a=1,linktip_from_s(ls)%num_
+      ll=linktip_from_s(ls)%label_(a)
+      DJ2(lf) = DJ2(lf) &
+        + trvec2(ll) * dcmplx(alpha_l(ll))/dcmplx( num_faces_in_s(ls) )
     enddo
     !! contribution of [link TO gs]
-    do a=1,global_linkorg_to_s(gs)%num_
-      tmp=(0d0,0d0)
-      gl=global_linkorg_to_s(gs)%labels_(a)
-      do ll=1,num_necessary_links
-        if( global_link_of_local(ll) == gl ) exit
-      enddo
-      call matrix_product(mat1,Umat(:,:,ll),U_sf)
-      call matrix_product(mat2,U_fs,Umat(:,:,ll),'N','C')
-      do l=1,NMAT
-        do k=1,NMAT
-          do j=1,NMAT
-            do i=1,NMAT
-              tmp=tmp + Glambda_chi(i,j,k,l,gl,lf)*mat1(j,k)*mat2(l,i)*dcmplx(global_alpha_l(gl))
-            enddo
-          enddo
-        enddo
-      enddo
+    do a=1,linkorg_to_s(ls)%num_
+      ll=linkorg_to_s(ls)%label_(a)
+      DJ2(lf) = DJ2(lf) & 
+        - trvec2(ll) * dcmplx(alpha_l(ll))/dcmplx( num_faces_in_s(ls) )
     enddo
-    DJ2(lf) = DJ2(lf) - tmp / dcmplx( num_faces_in_s(ls) )
   enddo
 enddo
 
@@ -178,6 +152,108 @@ enddo
 call syncronize_linkval(trvec2)
 end subroutine make_trV2
 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! calculate D^\mu J_\mu for U(1)_V current
+!!  vec1 ~ 1/2 Tr(\lambda(l) \eta(s))
+!!  vec2 ~ Tr(\lambda(l) \chi(f))
+!! and
+!!  DJ1 = d.vec1, DJ2 = d.vec2
+!! where \chi(f) is associated with the link variable Uf
+!! as in the fermionic part of the face action
+subroutine calc_DJ_U1V_org3(DJ1,DJ2,Glambda_eta,Glambda_chi,UMAT)
+use global_parameters
+!use initialization_calcobs
+use parallel
+use global_subroutines, only : syncronize_linkval
+use matrix_functions, only :matrix_product, hermitian_conjugate, make_unit_matrix, matrix_exp, matrix_trace
+implicit none
+
+complex(kind(0d0)), intent(out) :: DJ1(1:num_faces)
+complex(kind(0d0)), intent(out) :: DJ2(1:num_faces)
+complex(kind(0d0)), intent(in) :: Glambda_eta(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_links,1:num_sites) 
+complex(kind(0d0)), intent(in) :: Glambda_chi(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_links,1:num_faces) 
+complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_necessary_links)
+
+
+complex(kind(0d0)) :: trvec1(1:num_necessary_links)
+!complex(kind(0d0)) :: vec1(1:NMAT,1:NMAT,1:num_necessary_links)
+complex(kind(0d0)) :: U_fs(1:NMAT,1:NMAT)
+complex(kind(0d0)) :: U_sf(1:NMAT,1:NMAT)
+complex(kind(0d0)) :: Uf(1:NMAT,1:NMAT)
+complex(kind(0d0)) :: mat1(1:NMAT,1:NMAT)
+complex(kind(0d0)) :: mat2(1:NMAT,1:NMAT)
+complex(kind(0d0)) :: tmp
+complex(kind(0d0)) :: tmpmat(1:NMAT,1:NMAT)
+integer :: ls,ll,lf,gs,gl,gf,kk,dir
+integer :: i,j,k,l,a,b
+
+
+!!  DJ1 ~ 1/2 rot Tr(\lambda(l) \eta(s))
+call make_trV1(trvec1,Glambda_eta)
+!call make_V1(vec1,Glambda_eta)
+DJ1=(0d0,0d0)
+do lf=1,num_faces
+  !call make_unit_matrix(mat1)
+  !tmp=(1d0,0d0)
+  do kk=1,links_in_f(lf)%num_
+    ll=links_in_f(lf)%link_labels_(kk)
+    dir=links_in_f(lf)%link_dirs_(kk)
+    DJ1(lf)=DJ1(lf) + dcmplx(dir)*trvec1(ll)
+  enddo
+  DJ1(lf)=DJ1(lf)*beta_f(lf)
+enddo
+
+!! DJ2 ~ div Tr(\lambda(l) \chi(f))
+DJ2=(0d0,0d0)
+do lf=1,num_faces
+  do kk=1,sites_in_f(lf)%num_
+    ls=sites_in_f(lf)%label_(kk)
+    gs=global_site_of_local(ls)
+    call calc_prodUl_from_n1_to_n2_in_Uf(U_fs,lf,1,kk-1,Umat) ! 4's argument must be kk-1 
+    call hermitian_conjugate(U_sf,U_fs)
+    !! contribution of [link FROM gs]
+    do a=1,global_linktip_from_s(gs)%num_
+      tmp=(0d0,0d0)
+      gl=global_linktip_from_s(gs)%labels_(a)
+      do l=1,NMAT
+        do k=1,NMAT
+          do j=1,NMAT
+            do i=1,NMAT
+              tmp=tmp + Glambda_chi(i,j,k,l,gl,lf)*U_sf(j,k)*U_fs(l,i)
+            enddo
+          enddo
+        enddo
+      enddo
+      DJ2(lf) = DJ2(lf) + tmp * dcmplx(global_alpha_l(gl))/dcmplx( num_faces_in_s(ls) )
+    enddo
+    !! contribution of [link TO gs]
+    do a=1,global_linkorg_to_s(gs)%num_
+      tmp=(0d0,0d0)
+      gl=global_linkorg_to_s(gs)%labels_(a)
+      do ll=1,num_necessary_links
+        if( global_link_of_local(ll) == gl ) exit
+      enddo
+      call matrix_product(mat1,Umat(:,:,ll),U_sf)
+      call matrix_product(mat2,U_fs,Umat(:,:,ll),'N','C')
+      do l=1,NMAT
+        do k=1,NMAT
+          do j=1,NMAT
+            do i=1,NMAT
+              tmp=tmp + Glambda_chi(i,j,k,l,gl,lf)*mat1(j,k)*mat2(l,i)*dcmplx(global_alpha_l(gl))
+            enddo
+          enddo
+        enddo
+      enddo
+    enddo
+    DJ2(lf) = DJ2(lf) - tmp / dcmplx( num_faces_in_s(ls) )
+  enddo
+enddo
+
+DJ1=(DJ1)/dcmplx(LatticeSpacing**4)
+DJ2=(DJ2)/dcmplx(LatticeSpacing**4)
+
+end subroutine calc_DJ_U1V_org3
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
