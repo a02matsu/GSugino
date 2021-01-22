@@ -3,7 +3,7 @@ program main
 use global_parameters
 use initialization_calcobs
 use simulation
-use matrix_functions, only : trace_mm, hermitian_conjugate, matrix_power, matrix_inverse, matrix_3_product
+use matrix_functions, only : trace_mm, hermitian_conjugate, matrix_power, matrix_inverse, matrix_3_product, matrix_product, make_unit_matrix
 use parallel
 implicit none
 
