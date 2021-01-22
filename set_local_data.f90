@@ -605,7 +605,7 @@ subroutine set_local_links
 use parallel
 implicit none
 
-integer s,l,f,i,j,k,ll,ll_label
+integer s,l,f,i,j,k,ll,ll_label,ns
 integer :: tmp_global_link_of_local(1:global_num_links)
 type(LOCAL_LABEL) :: tmp_send_links(1:global_num_links)
 type(LOCAL_LABEL) :: tmp_recv_links(1:global_num_links)
@@ -776,8 +776,8 @@ do l=1,global_num_links
 enddo
 
 !!   (4) necessary siteに入る全link
-do i=1,num_necessary_sites
-  s=global_site_of_local(i)
+do ns=1,num_necessary_sites
+  s=global_site_of_local(ns)
   do j=1,global_linkorg_to_s(s)%num_
     ll=global_linkorg_to_s(s)%labels_(j)
     if( local_face_of_global(f)%rank_ /= local_link_of_global(ll)%rank_ ) then 
@@ -822,8 +822,8 @@ do i=1,num_necessary_sites
 enddo
 
 !!   (5) necessary siteから出る全link
-do i=1,num_necessary_sites
-  s=global_site_of_local(i)
+do ns=1,num_necessary_sites
+  s=global_site_of_local(ns)
   do j=1,global_linktip_from_s(s)%num_
     ll=global_linktip_from_s(s)%labels_(j)
     if( local_face_of_global(f)%rank_ /= local_link_of_global(ll)%rank_ ) then 
