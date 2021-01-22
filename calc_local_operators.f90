@@ -93,9 +93,11 @@ INPUT_FILE_NAME="inputfile"
 
 call initialization 
 
+eular=global_num_sites-global_num_links+global_num_faces 
+ratio=(NMAT*NMAT-1)*eular/2
 num_fermion=(global_num_sites+global_num_links+global_num_faces)*(NMAT*NMAT-1)
-allocate( Dinv(1:num_fermion, 1:num_fermion) )
 
+allocate( Dinv(1:num_fermion, 1:num_fermion) )
 allocate(tmpmat(1:NMAT,1:NMAT))
 allocate(tmpmat2(1:NMAT,1:NMAT))
 allocate(Uf(1:NMAT,1:NMAT))
@@ -130,8 +132,6 @@ allocate( localFC(1:num_faces) )
 
 
 
-eular=global_num_sites-global_num_links+global_num_faces 
-ratio=(NMAT*NMAT-1)*eular/2
 !allocate( Dinv(1:num_fermion, 1:num_fermion) )
 
 if( MYRANK==0 ) then
@@ -320,8 +320,9 @@ do
           do k=1,NMAT
             do j=1,NMAT
               do i=1,NMAT
-                localFC(lf) = localFC(lf) + phibar_p(i,j,ratio-1-p)*phibar_p(k,l,p)&
-                  *Geta_chi(j,k,l,i,gs,lf) / dcmplx(NMAT)
+                localFC(lf) = localFC(lf) &
+                + phibar_p(i,j,ratio-1-p)*phibar_p(k,l,p)&
+                  * Geta_chi(j,k,l,i,gs,lf) / dcmplx(NMAT)
               enddo
             enddo
           enddo
