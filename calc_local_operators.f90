@@ -22,6 +22,8 @@ integer, parameter :: num_operators=6
 
 integer :: control
 character(128) :: MEDFILE
+character(128) :: DinvFILE
+character(128) :: EigenFILE
 character(32) :: OBSDIR
 !character(128) :: DinvFILE
 character(128) :: operatorFILE(1:num_operators)
@@ -37,6 +39,7 @@ complex(kind(0d0)), allocatable :: Yphibar(:) !! for (3)
 complex(kind(0d0)), allocatable :: Yphi(:) !! for (4) 
 complex(kind(0d0)), allocatable :: Yphi2(:) !! for (5) 
 complex(kind(0d0)), allocatable :: Yphibar2(:) !! for (6) 
+complex(kind(0d0)), allocatable :: localFC(:) !! for (7) 
 !complex(kind(0d0)), allocatable :: Dinv(:,:)
 complex(kind(0d0)), allocatable :: tmpmat(:,:) !tmpmat(1:NMAT,1:NMAT)
 complex(kind(0d0)), allocatable :: tmpmat2(:,:) !tmpmat2(1:NMAT,1:NMAT)
@@ -44,6 +47,8 @@ complex(kind(0d0)), allocatable :: Uf(:,:) !Uf(1:NMAT,1:NMAT)
 complex(kind(0d0)), allocatable :: Ymat(:,:) !Ymat(1:NMAT,1:NMAT)
 complex(kind(0d0)), allocatable :: Ucarry(:,:) 
 complex(kind(0d0)), allocatable :: UYU(:,:) 
+
+
 integer :: num_fermion
 integer :: eular, ratio
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -51,11 +56,12 @@ integer :: eular, ratio
 integer :: ite, ite2
 integer :: rank,tag
 integer :: lf, gf, ls
-integer :: jj,j,i,k,ios
+integer :: jj,j,i,k,p,ios
 double precision :: rtmp, itmp
 complex(kind(0d0)) :: ctmp
 complex(kind(0d0)) :: phase_pf
-double precision :: radius, phase
+double precision :: radius, phase 
+
 
 
 
@@ -71,6 +77,10 @@ if( iarg < 1 ) then
 endif
 call getarg(1,MEDFILE)
 !DinvFILE=trim("MEDCONF/Dinv"//MEDFILE(18:))
+k=index(MEDFILE,"/") ! should be 8
+p=index(MEDFILE,"_") ! should be 18 when it is "MEDCONF/medconfig_***"
+DinvFILE=trim(MEDFILE(1:k)//"Dinv"//MEDFILE(p:))
+
 if( iarg == 1 ) then
   OBSDIR=trim(adjustl("OBS"))
 else
@@ -80,12 +90,15 @@ INPUT_FILE_NAME="inputfile"
 
 call initialization 
 
+num_fermion=(global_num_sites+global_num_links+global_num_faces)*(NMAT*NMAT-1)
+
 allocate(tmpmat(1:NMAT,1:NMAT))
 allocate(tmpmat2(1:NMAT,1:NMAT))
 allocate(Uf(1:NMAT,1:NMAT))
 allocate(Ymat(1:NMAT,1:NMAT))
 allocate(Ucarry(1:NMAT,1:NMAT))
 allocate(UYU(1:NMAT,1:NMAT))
+
 !! for 1) tr(\phibar^2)^{r/2}(f)
 operatorFILE(1)=trim(adjustl(OBSDIR)) // trim("/trphibar"//MEDFILE(18:))
 allocate( phibar(1:num_faces) )
@@ -111,12 +124,11 @@ allocate( Yphi2(1:num_faces) )
 
 eular=global_num_sites-global_num_links+global_num_faces 
 ratio=(NMAT*NMAT-1)*eular/2
-num_fermion=(global_num_sites+global_num_links+global_num_faces)*(NMAT*NMAT-1)
 !allocate( Dinv(1:num_fermion, 1:num_fermion) )
 
 if( MYRANK==0 ) then
+  !! MEDCONF
   open(N_MEDFILE, file=MEDFILE, status='OLD',action='READ',form='unformatted')
-  !open(N_DinvFILE, file=DinvFILE, status='OLD',action='READ')
   do i=1,num_operators
     open(N_operatorFILE(i), file=operatorFILE(i), status='REPLACE')
   enddo
@@ -130,6 +142,7 @@ do
   !! read configuration
   call read_config_from_medfile(Umat,PhiMat,ite,N_MEDFILE,control)
   call MPI_BCAST(control, 1, MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
+
   if( control == 1 ) exit
 
   if( control == 0 ) then 
@@ -187,7 +200,7 @@ do
       !! Omega
       call Make_face_variable(Uf,lf,UMAT)
       call Make_moment_map_adm(Ymat,Uf)
-      Ymat = Ymat * (0d0,0.5d0)*beta_f(lf)*Ymat
+      Ymat = Ymat * (0d0,0.5d0)*beta_f(lf)
       do i=1,sites_in_f(lf)%num_
         ls=sites_in_f(lf)%label_(i)
         call calc_prodUl_from_n1_to_n2_in_Uf(Ucarry,lf,1,i-1,Umat)
@@ -223,7 +236,7 @@ do
       !! Omega
       call Make_face_variable(Uf,lf,UMAT)
       call Make_moment_map_adm(Ymat,Uf)
-      Ymat = Ymat * (0d0,0.5d0)*beta_f(lf)*Ymat
+      Ymat = Ymat * (0d0,0.5d0)*beta_f(lf)
 
       !! Yphibar
       !ls=sites_in_f(lf)%label_(1)
@@ -245,7 +258,7 @@ do
     call write_operator(Yphibar, N_operatorFILE(5))
     call write_operator(Yphi, N_operatorFILE(6))
 
-
+    
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     if( MYRANK==0 ) then
       do i=1,num_operators
