@@ -58,8 +58,8 @@ integer :: eular, ratio
 !! misc
 integer :: ite, ite2
 integer :: rank,tag
-integer :: lf, gf, ls
-integer :: jj,j,i,k,p,ios
+integer :: lf, gf, ls, gs
+integer :: jj,j,i,k,l,p,ios
 double precision :: rtmp, itmp
 complex(kind(0d0)) :: ctmp
 complex(kind(0d0)) :: phase_pf
