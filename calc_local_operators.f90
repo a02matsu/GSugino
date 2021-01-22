@@ -17,6 +17,8 @@ integer, parameter :: num_operators=4
 !! 2) tr(\phi^2)^{-r/2}(f)
 !! 3) tr(Y\phibar^r)
 !! 4) tr(Y\phi^{-r})
+!! 5) tr(Y\phibar^r) only the representation point 
+!! 6) tr(Y\phi^{-r}) only the representation point 
 
 integer :: control
 character(128) :: MEDFILE
@@ -33,6 +35,8 @@ complex(kind(0d0)), allocatable :: phibar(:), phibar_site(:) !! for (1)
 complex(kind(0d0)), allocatable :: phi_face(:), phi_site(:) !! for (2) 
 complex(kind(0d0)), allocatable :: Yphibar(:) !! for (3) 
 complex(kind(0d0)), allocatable :: Yphi(:) !! for (4) 
+complex(kind(0d0)), allocatable :: Yphi2(:) !! for (5) 
+complex(kind(0d0)), allocatable :: Yphibar2(:) !! for (6) 
 !complex(kind(0d0)), allocatable :: Dinv(:,:)
 complex(kind(0d0)), allocatable :: tmpmat(:,:) !tmpmat(1:NMAT,1:NMAT)
 complex(kind(0d0)), allocatable :: tmpmat2(:,:) !tmpmat2(1:NMAT,1:NMAT)
@@ -96,6 +100,12 @@ allocate( Yphibar(1:num_faces) )
 !! for 4) tr(Y\phi^{-r})
 operatorFILE(4)=trim(adjustl(OBSDIR)) // trim("/Yphi"//MEDFILE(18:))
 allocate( Yphi(1:num_faces) )
+!! for 5) tr(Y\phibar^{-r}) with only the representation point
+operatorFILE(5)=trim(adjustl(OBSDIR)) // trim("/Yphibar"//MEDFILE(18:))
+allocate( Yphi(1:num_faces) )
+!! for 6) tr(Y\phi^{-r}) with only the representation point
+operatorFILE(6)=trim(adjustl(OBSDIR)) // trim("/Yphi2"//MEDFILE(18:))
+allocate( Yphi2(1:num_faces) )
 
 
 
@@ -202,6 +212,38 @@ do
     
     call write_operator(Yphibar, N_operatorFILE(3))
     call write_operator(Yphi, N_operatorFILE(4))
+
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !! 5) tr(Y\phibar^r) only use the representaton point f
+    !! 6) tr(Y\phi^{-r}) only use the representaton point f
+    Yphibar2=(0d0,0d0)
+    Yphi2=(0d0,0d0)
+    do lf=1,num_faces
+      ls=sites_in_f(lf)%label_(1)
+      !! Omega
+      call Make_face_variable(Uf,lf,UMAT)
+      call Make_moment_map_adm(Ymat,Uf)
+      Ymat = Ymat * (0d0,0.5d0)*beta_f(lf)*Ymat
+
+      !! Yphibar
+      !ls=sites_in_f(lf)%label_(1)
+      call hermitian_conjugate(tmpmat2,phimat(:,:,ls))
+      call matrix_power(tmpmat,tmpmat2,ratio)
+      call trace_mm(ctmp, Ymat, tmpmat)
+      Yphibar(lf) = Yphibar(lf) + ctmp
+      !! Yphi
+      tmpmat2=phimat(:,:,ls)
+      call matrix_inverse(tmpmat2)
+      call matrix_power(tmpmat,tmpmat2,ratio)
+      call trace_mm(ctmp, Ymat, tmpmat)
+      Yphi(lf) = Yphi(lf) + ctmp
+
+      Yphibar(lf)=Yphibar(lf)/dcmplx(NMAT*sites_in_f(lf)%num_)
+      Yphi(lf)=Yphi(lf)/dcmplx(NMAT*sites_in_f(lf)%num_)
+    enddo
+    
+    call write_operator(Yphibar, N_operatorFILE(5))
+    call write_operator(Yphi, N_operatorFILE(6))
 
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
