@@ -152,7 +152,6 @@ do
       enddo
       phibar(lf)=phibar(lf)/dcmplx( sites_in_f(lf)%num_ )
     enddo
-    phibar = phibar / dcmplx(LatticeSpacing**ratio)
     call write_operator(phibar, N_operatorFILE(1))
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -177,7 +176,6 @@ do
       enddo
       phi_face(lf)=phi_face(lf)/dcmplx( sites_in_f(lf)%num_ )
     enddo
-    phi_face = phi_face * dcmplx(LatticeSpacing**ratio)
     call write_operator(phi_face, N_operatorFILE(2))
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -189,7 +187,7 @@ do
       !! Omega
       call Make_face_variable(Uf,lf,UMAT)
       call Make_moment_map_adm(Ymat,Uf)
-      Ymat = Ymat * (0d0,0.5d0)*beta_f(lf) ! *Ymat <= what are you doing!?? 
+      Ymat = Ymat * (0d0,0.5d0)*beta_f(lf)*Ymat
       do i=1,sites_in_f(lf)%num_
         ls=sites_in_f(lf)%label_(i)
         call calc_prodUl_from_n1_to_n2_in_Uf(Ucarry,lf,1,i-1,Umat)
@@ -208,12 +206,8 @@ do
         call trace_mm(ctmp, UYU, tmpmat)
         Yphi(lf) = Yphi(lf) + ctmp
       enddo
-      Yphibar(lf)=Yphibar(lf) & 
-        / dcmplx(NMAT*sites_in_f(lf)%num_)  &
-        / dcmplx(LatticeSpacing**(2+ratio))
-      Yphi(lf)=Yphi(lf) &
-        / dcmplx(NMAT*sites_in_f(lf)%num_) &
-        * dcmplx(LatticeSpacing**(ratio-2))
+      Yphibar(lf)=Yphibar(lf)/dcmplx(NMAT*sites_in_f(lf)%num_)
+      Yphi(lf)=Yphi(lf)/dcmplx(NMAT*sites_in_f(lf)%num_)
     enddo
     
     call write_operator(Yphibar, N_operatorFILE(3))
