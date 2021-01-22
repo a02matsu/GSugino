@@ -160,7 +160,7 @@ do
 !    enddo
 !  enddo
 !enddo
-    call calc_DJ_U1V(DivJ1,DivJ2,Glambda_eta,Glambda_chi,Umat)
+    call calc_DJ_U1V(DivJ1,DivJ2,Glambda_eta,Gchi_lambda,Umat)
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !! write divJ

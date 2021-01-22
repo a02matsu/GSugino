@@ -7,7 +7,7 @@
 !!  DJ1 = d.vec1, DJ2 = d.vec2
 !! where \chi(f) is associated with the link variable Uf
 !! as in the fermionic part of the face action
-subroutine calc_DJ_U1V(DJ1,DJ2,Glambda_eta,Glambda_chi,UMAT)
+subroutine calc_DJ_U1V(DJ1,DJ2,Glambda_eta,Gchi_lambda,UMAT)
 use global_parameters
 !use initialization_calcobs
 use parallel
@@ -18,11 +18,12 @@ implicit none
 complex(kind(0d0)), intent(out) :: DJ1(1:num_faces)
 complex(kind(0d0)), intent(out) :: DJ2(1:num_faces)
 complex(kind(0d0)), intent(in) :: Glambda_eta(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_links,1:num_sites) 
-complex(kind(0d0)), intent(in) :: Glambda_chi(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_links,1:num_faces) 
+complex(kind(0d0)), intent(in) :: Gchi_lambda(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_faces,1:num_links) 
 complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_necessary_links)
 
 
 complex(kind(0d0)) :: trvec1(1:num_necessary_links)
+complex(kind(0d0)) :: trvec2(1:num_necessary_links)
 !complex(kind(0d0)) :: vec1(1:NMAT,1:NMAT,1:num_necessary_links)
 complex(kind(0d0)) :: U_fs(1:NMAT,1:NMAT)
 complex(kind(0d0)) :: U_sf(1:NMAT,1:NMAT)
@@ -57,13 +58,13 @@ do lf=1,num_faces
     ls=sites_in_f(lf)%label_(kk)
     !! contribution of [link FROM gs]
     do a=1,linktip_from_s(ls)%num_
-      ll=linktip_from_s(ls)%label_(a)
+      ll=linktip_from_s(ls)%labels_(a)
       DJ2(lf) = DJ2(lf) &
         + trvec2(ll) * dcmplx(alpha_l(ll))/dcmplx( num_faces_in_s(ls) )
     enddo
     !! contribution of [link TO gs]
     do a=1,linkorg_to_s(ls)%num_
-      ll=linkorg_to_s(ls)%label_(a)
+      ll=linkorg_to_s(ls)%labels_(a)
       DJ2(lf) = DJ2(lf) & 
         - trvec2(ll) * dcmplx(alpha_l(ll))/dcmplx( num_faces_in_s(ls) )
     enddo
