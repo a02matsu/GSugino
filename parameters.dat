@@ -2,6 +2,8 @@
 2
 ## mass_phi2 : physical mass square of \Phi
 0.1d0 
+## pf, pf1, pf2, pf3, pf4, pf5 : set 1 for omitting each fermion action(pf means all femrions)
+0 0 0 0 0 0 
 ## mass_f; fermion mass
 0d0 
 ##  data of the simplicial complex
@@ -16,7 +18,11 @@ S2MisumiM8N8R10.dat
 0
 ## force_measurement ; 1:measure forces  
 1
-## new_config ; 0:Old Config 1:New Config(cold) 2:New config all accept 3:Old config all accept 4: New config(hot)
+## new_config ; 0:Old Config 1:New Config
+0
+## cold_hot : 0: cold start, 1: hot start
+0
+## omit_metropolis : 0: with metropolice test, 1: all accept
 0
 ## fix_seed ; 0:previous value 1:fix 2:system time 
 0

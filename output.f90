@@ -69,14 +69,17 @@ integer, intent(in) :: seed
 complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_necessary_links)
 complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_necessary_sites)
 
-
-
 write(output,'(a,a)') "# simplicial complex : ",trim(SC_FILE_NAME)
+write(output,'(A,6I3)') "# pf,p1,p2,p3,p4,p5:",pf,p1,p2,p3,p4,p5
+if( p_mass == 0 ) then
+  write(output,'(A,I3,A,E12.5)') "# p_mass=",p_mass,"mass_f= ",mass_f
+else
+  write(output,'(A)') "# fermions are massless"
+endif
 write(output,'(A,F6.4)') "# lattice spacing (\lambda=1)= ",LatticeSpacing
 write(output,'(A,I5)') "# NMAT= ",NMAT
 write(output,'(A,E12.5)') "# mass_square_phi= ",mass_square_phi
 write(output,'(A,E12.5)') "# phys_mass_square_phi= ",phys_mass_square_phi
-write(output,'(A,E12.5)') "# mass_f= ",mass_f
 write(output,'(A)') "######################"
 write(output,'(A,I5)') "# job_number= ",job_number
 if( branch_mode==0 ) then 
@@ -116,35 +119,19 @@ if( new_config == 0 ) then
     write(output,*) "# random seed is determined by the system time"
   endif
 elseif( new_config == 1 ) then
-  write(output,*) "# cold start: A=0, phi=tiny"
+  if( cold_hot == 0 ) then
+    write(output,*) "# cold start: A=0, phi=tiny"
+  else
+    write(output,*) "# hot start: A=random, phi=random"
+  endif
   if( fix_seed == 1 ) then
     write(output,*) "# random seed is fixed to seed=",seed
   else
     write(output,*) "# random seed is determined by the system time"
   endif
-elseif( new_config == 2 ) then 
-  write(output,*) "# cold start(A=0,phi=tiny) and all accept"
-  if( fix_seed == 1 ) then
-    write(output,*) "# random seed is fixed to seed=",seed
-  else
-    write(output,*) "# random seed is determined by the system time"
-  endif
-elseif( new_config == 3 ) then 
-  write(output,*) "# configs read from ", trim(Fconfigin), "and all accept"
-  if( fix_seed == 0 ) then
-    write(output,*) "# random seed is succeeded from the previous simulation"
-  elseif( fix_seed == 1 ) then
-    write(output,*) "# random seed is fixed to seed=",seed
-  elseif( fix_seed == 2 ) then
-    write(output,*) "# random seed is determined by the system time"
-  endif
-elseif( new_config == 4 ) then 
-  write(output,*) "# hot start(A,phi:random)"
-  if( fix_seed == 1 ) then
-    write(output,*) "# random seed is fixed to seed=",seed
-  else
-    write(output,*) "# random seed is determined by the system time"
-  endif
+endif
+if( omit_metropolis == 1 ) then
+  write(*,*) "# OMITTING METROPOLIS TEST"
 endif
 
 write(output,'(a)') "#"

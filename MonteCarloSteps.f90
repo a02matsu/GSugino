@@ -54,6 +54,16 @@ if ( MYRANK == 0 ) then
   else
     write(*,*) "# p1..p5=",p1,p2,p3,p4,p5
   endif
+  if( new_config==1 ) then 
+    if( cold_hot==0 ) write(*,*) "# cold start"
+    if( cold_hot==1 ) write(*,*) "# hot start"
+  else
+    if( branch_mode==0 ) then 
+      write(*,*) "# read from job number", job_number-1, "at CONFIG", branch_use
+    else 
+      write(*,*) "# read from job number", job_number-1, "at CONFIG", branch_root
+    endif
+  endif
 #ifdef PARALLEL
 endif
 #endif
@@ -293,7 +303,7 @@ do ite=total_ite+1,total_ite+num_ite
   !enddo
   !! calculate Hamiltonian 
   call Make_Hamiltonian(Hold,CGite1,info1,UMAT,PhiMat,PF_eta,PF_lambda,PF_chi,P_AMat,P_PhiMat)
-  if(MYRANK==0) write(*,*) Hold
+  !if(MYRANK==0) write(*,*) Hold
 
   !! backup
   PhiMat_BAK=PhiMat
@@ -341,7 +351,7 @@ do ite=total_ite+1,total_ite+num_ite
     !call check_vacuum(UMAT)
     !! calculate Hamiltonian 
     call Make_Hamiltonian(Hnew,CGite2,info2,UMAT,PhiMat,PF_eta,PF_lambda,PF_chi,P_AMat,P_PhiMat)
-  if(MYRANK==0) write(*,*) "after:",Hnew
+  !if(MYRANK==0) write(*,*) "after:",Hnew
     !! metropolice
 #ifdef PARALLEL
     if(MYRANK==0) then
@@ -440,35 +450,45 @@ implicit none
 
 complex(kind(0d0)), intent(inout) :: P_AMat(1:NMAT,1:NMAT,1:num_links)
 complex(kind(0d0)), intent(inout) :: P_PhiMat(1:NMAT,1:NMAT,1:num_sites)
-double precision g_site(1:2*dimG,1:num_sites)
-double precision g_rlink(1:dimG,1:num_links)
+double precision g_site(1:2*dimG*num_sites)
+double precision g_rlink(1:dimG*num_links)
 integer s,l,f,a
 integer i,j
 complex(kind(0d0)) :: TMAT(1:NMAT,1:NMAT,1:NMAT**2-1)
 complex(kind(0d0)) :: tmpmat(1:NMAT,1:NMAT), trace
 integer num
 double precision :: rtmp
+complex(kind(0d0)) :: ctmp
 
 
 call make_SUN_generators(TMAT,NMAT)
 
-call BoxMuller2(g_site,num_sites*dimG)
-call BoxMuller2(g_rlink,num_links*dimG/2)
+!call BoxMuller2(g_site,num_sites*dimG)
+!call BoxMuller2(g_rlink,num_links*dimG/2)
+g_site=(0d0,0d0)
+g_rlink=(0d0,0d0)
+call BoxMuller3(g_site)
+call BoxMuller3(g_rlink)
 
 P_PHIMAT=(0d0,0d0)
-do s=1,num_sites
+num=-1
+do s=1,num_sites 
   do a=1,dimG
-    P_PHIMAT(:,:,s)=P_PhiMat(:,:,s) + &
-      (dcmplx(g_site(2*a-1,s))+(0d0,1d0)*dcmplx(g_site(2*a,s)))*dcmplx(dsqrt(0.5d0))&
-      *TMAT(:,:,a)
+  !!
+  num=num+2
+  ctmp = ( dcmplx(g_site(num)) + (0d0,1d0)*dcmplx(g_site(num+1))) * dcmplx(dsqrt(0.5d0))
+  !!
+  P_PHIMAT(:,:,s)=P_PhiMat(:,:,s) + ctmp * TMAT(:,:,a)
+  !(dcmplx(rtmp1)+(0d0,1d0)*dcmplx(g_site(2*a,s)))*dcmplx(dsqrt(0.5d0))& !*TMAT(:,:,a)
   enddo
 enddo
-
 ! random number must be sufficiently small
 P_AMAT=(0d0,0d0)
+num=0
 do l=1,num_links
   do a=1,dimG
-    P_AMAT(:,:,l)=P_AMAT(:,:,l)+g_rlink(a,l)*TMAT(:,:,a)
+    num = num + 1
+    P_AMAT(:,:,l)=P_AMAT(:,:,l)+g_rlink(num)*TMAT(:,:,a)
   enddo
 enddo
 
@@ -1101,7 +1121,7 @@ if (MYRANK == 0) then
 #endif 
 
 local_info=1
-if( delta_Ham <= 0d0 .or. new_config == 2 .or. new_config==3 .or. new_config==4 ) then 
+if( delta_Ham <= 0d0 .or. omit_metropolis == 1 ) then 
   local_info=0
   accept=accept+1
 else
