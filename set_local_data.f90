@@ -1046,9 +1046,12 @@ implicit none
 
 integer s,ss,l,num,info,i
 
-allocate(linktip_from_s(1:num_sites))
-allocate(linkorg_to_s(1:num_sites))
-do s=1,num_sites
+!allocate(linktip_from_s(1:num_sites))
+!allocate(linkorg_to_s(1:num_sites))
+allocate(linktip_from_s(1:num_necessary_sites)) !HERE
+allocate(linkorg_to_s(1:num_necessary_sites)) !HERE
+!do s=1,num_sites !HERE
+do s=1,num_necessary_sites
   !! local_linktip
   num=global_linktip_from_s(global_site_of_local(s))%num_
   linktip_from_s(s)%num_=num
