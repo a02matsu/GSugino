@@ -109,7 +109,7 @@ end subroutine make_trV1
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!! calculate 
+!! calculate Tr(\lambda(l) \chi(f) ) where f:sorce of dual link of l
 subroutine make_trV2(trvec2,Gchi_lambda,UMAT)
 use global_parameters
 use parallel
@@ -117,7 +117,7 @@ use global_subroutines, only : syncronize_linkval, calc_prodUl_from_n1_to_n2_in_
 implicit none
 
 complex(kind(0d0)), intent(out) :: trvec2(1:num_necessary_links) ! Tr(\lambda(l) \chi(f))
-complex(kind(0d0)), intent(in) :: Gchi_lambda(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_faces,1:num_links) 
+complex(kind(0d0)), intent(in) :: Gchi_lambda(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_faces,1:num_necessary_links) 
 complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_necessary_links)
 
 complex(kind(0d0)) :: Ucarry(1:NMAT,1:NMAT)
@@ -129,24 +129,22 @@ integer :: i,j,k,l
 
 trvec2=(0d0,0d0)
 do ll=1,num_links
-  call find_origin_of_dual_link(lf,org_ll,ll)
+  call find_origin_of_dual_link(lf,org_ll,ll) ! org_ll:position of the origin of ll in the face fl
   gf=global_face_of_local(lf)
-  !write(*,*) gf,global_site_of_local(link_org(ll)),global_site_of_local(link_tip(ll))
-  !! Ucarry = U1 ... U_orgll
-  call calc_prodUl_from_n1_to_n2_in_Uf(Ucarry,lf,1,org_ll,Umat)
+  call calc_prodUl_from_n1_to_n2_in_Uf(Ucarry,lf,1,org_ll-1,Umat)
   do l=1,NMAT
     do k=1,NMAT
       do j=1,NMAT
         do i=1,NMAT
           trvec2(ll)=trvec2(ll)&
-            + Ucarry(j,k) * dconjg(Ucarry(i,l)) * Gchi_lambda(i,j,k,l,gf,ll)
+            - Ucarry(j,k) * dconjg(Ucarry(i,l)) * Gchi_lambda(i,j,k,l,gf,ll)
         enddo
       enddo
     enddo
   enddo  
   !!!!!!!!!!!!!!!!! !!!!!!!!!!!!!!!!! !!!!!!!!!!!!!!!!!
   !! special treatment of the present discretization
-  if(gf==1) trvec2(ll)=-trvec2(ll)
+  !if(gf==1) trvec2(ll)=-trvec2(ll)
   !!!!!!!!!!!!!!!!! !!!!!!!!!!!!!!!!! !!!!!!!!!!!!!!!!!
   !write(*,*) global_link_of_local(ll), dble(vec2(ll)), dble((0d0,-1d0)*vec2(ll))
 enddo
@@ -576,6 +574,8 @@ end subroutine make_trV2_likeSf
 !! find the origin face of the dual link
 !!  lf     : local face label of the origin of the dual link of ll
 !!  org_ll : position of the origin of the link ll in the face lf
+!! The origin of dual link is defined so that 
+!! the face who includes that link in the POSITIVE direction.
 subroutine find_origin_of_dual_link(lf,org_ll,ll)
 use global_parameters
 use parallel
@@ -587,7 +587,9 @@ integer, intent(in) :: ll
 integer :: gf
 integer :: ii
 integer :: dir
+integer :: info
 
+info=1
 do ii=1,face_in_l(ll)%num_
   lf=face_in_l(ll)%label_(ii)
   gf=global_face_of_local(lf)
@@ -603,12 +605,17 @@ do ii=1,face_in_l(ll)%num_
   if(gf==1) dir=-dir
   !!!!!!!!!!!!!!!!! !!!!!!!!!!!!!!!!! !!!!!!!!!!!!!!!!!
   if( dir==1 ) then 
-    if( links_in_f(lf)%link_dirs_(org_ll) == 1 ) then
-      org_ll = org_ll - 1
+    !if( links_in_f(lf)%link_dirs_(org_ll) == 1 ) then
+    if(gf==1) then
+      org_ll = org_ll + 1
+      if( org_ll > links_in_f(lf)%num_ ) org_ll = 1
     endif
-    exit
+    info=0
+    return
   endif 
 enddo
+
+if(info==1) write(*,*) "ERROR in finding the dual link"
 
 end subroutine find_origin_of_dual_link
 
