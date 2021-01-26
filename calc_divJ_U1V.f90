@@ -14,9 +14,11 @@ integer :: control
 character(128) :: MEDFILE
 character(128) :: DinvFILE
 character(128) :: divJFILE
+character(128) :: F4FILE
 integer, parameter :: N_MEDFILE=100
 integer, parameter :: N_DinvFILE=101
 integer, parameter :: N_divJFILE=102
+integer, parameter :: N_F4FILE=103
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! Observables
@@ -24,6 +26,7 @@ complex(kind(0d0)), allocatable :: divJ1(:)
 complex(kind(0d0)), allocatable :: divJ2(:)
 complex(kind(0d0)), allocatable :: divJ(:)
 complex(kind(0d0)), allocatable :: Dinv(:,:)
+complex(kind(0d0)), allocatable :: F4(:,:)
 integer :: num_fermion
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! misc
@@ -48,22 +51,25 @@ if( iarg < 1 ) then
   stop
 endif
 call getarg(1,MEDFILE)
-!DinvFILE=trim("MEDCONF/Dinv"//MEDFILE(18:))
-!divJFILE=trim("OBS/U1V"//MEDFILE(18:))
-if( iarg == 1 ) then
-  DinvFILE=trim("MEDCONF/Dinv"//MEDFILE(18:))
+
+!! DinvFILE
+DinvFILE=trim(MEDFILE(1:index(MEDFILE,"/"))//"Dinv"//MEDFILE(index(MEDFILE,"_"):))
+
+!! divJFILE
+if( index(MEDFILE,"/") == 8 ) then ! MEDCONF/***
+  divJFILE=trim("OBS/U1V"//MEDFILE(index(MEDFILE,"_"):))
 else
-  call getarg(2,DinvFILE)
+  divJFILE=trim("OBS"//MEDFILE(8:index(MEDFILE,"/"))//"U1V"//MEDFILE(index(MEDFILE,"_"):))
 endif
-if( iarg <= 2 ) then
-  divJFILE=trim("OBS/U1V"//MEDFILE(18:))
+
+!! F4FILE ! 4-fermion part of OdJ
+if( index(MEDFILE,"/") == 8 ) then ! MEDCONF/***
+  divJFILE=trim("OBS/F4dJ"//MEDFILE(index(MEDFILE,"_"):))
 else
-  call getarg(3,divJFILE)
+  divJFILE=trim("OBS"//MEDFILE(8:index(MEDFILE,"/"))//"F4dJ"//MEDFILE(index(MEDFILE,"_"):))
 endif
 
 INPUT_FILE_NAME="inputfile"
-
-!write(*,*) DinvFile, divJFILE
 
 call initialization 
 
@@ -77,6 +83,7 @@ if( MYRANK==0 ) then
   open(N_MEDFILE, file=MEDFILE, status='OLD',action='READ',form='unformatted')
   open(N_DinvFILE, file=DinvFILE, status='OLD',action='READ',form='unformatted')
   open(N_divJFILE, file=divJFILE, status='REPLACE')
+  open(N_F4FILE, file=F4FILE, status='REPLACE')
 
   write(N_divJFILE,*) "# ite, Re(rot(J1)), Im(rot(J1), Re(div(J2)), Im(div(J2)), Re(DJ), Im(DJ)"
 endif
@@ -108,58 +115,10 @@ do
       Geta_chi, Glambda_chi, Gchi_chi, &
       Dinv,num_fermion)
 
-  !write(*,*) size(Geta_lambda,1), &
-             !size(Geta_lambda,2), &
-             !size(Geta_lambda,3), &
-             !size(Geta_lambda,4), &
-             !size(Geta_lambda,5), &
-             !size(Geta_lambda,6)
-  !do ll=1,num_links
-  !  do gf=1,global_num_faces
-  !    tmp=(0d0,0d0)
-  !    do l=1,NMAT
-  !      do k=1,NMAT
-  !        do j=1,NMAT
-  !          do i=1,NMAT
-  !            !tmp = tmp + Geta_lambda(i,j,k,l,gs,ll)*dconjg(Geta_lambda(j,i,k,l,gs,ll))
-  !            !tmp = Geta_lambda(i,j,k,l,gs,ll)*dconjg(Geta_lambda(j,i,k,l,gs,ll))
-  !            !if( dabs(dble(tmp)) < 1d-8  ) write(*,*) MYRANK, lf, gs,i,j,k,l, dble(tmp)
-  !            write(*,*) MYRANK, Gchi_lambda(i,j,k,l,gf,ll)
-  !          enddo
-  !        enddo
-  !      enddo
-  !    enddo
-  !    !if( dabs(dble(tmp)) < 1d0  ) write(*,*) MYRANK, lf, gs, dble(tmp)
-  !  enddo
-  !enddo
-  !write(*,*) "#####",MYRANK, "#################"
-
-
-
-
   if( control == 0 ) then 
     if( MYRANK == 0 ) then
       write(N_divJFILE,'(I7,2X)',advance='no') ite
     endif
-    !!!!!!!!!!!!!!!!
-    !write(*,*) Gchi_lambda
-    !call MPI_BARRIER(MPI_COMM_WORLD, IERR)
-    !write(*,*) Gchi_lambda
-!do ll=1,num_necessary_links
-!  do gs=1,global_num_sites
-!    do l=1,NMAT
-!      do k=1,NMAT
-!        do j=1,NMAT
-!          do i=1,NMAT
-!            if( cdabs(Geta_lambda(i,j,k,l,gs,ll)) < 1d-5 ) then
-!              write(*,*) MYRANK, gs, ll
-!            endif
-!          enddo
-!        enddo
-!      enddo
-!    enddo
-!  enddo
-!enddo
     call calc_DJ_U1V(DivJ1,DivJ2,Glambda_eta,Gchi_lambda,Umat)
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -213,6 +172,7 @@ endif
 !write(*,*) MYRANK, control
 !stop
 call stop_for_test
+
 end program main
 
 #include  "Measurement/FermionCorrelation_from_Dinv.f90"

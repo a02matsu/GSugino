@@ -80,15 +80,20 @@ if( iarg < 1 ) then
 endif
 call getarg(1,MEDFILE)
 !DinvFILE=trim("MEDCONF/Dinv"//MEDFILE(18:))
-k=index(MEDFILE,"/") ! should be 8
-p=index(MEDFILE,"_") ! should be 18 when it is "MEDCONF/medconfig_***"
-DinvFILE=trim(MEDFILE(1:k)//"Dinv"//MEDFILE(p:))
-
-if( iarg == 1 ) then
+!k=index(MEDFILE,"/") ! should be 8
+!p=index(MEDFILE,"_") ! should be 18 when it is "MEDCONF/medconfig_***"
+DinvFILE=trim(MEDFILE(1:index(MEDFILE,"/"))//"Dinv"//MEDFILE(index(MEDFILE,"_"):))
+if( index(MEDFILE,"/") == 8 ) then ! MEDCONF/***
   OBSDIR=trim(adjustl("OBS"))
 else
-  call getarg(2,OBSDIR)
+  OBSDIR=trim(adjustl("OBS"//MEDFILE(8:index(MEDFILE,"/")-1)))
 endif
+
+!if( iarg == 1 ) then
+!  OBSDIR=trim(adjustl("OBS"))
+!else
+!  call getarg(2,OBSDIR)
+!endif
 INPUT_FILE_NAME="inputfile"
 
 call initialization 
