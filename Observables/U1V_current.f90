@@ -157,9 +157,10 @@ end subroutine make_trV2
 subroutine calc_OdJ_4F(\
   OdJ_4F, \
   Geta_eta,\
+  Gchi_eta,\
   Geta_chi,\
-  Glambda_eta,\
-  Glambda_chi,\
+  Geta_lambda,\
+  Gchi_lambda,\
   Gchi_chi, \
   Phimat,Umat)
 use global_parameters
@@ -171,15 +172,161 @@ implicit none
 
 complex(kind(0d0)), intent(out) :: OdJ_4F(1:global_num_faces,1:global_num_faces)
 complex(kind(0d0)), intent(in) :: Geta_eta(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_sites,1:num_necessary_sites) 
+complex(kind(0d0)), intent(in) :: Gchi_eta(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_faces,1:num_necessary_sites) 
 complex(kind(0d0)), intent(in) :: Geta_chi(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_sites,1:num_necessary_faces) 
-complex(kind(0d0)), intent(in) :: Glambda_eta(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_links,1:num_necessary_sites) 
-complex(kind(0d0)), intent(in) :: Glambda_chi(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_links,1:num_necessary_faces) 
+complex(kind(0d0)), intent(in) :: Geta_lambda(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_sites,1:num_necessary_links) 
+complex(kind(0d0)), intent(in) :: Gchi_lambda(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_faces,1:num_necessary_links) 
 complex(kind(0d0)), intent(in) :: Gchi_chi(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_faces,1:num_necessary_faces) 
 complex(kind(0d0)), intent(in) :: PHIMAT(1:NMAT,1:NMAT,1:num_necessary_sites)
 complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_necessary_links)
 
-OdJ_4F=(0d0,0d0)
+complex(kind(0d0)) :: tmpOdJ_4F(1:global_num_faces,1:num_faces)
+complex(kind(0d0)) :: DD!(1:NMAT,1:NMAT,1:NMAT,1:NMAT)
+complex(kind(0d0)), allocatable :: phibar_p(:,:,:,:)
+integer :: ratio,rank,tag
+integer :: gs1,gl1,gf1,gs2,gl2,gf2,ls2,ll2,lf2,ls,gs,fofll2
+integer :: i,j,k,l,a,b,c,d,p,q,r
 
+complex(kind(0d0)) :: Ucarry(1:NMAT,1:NMAT)
+integer :: orgll
+
+!! preparation
+! ratio 
+ratio = dimG*(global_num_sites-global_num_links+global_num_faces)/2
+! phibar_p
+allocate(phibar_p(1:NMAT,1:NMAT,0:ratio-1,1:global_num_sites))
+do ls=1,num_sites
+  gs=global_site_of_local(ls)
+  call make_unit_matrix(phibar_p(:,:,0,gs))
+  call hermitian_conjugate(phibar_p(:,:,1,gs),phimat(:,:,ls))
+  do k=2,ratio-1
+    call matrix_product(phibar_p(:,:,k,gs),phibar_p(:,:,k-1,gs),phimat(:,:,ls),'N','C')
+  enddo
+enddo
+do gs=1,global_num_sites
+  rank=local_site_of_global(gs)%rank_
+  call MPI_BCAST(phibar_p(:,:,:,gs),NMAT*NMAT*ratio, MPI_DOUBLE_COMPLEX,rank,MPI_COMM_WORLD,IERR)
+enddo
+
+OdJ_4F=(0d0,0d0)
+tmpOdJ_4F=(0d0,0d0)
+do gf1=1,global_num_faces
+  gs1=global_sites_in_f(gf1)%label_(1)
+  do lf2=1,num_faces
+    do p=1,links_in_f(lf2)%num_
+      ll2=links_in_f(lf2)%link_labels_(p)
+      ls2=link_org(ll2)
+      do l=1,NMAT
+        do k=1,NMAT
+          do j=1,NMAT
+            do i=1,NMAT
+              DD=(0d0,0d0)
+              do b=1,NMAT
+                do a=1,NMAT
+                  DD=DD &
+                    - Gchi_lambda(i,j,a,b,gf1,ll2)*Geta_eta(k,l,b,a,gs1,ls2) &
+                    + Gchi_eta(i,j,b,a,gf1,ls2)*Geta_lambda(k,l,a,b,gs1,ll2)
+                enddo
+              enddo
+              do q=0,ratio-1
+                DD=DD*phibar_p(j,k,q,gs1)*phibar_p(l,i,ratio-q-1,gs1)
+              enddo
+              tmpOdJ_4F(gf1,lf2) = tmpOdJ_4F(gf1,lf2) &
+                + DD * dcmplx( -beta_f(lf2)/(2d0*dble(NMAT)) )
+            enddo
+          enddo
+        enddo
+      enddo
+    enddo
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    do p=1,sites_in_f(lf2)%num_
+      ls2=sites_in_f(lf2)%label_(p)
+      !! contribution of [link FROM ls2]
+      do q=1,linktip_from_s(ls2)%num_
+        ll2=linktip_from_s(ls2)%labels_(q)
+        call find_origin_of_dual_link(fofll2,orgll,ll2)
+        call calc_prodUl_from_n1_to_n2_in_Uf(Ucarry,fofll2,1,orgll-1,Umat)
+
+        call calc_DD(DD,Gchi_chi,Geta_lambda,Gchi_lambda,Geta_chi,phibar_p,Ucarry,ratio,gf1,gs1,fofll2,ll2)
+        tmpOdJ_4F(gf1,lf2) = tmpOdJ_4F(gf1,lf2) &
+          + DD / dcmplx(NMAT *  num_faces_in_s(ls2) )
+      enddo
+      !! contribution of [link TO gs]
+      do q=1,linkorg_to_s(ls2)%num_
+        ll2=linkorg_to_s(ls2)%labels_(q)
+        call find_origin_of_dual_link(fofll2,orgll,ll2)
+        call calc_prodUl_from_n1_to_n2_in_Uf(Ucarry,fofll2,1,orgll-1,Umat)
+
+        call calc_DD(DD,Gchi_chi,Geta_lambda,Gchi_lambda,Geta_chi,phibar_p,Ucarry,ratio,gf1,gs1,fofll2,ll2)
+        tmpOdJ_4F(gf1,lf2) = tmpOdJ_4F(gf1,lf2) &
+          - DD / dcmplx(NMAT *  num_faces_in_s(ls2) )
+      enddo
+    enddo
+  enddo
+enddo
+
+do gf2=1,global_num_faces
+  lf2=local_face_of_global(gf2)%label_
+  rank=local_face_of_global(gf2)%rank_
+  tag=gf2
+  if( MYRANK==0 ) then
+    if( MYRANK==rank) then
+      OdJ_4F(:,gf2)=tmpOdJ_4F(:,lf2)
+    else
+      call MPI_RECV(OdJ_4F(:,gf2),global_num_sites,MPI_DOUBLE_COMPLEX,rank,tag,MPI_COMM_WORLD,ISTATUS,IERR)
+    endif
+  else
+    if( MYRANK==rank ) then
+      call MPI_SEND(tmpOdJ_4F(:,lf2),global_num_sites,MPI_DOUBLE_COMPLEX,0,tag,MPI_COMM_WORLD,IERR)
+    endif
+  endif
+enddo
+
+contains
+  subroutine calc_DD(DD,Gchi_chi,Geta_lambda,Gchi_lambda,Geta_chi,phibar_p,Ucarry,ratio,gf1,gs1,fofll2,ll2)
+  use global_parameters
+  implicit none
+  complex(kind(0d0)), intent(out) :: DD
+  integer, intent(in) :: ratio
+  integer, intent(in) :: gf1,gs1,fofll2,ll2
+  complex(kind(0d0)), intent(in) :: Gchi_chi(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_faces,1:num_necessary_faces) 
+  complex(kind(0d0)), intent(in) :: Geta_lambda(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_sites,1:num_necessary_links) 
+  complex(kind(0d0)), intent(in) :: Gchi_lambda(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_faces,1:num_necessary_links) 
+  complex(kind(0d0)), intent(in) :: Geta_chi(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_sites,1:num_necessary_faces) 
+
+  complex(kind(0d0)), intent(in) :: Phibar_p(1:NMAT,1:NMAT,0:ratio-1,1:global_num_sites)
+  complex(kind(0d0)), intent(in) :: Ucarry(1:NMAT,1:NMAT)
+
+  integer :: i,j,k,l,a,b,c,d,p
+  complex(kind(0d0)) :: tmp
+
+  DD=(0d0,0d0)
+  do i=1,NMAT
+    do j=1,NMAT
+      do k=1,NMAT
+        do l=1,NMAT
+          do a=1,NMAT
+            do b=1,NMAT
+              do c=1,NMAT
+                do d=1,NMAT
+                  tmp = - Gchi_chi(i,j,a,b,gf1,fofll2)*Geta_lambda(k,l,c,d,gs1,ll2) &
+                    + Gchi_lambda(i,j,c,d,gf1,ll2)*Geta_chi(k,l,a,b,gs1,fofll2) 
+                  do p=0,ratio-1
+                    DD = DD &
+                      + tmp * phibar_p(j,k,p,gs1) * phibar_p(l,i,ratio-p-1,gs1) &
+                        * Ucarry(b,c) * dconjg( Ucarry(a,d) )
+                  enddo
+                enddo
+              enddo
+            enddo
+          enddo
+        enddo
+      enddo
+    enddo
+  enddo
+  DD = DD * dcmplx( alpha_l(ll2) )
+
+  end subroutine calc_DD
 
 end subroutine calc_OdJ_4F
 
@@ -199,19 +346,19 @@ implicit none
 integer, intent(out) :: lf, org_ll
 integer, intent(in) :: ll
 
-integer :: gf
+integer :: gf,gl
 integer :: ii
 integer :: dir
 integer :: info
 
 info=1
-do ii=1,face_in_l(ll)%num_
-  lf=face_in_l(ll)%label_(ii)
-  gf=global_face_of_local(lf)
+gl=global_link_of_local(ll)
+do ii=1,global_face_in_l(gl)%num_
+  gf=global_face_in_l(gl)%label_(ii)
 
-  do org_ll=1,links_in_f(lf)%num_
-    if( links_in_f(lf)%link_labels_(org_ll) == ll ) then 
-      dir=links_in_f(lf)%link_dirs_(org_ll)
+  do org_ll=1,global_links_in_f(gf)%num_
+    if( global_links_in_f(gf)%link_labels_(org_ll) == gl ) then 
+      dir=global_links_in_f(gf)%link_dirs_(org_ll)
       exit
     endif
   enddo
@@ -220,12 +367,17 @@ do ii=1,face_in_l(ll)%num_
   if(gf==1) dir=-dir
   !!!!!!!!!!!!!!!!! !!!!!!!!!!!!!!!!! !!!!!!!!!!!!!!!!!
   if( dir==1 ) then 
-    !if( links_in_f(lf)%link_dirs_(org_ll) == 1 ) then
     if(gf==1) then
       org_ll = org_ll + 1
-      if( org_ll > links_in_f(lf)%num_ ) org_ll = 1
+      if( org_ll > global_links_in_f(gf)%num_ ) org_ll = 1
     endif
-    info=0
+    do lf=1,num_necessary_faces
+      if( global_face_of_local(lf) == gf ) then
+        info=0
+        exit
+      endif
+    enddo
+    if(info==1) write(*,*) "ERROR in finding the dual link"
     return
   endif 
 enddo

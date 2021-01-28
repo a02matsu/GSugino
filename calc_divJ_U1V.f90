@@ -33,7 +33,7 @@ integer :: num_fermion
 integer :: ite, ite2
 integer :: rank,tag
 integer :: ls, ll, lf
-integer :: gs, gl, gf
+integer :: gs, gl, gf, gf1,gf2
 integer :: jj,i,j,k,l,ios
 double precision :: rtmp, itmp
 complex(kind(0d0)) :: ctmp, tmp
@@ -64,9 +64,9 @@ endif
 
 !! F4FILE ! 4-fermion part of OdJ
 if( index(MEDFILE,"/") == 8 ) then ! MEDCONF/***
-  divJFILE=trim("OBS/F4dJ"//MEDFILE(index(MEDFILE,"_"):))
+  F4FILE=trim("OBS/F4dJ"//MEDFILE(index(MEDFILE,"_"):))
 else
-  divJFILE=trim("OBS"//MEDFILE(8:index(MEDFILE,"/"))//"F4dJ"//MEDFILE(index(MEDFILE,"_"):))
+  F4FILE=trim("OBS"//MEDFILE(8:index(MEDFILE,"/"))//"F4dJ"//MEDFILE(index(MEDFILE,"_"):))
 endif
 
 INPUT_FILE_NAME="inputfile"
@@ -78,6 +78,7 @@ allocate( Dinv(1:num_fermion, 1:num_fermion) )
 allocate( divJ(1:num_faces) )
 allocate( divJ1(1:num_faces) )
 allocate( divJ2(1:num_faces) )
+allocate( F4(1:global_num_faces,global_num_faces) )
 
 if( MYRANK==0 ) then
   open(N_MEDFILE, file=MEDFILE, status='OLD',action='READ',form='unformatted')
@@ -118,8 +119,18 @@ do
   if( control == 0 ) then 
     if( MYRANK == 0 ) then
       write(N_divJFILE,'(I7,2X)',advance='no') ite
+      write(N_F4FILE,'(I7,2X)',advance='no') ite
     endif
     call calc_DJ_U1V(DivJ1,DivJ2,Glambda_eta,Gchi_lambda,Umat)
+
+    call calc_OdJ_4F(F4, \
+      Geta_eta,\
+      Gchi_eta,\
+      Geta_chi,\
+      Geta_lambda,\
+      Gchi_lambda,\
+      Gchi_chi, \
+      Phimat,Umat)
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !! write divJ
@@ -155,9 +166,20 @@ do
 
       enddo
     enddo
-
     if( MYRANK==0 ) then
       write(N_divJFILE,*)
+    endif
+
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !! write OdJ
+    if( MYRANK==0 ) then
+      do gf1=1,global_num_faces
+        do gf2=1,global_num_faces
+          write(N_F4FILE,'(E23.16,2X,E23.16,2X)',advance='no') &
+            dble(F4(gf1,gf2)), dble( (0d0,-1d0)*F4(gf1,gf2) )
+        enddo
+      enddo
+      write(N_F4FILE,*)
     endif
   else
     exit
