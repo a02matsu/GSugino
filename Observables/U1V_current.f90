@@ -255,7 +255,7 @@ do gf1=1,global_num_faces
       do q=1,linkorg_to_s(ls2)%num_
         ll2=linkorg_to_s(ls2)%labels_(q)
         call find_origin_of_dual_link(fofll2,orgll,ll2)
-        call calc_prodUl_from_n1_to_n2_in_Uf(Ucarry,fofll2,1,orgll-1,Umat)
+        call calc_prodUl_from_n1_to_n2_in_Uf2(Ucarry,fofll2,1,orgll-1,Umat)
 
         call calc_DD(DD,Gchi_chi,Geta_lambda,Gchi_lambda,Geta_chi,phibar_p,Ucarry,ratio,gf1,gs1,fofll2,ll2)
         tmpOdJ_4F(gf1,lf2) = tmpOdJ_4F(gf1,lf2) &

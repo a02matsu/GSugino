@@ -1119,6 +1119,74 @@ end subroutine calc_diffdiff_Uf
 !!   n1=3, n2=3 => ProdU = (U3)^dir3
 !!   n1=1, n2=2 => ProdU = (U1)^dir1.(U2)^dir2 
 !!   n1=2, n2=4 => ProdU = (U2)^dir2.(U3)^dir3.(U4)^dir4
+subroutine calc_prodUl_from_n1_to_n2_in_Uf2(ProdU,f,n1,n2,UMAT)
+use matrix_functions, only : make_unit_matrix
+implicit none
+
+complex(kind(0d0)), intent(out) :: ProdU(1:NMAT,1:NMAT)
+integer, intent(in) :: f,n1,n2
+complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_necessary_links)
+
+complex(kind(0d0)) :: tmpmat(1:NMAT,1:NMAT)
+character(1) :: char1
+integer :: link_place,i,j
+integer :: gf,gl,ll
+
+!! if there is no links in this period, return the unit matrix
+if ( n2 <= n1-1 ) then 
+  call make_unit_matrix(ProdU)
+  return
+endif
+
+gf=global_face_of_local(f)
+if(global_links_in_f(gf)%link_dirs_(n1)==1) then 
+  gl=global_links_in_f(gf)%link_labels_(n1)
+  do ll=1,num_necessary_links
+    if( global_link_of_local(ll) == gl ) exit
+  enddo
+  ProdU=UMAT(:,:,ll)
+else
+  gl=global_links_in_f(gf)%link_labels_(n1)
+  do ll=1,num_necessary_links
+    if( global_link_of_local(ll) == gl ) exit
+  enddo
+  do i=1,NMAT
+    do j=1,NMAT
+      ProdU(i,j)=dconjg(UMAT(j,i,ll))
+    enddo
+  enddo
+endif
+if ( n2 >= n1+1 ) then 
+  do link_place=n1+1,n2
+    tmpmat=ProdU
+    if(global_links_in_f(gf)%link_dirs_(link_place)==1) then 
+      char1='N'
+    elseif(global_links_in_f(gf)%link_dirs_(link_place)==-1) then
+      char1='C'
+    endif
+    !! Uf=tmpmat*Uf or tmpmat*(Uf)^\dagger
+    gl=global_links_in_f(gf)%link_labels_(link_place)
+    do ll=1,num_necessary_links
+      if( global_link_of_local(ll) == gl ) exit
+    enddo
+    call ZGEMM('N',char1,NMAT,NMAT,NMAT,(1d0,0d0), &
+      tmpmat,NMAT, &
+      UMAT(:,:,ll),NMAT, &
+      (0d0,0d0), ProdU, NMAT)
+  enddo
+endif
+
+end subroutine calc_prodUl_from_n1_to_n2_in_Uf2
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! caluculate product of Ul's from l1 to l2 in the face f.
+!!  n1: place of l1 in f
+!!  n2: place of l2 in f
+!! In other words, ProdU connects n1's site and (n2+1)'s site in the face f
+!! For example: 
+!!   n1=3, n2=3 => ProdU = (U3)^dir3
+!!   n1=1, n2=2 => ProdU = (U1)^dir1.(U2)^dir2 
+!!   n1=2, n2=4 => ProdU = (U2)^dir2.(U3)^dir3.(U4)^dir4
 subroutine calc_prodUl_from_n1_to_n2_in_Uf(ProdU,f,n1,n2,UMAT)
 use matrix_functions, only : make_unit_matrix
 implicit none
