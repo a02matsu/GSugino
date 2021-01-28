@@ -46,7 +46,7 @@ integer :: ls, ll, lf
 integer :: gs, gl, gf, gf1,gf2
 integer :: jj,i,j,k,l,ios,p
 double precision :: rtmp, itmp
-complex(kind(0d0)) :: ctmp, tmp
+complex(kind(0d0)) :: ctmp, tmp,ctmp2
 complex(kind(0d0)) :: phase_pf
 
 !complex(kind(0d0)),allocatable :: tttt(:,:)
@@ -274,9 +274,9 @@ do
       !!
       do gf1=1,global_num_faces
         if( MYRANK==0 ) then
-          ctmp = localFC(gf1) * ctmp + F4(gf1,gf2)
+          ctmp2 = localFC(gf1) * ctmp + F4(gf1,gf2)
           write(N_WTFILE,'(E23.16,2X,E23.16,2X)',advance='no') &
-            dble(ctmp), dble( (0d0,-1d0)*ctmp )
+            dble(ctmp2), dble( (0d0,-1d0)*ctmp2 )
         endif
       enddo
     enddo
