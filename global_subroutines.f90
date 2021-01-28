@@ -1112,6 +1112,7 @@ end subroutine calc_diffdiff_Uf
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! caluculate product of Ul's from l1 to l2 in the face f.
+!!  f can be in necessary_num_faces
 !!  n1: place of l1 in f
 !!  n2: place of l2 in f
 !! In other words, ProdU connects n1's site and (n2+1)'s site in the face f
