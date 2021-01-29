@@ -127,6 +127,15 @@ allocate( Gchi_chi(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_faces,1:num_necessar
 
 end subroutine initialization
 
+subroutine makedirs(outdir)
+implicit none
+  character(len=*), intent(in) :: outdir
+  character(len=256) command
+
+  write(command,*) 'if [ ! -d ', trim(outdir), ' ]; then mkdir -p ', trim(outdir), '; fi'
+  !write(*,*) trim(command)
+  call system(command)
+end subroutine makedirs
 
 end module initialization_calcobs
 

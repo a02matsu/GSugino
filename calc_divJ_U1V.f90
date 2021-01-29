@@ -192,6 +192,7 @@ do
       rank = local_face_of_global(gf)%rank_
       call MPI_BCAST(localFC(gf),1, MPI_DOUBLE_COMPLEX,rank,MPI_COMM_WORLD,IERR)
     enddo
+    localFC = localFC / dcmplx( LatticeSpacing**(ratio+2) )
 
 
     !! 4-fermi terms

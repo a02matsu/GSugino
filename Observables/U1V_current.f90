@@ -126,11 +126,21 @@ integer :: ll,lf
 integer :: gl,gf
 integer :: org_ll
 integer :: i,j,k,l
+integer :: info
 
 trvec2=(0d0,0d0)
 do ll=1,num_links
-  call find_origin_of_dual_link(lf,org_ll,ll) ! org_ll:position of the origin of ll in the face fl
-  gf=global_face_of_local(lf)
+  !call find_origin_of_dual_link(lf,org_ll,ll) ! org_ll:position of the origin of ll in the face fl
+  !gf=global_face_of_local(lf)
+  call find_global_origin_of_dual_local_link(gf,org_ll,ll) ! org_ll:position of the origin of ll in the face fl
+  info=1
+  do lf=1,num_necessary_faces
+    if( global_face_of_local(lf) == gf ) then
+      info=0
+      exit
+    endif
+  enddo
+  if( info==1 ) write(*,*) "There is no global face", gf, "in RANK", MYRANK
   call calc_prodUl_from_n1_to_n2_in_Uf(Ucarry,lf,1,org_ll-1,Umat)
   do l=1,NMAT
     do k=1,NMAT
@@ -180,15 +190,17 @@ complex(kind(0d0)), intent(in) :: Gchi_chi(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_
 complex(kind(0d0)), intent(in) :: PHIMAT(1:NMAT,1:NMAT,1:num_necessary_sites)
 complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_necessary_links)
 
+complex(kind(0d0)) :: GchiGchi(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_faces,1:global_num_faces) 
+complex(kind(0d0)) :: GetaGchi(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_sites,1:global_num_faces) 
 complex(kind(0d0)) :: tmpOdJ_4F(1:global_num_faces,1:num_faces)
 complex(kind(0d0)) :: DD!(1:NMAT,1:NMAT,1:NMAT,1:NMAT)
 complex(kind(0d0)), allocatable :: phibar_p(:,:,:,:)
 integer :: ratio,rank,tag
-integer :: gs1,gl1,gf1,gs2,gl2,gf2,ls2,ll2,lf2,ls,gs,fofll2
+integer :: gs1,gl1,gf1,gs2,gl2,gf2,ls2,ll2,lf2,ls,gs,gfll2,fofll2
 integer :: i,j,k,l,a,b,c,d,p,q,r
 
-complex(kind(0d0)) :: Ucarry(1:NMAT,1:NMAT)
-integer :: orgll
+complex(kind(0d0)) :: Ucarry(1:NMAT,1:NMAT,1:num_necessary_links)
+integer :: orgll, info
 
 !! preparation
 ! ratio 
@@ -207,6 +219,11 @@ do gs=1,global_num_sites
   rank=local_site_of_global(gs)%rank_
   call MPI_BCAST(phibar_p(:,:,:,gs),NMAT*NMAT*ratio, MPI_DOUBLE_COMPLEX,rank,MPI_COMM_WORLD,IERR)
 enddo
+! dualU
+call calc_dualU(Ucarry,Umat)
+! GchiGchi
+call construct_GFGF(GchiGchi,GetaGchi,Gchi_chi,Geta_chi)
+
 
 OdJ_4F=(0d0,0d0)
 tmpOdJ_4F=(0d0,0d0)
@@ -244,26 +261,27 @@ do gf1=1,global_num_faces
       !! contribution of [link FROM ls2]
       do q=1,linktip_from_s(ls2)%num_
         ll2=linktip_from_s(ls2)%labels_(q)
-        call find_origin_of_dual_link(fofll2,orgll,ll2)
-        call calc_prodUl_from_n1_to_n2_in_Uf(Ucarry,fofll2,1,orgll-1,Umat)
-
-        call calc_DD(DD,Gchi_chi,Geta_lambda,Gchi_lambda,Geta_chi,phibar_p,Ucarry,ratio,gf1,gs1,fofll2,ll2)
+        call find_global_origin_of_dual_global_link(gfll2,orgll,global_link_of_local(ll2))
+        !! DD includes alpha_l(ll2)
+        call calc_DD(DD,GchiGchi,Geta_lambda,Gchi_lambda,GetaGchi,&
+          phibar_p,Ucarry(:,:,ll2),ratio,gf1,gs1,gfll2,ll2)
         tmpOdJ_4F(gf1,lf2) = tmpOdJ_4F(gf1,lf2) &
           + DD / dcmplx(NMAT *  num_faces_in_s(ls2) )
       enddo
       !! contribution of [link TO gs]
       do q=1,linkorg_to_s(ls2)%num_
         ll2=linkorg_to_s(ls2)%labels_(q)
-        call find_origin_of_dual_link(fofll2,orgll,ll2)
-        call calc_prodUl_from_n1_to_n2_in_Uf2(Ucarry,fofll2,1,orgll-1,Umat)
-
-        call calc_DD(DD,Gchi_chi,Geta_lambda,Gchi_lambda,Geta_chi,phibar_p,Ucarry,ratio,gf1,gs1,fofll2,ll2)
+        call find_global_origin_of_dual_global_link(gfll2,orgll,global_link_of_local(ll2))
+        call calc_DD(DD,GchiGchi,Geta_lambda,Gchi_lambda,GetaGchi,phibar_p,Ucarry(:,:,ll2),ratio,gf1,gs1,gfll2,ll2)
+        !! DD includes alpha_l(ll2)
         tmpOdJ_4F(gf1,lf2) = tmpOdJ_4F(gf1,lf2) &
           - DD / dcmplx(NMAT *  num_faces_in_s(ls2) )
       enddo
     enddo
   enddo
 enddo
+
+tmpOdJ_4F = tmpOdJ_4F / dcmplx( LatticeSpacing**(ratio+6) )
 
 do gf2=1,global_num_faces
   lf2=local_face_of_global(gf2)%label_
@@ -283,16 +301,16 @@ do gf2=1,global_num_faces
 enddo
 
 contains
-  subroutine calc_DD(DD,Gchi_chi,Geta_lambda,Gchi_lambda,Geta_chi,phibar_p,Ucarry,ratio,gf1,gs1,fofll2,ll2)
+  subroutine calc_DD(DD,GchiGchi,Geta_lambda,Gchi_lambda,GetaGchi,phibar_p,Ucarry,ratio,gf1,gs1,gfll2,ll2)
   use global_parameters
   implicit none
   complex(kind(0d0)), intent(out) :: DD
   integer, intent(in) :: ratio
-  integer, intent(in) :: gf1,gs1,fofll2,ll2
-  complex(kind(0d0)), intent(in) :: Gchi_chi(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_faces,1:num_necessary_faces) 
+  integer, intent(in) :: gf1,gs1,gfll2,ll2
+  complex(kind(0d0)), intent(in) :: GchiGchi(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_faces,1:global_num_faces) 
   complex(kind(0d0)), intent(in) :: Geta_lambda(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_sites,1:num_necessary_links) 
   complex(kind(0d0)), intent(in) :: Gchi_lambda(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_faces,1:num_necessary_links) 
-  complex(kind(0d0)), intent(in) :: Geta_chi(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_sites,1:num_necessary_faces) 
+  complex(kind(0d0)), intent(in) :: GetaGchi(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_sites,1:global_num_faces) 
 
   complex(kind(0d0)), intent(in) :: Phibar_p(1:NMAT,1:NMAT,0:ratio-1,1:global_num_sites)
   complex(kind(0d0)), intent(in) :: Ucarry(1:NMAT,1:NMAT)
@@ -309,8 +327,8 @@ contains
             do b=1,NMAT
               do c=1,NMAT
                 do d=1,NMAT
-                  tmp = - Gchi_chi(i,j,a,b,gf1,fofll2)*Geta_lambda(k,l,c,d,gs1,ll2) &
-                    + Gchi_lambda(i,j,c,d,gf1,ll2)*Geta_chi(k,l,a,b,gs1,fofll2) 
+                  tmp = - GchiGchi(i,j,a,b,gf1,gfll2)*Geta_lambda(k,l,c,d,gs1,ll2) &
+                    + Gchi_lambda(i,j,c,d,gf1,ll2)*GetaGchi(k,l,a,b,gs1,gfll2) 
                   do p=0,ratio-1
                     DD = DD &
                       + tmp * phibar_p(j,k,p,gs1) * phibar_p(l,i,ratio-p-1,gs1) &
@@ -328,25 +346,85 @@ contains
 
   end subroutine calc_DD
 
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  !! Udual : Wilson line from f(l) to org(l) 
+  !!          where f(l) is the origin of the dual link of l
+  subroutine calc_dualU(dualU, Umat)
+  use global_parameters
+  implicit none
+  
+  complex(kind(0d0)), intent(out) :: dualU(1:NMAT,1:NMAT,1:num_necessary_links)
+  complex(kind(0d0)), intent(in) :: Umat(1:NMAT,1:NMAT,1:num_necessary_links)
+  
+  integer :: ll, lf, gl, gf ,org_ll, info
+  
+  do ll=1,num_links
+    call find_global_origin_of_dual_local_link(gf,org_ll,ll)
+    info=1
+    do lf=1,num_necessary_faces
+      if( global_face_of_local(lf) == gf ) then
+        info=0
+        exit
+      endif
+    enddo
+    if( info==1 ) then
+      write(*,*) "[calc_dualU] There is no global face", gf, "in RANK", MYRANK
+    endif
+    call calc_prodUl_from_n1_to_n2_in_Uf(dualU(:,:,ll),lf,1,org_ll-1,Umat)
+  enddo
+  
+  call syncronize_links(dualU)
+  
+  end subroutine calc_dualU
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  !! 
+  subroutine construct_GFGF(GchiGchi,GetaGchi,Gchi_chi,Geta_chi)
+  use global_parameters
+  implicit none
+  
+  complex(kind(0d0)), intent(out) :: GchiGchi(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_faces,1:global_num_faces)
+  complex(kind(0d0)), intent(out) :: GetaGchi(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_sites,1:global_num_faces)
+  complex(kind(0d0)), intent(in) :: Gchi_chi(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_faces,1:num_necessary_faces)
+  complex(kind(0d0)), intent(in) :: Geta_chi(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_links,1:num_necessary_faces)
+  
+  integer :: gf,lf,rank
+  
+  do gf=1,global_num_faces
+    rank = local_face_of_global(gf)%rank_
+    lf = local_face_of_global(gf)%label_
+
+    if(MYRANK==rank) then
+      GchiGchi(:,:,:,:,:,gf)=Gchi_chi(:,:,:,:,:,lf)
+      GetaGchi(:,:,:,:,:,gf)=Geta_chi(:,:,:,:,:,lf)
+    endif
+    call MPI_BCAST(GchiGchi(:,:,:,:,:,gf), NMAT**4*global_num_faces, MPI_DOUBLE_COMPLEX,rank,MPI_COMM_WORLD,IERR)
+    call MPI_BCAST(GetaGchi(:,:,:,:,:,gf), NMAT**4*global_num_sites, MPI_DOUBLE_COMPLEX,rank,MPI_COMM_WORLD,IERR)
+
+  enddo
+
+  end subroutine construct_GFGF
+
+
 end subroutine calc_OdJ_4F
 
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! find the origin face of the dual link
-!!  lf     : local face label of the origin of the dual link of ll
+!!  gf     : global face label of the origin of the dual link of ll
 !!  org_ll : position of the origin of the link ll in the face lf
 !! The origin of dual link is defined so that 
 !! the face who includes that link in the POSITIVE direction.
-subroutine find_origin_of_dual_link(lf,org_ll,ll)
+subroutine find_global_origin_of_dual_local_link(gf,org_ll,ll)
 use global_parameters
 use parallel
 implicit none
 
-integer, intent(out) :: lf, org_ll
+integer, intent(out) :: gf, org_ll
 integer, intent(in) :: ll
 
-integer :: gf,gl
+integer :: gl
 integer :: ii
 integer :: dir
 integer :: info
@@ -371,20 +449,62 @@ do ii=1,global_face_in_l(gl)%num_
       org_ll = org_ll + 1
       if( org_ll > global_links_in_f(gf)%num_ ) org_ll = 1
     endif
-    do lf=1,num_necessary_faces
-      if( global_face_of_local(lf) == gf ) then
-        info=0
-        exit
-      endif
-    enddo
-    if(info==1) write(*,*) "ERROR in finding the dual link"
+    info=0
     return
   endif 
 enddo
 
-if(info==1) write(*,*) "ERROR in finding the dual link"
+if(info==1) write(*,*) "ERROR in finding the dual link of", global_link_of_local(ll), "in RANK=", MYRANK
 
-end subroutine find_origin_of_dual_link
+end subroutine find_global_origin_of_dual_local_link
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! find the origin face of the dual link
+!!  gl     : global link
+!!  gf     : global face label of the origin of the dual link of global gl
+!!  org_gl : position of org(gl) in the face gf
+!! The origin of dual link is defined so that 
+!! the face who includes that link in the POSITIVE direction.
+subroutine find_global_origin_of_dual_global_link(gf,org_gl,gl)
+use global_parameters
+use parallel
+implicit none
+
+integer, intent(out) :: gf, org_gl
+integer, intent(in) :: gl
+
+integer :: ii
+integer :: dir
+integer :: info
+
+info=1
+do ii=1,global_face_in_l(gl)%num_
+  gf=global_face_in_l(gl)%label_(ii)
+
+  do org_gl=1,global_links_in_f(gf)%num_
+    if( global_links_in_f(gf)%link_labels_(org_gl) == gl ) then 
+      dir=global_links_in_f(gf)%link_dirs_(org_gl)
+      exit
+    endif
+  enddo
+  !!!!!!!!!!!!!!!!! !!!!!!!!!!!!!!!!! !!!!!!!!!!!!!!!!!
+  !! special treatment of the present discretization
+  if(gf==1) dir=-dir
+  !!!!!!!!!!!!!!!!! !!!!!!!!!!!!!!!!! !!!!!!!!!!!!!!!!!
+  if( dir==1 ) then 
+    if(gf==1) then
+      org_gl = org_gl + 1
+      if( org_gl > global_links_in_f(gf)%num_ ) org_gl = 1
+    endif
+    info=0
+    return
+  endif 
+enddo
+if(info==1) write(*,*) "ERROR in finding the dual link of", gl
+
+end subroutine find_global_origin_of_dual_global_link
 
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
