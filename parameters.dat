@@ -2,8 +2,8 @@
 2
 ## mass_phi2 : physical mass square of \Phi
 0.1d0 
-## pf, pf1, pf2, pf3, pf4, pf5 : set 1 for omitting each fermion action(pf means all femrions)
-0 0 0 0 0 0 
+## pf, pf1, pf2, pf3, pf4, pf5, pfmass : set 1 for omitting each fermion action(pf means all femrions)
+0 0 0 0 0 0 1
 ## mass_f; fermion mass
 0d0 
 ##  data of the simplicial complex
