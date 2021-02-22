@@ -49,7 +49,7 @@ integer :: gs, gl, gf, gf1,gf2
 integer :: jj,i,j,k,l,ios,p
 double precision :: rtmp, itmp
 complex(kind(0d0)) :: ctmp, tmp,ctmp2
-complex(kind(0d0)) :: tmp_rot, tmp_div
+complex(kind(0d0)) :: ctmp_rot, ctmp_div
 complex(kind(0d0)) :: phase_pf
 
 !complex(kind(0d0)),allocatable :: tttt(:,:)
@@ -296,7 +296,8 @@ do
       enddo
     enddo
     if( MYRANK==0 ) then
-      write(N_WTFILE,*)
+      write(N_WTROTFILE,*)
+      write(N_WTDIVFILE,*)
     endif
 
   else
