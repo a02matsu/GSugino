@@ -15,13 +15,14 @@ integer :: control
 character(128) :: MEDFILE
 character(128) :: DinvFILE
 character(128) :: divJFILE
-character(128) :: F4FILE
-character(128) :: WTFILE
+!character(128) :: F4FILE
+character(128) :: WTROTFILE
+character(128) :: WTDIVFILE
 integer, parameter :: N_MEDFILE=100
 integer, parameter :: N_DinvFILE=101
 integer, parameter :: N_divJFILE=102
-integer, parameter :: N_F4FILE=103
-integer, parameter :: N_WTFILE=104
+integer, parameter :: N_WTROTFILE=103
+integer, parameter :: N_WTDIVFILE=104
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! Observables
@@ -29,7 +30,8 @@ complex(kind(0d0)), allocatable :: divJ1(:)
 complex(kind(0d0)), allocatable :: divJ2(:)
 complex(kind(0d0)), allocatable :: divJ(:)
 complex(kind(0d0)), allocatable :: Dinv(:,:)
-complex(kind(0d0)), allocatable :: F4(:,:)
+complex(kind(0d0)), allocatable :: F4rot(:,:)
+complex(kind(0d0)), allocatable :: F4div(:,:)
 complex(kind(0d0)), allocatable :: localFC(:) !! for (7) 
 complex(kind(0d0)), allocatable :: Uf(:,:) !Uf(1:NMAT,1:NMAT)
 complex(kind(0d0)), allocatable :: Ymat(:,:) !Ymat(1:NMAT,1:NMAT)
@@ -47,6 +49,7 @@ integer :: gs, gl, gf, gf1,gf2
 integer :: jj,i,j,k,l,ios,p
 double precision :: rtmp, itmp
 complex(kind(0d0)) :: ctmp, tmp,ctmp2
+complex(kind(0d0)) :: tmp_rot, tmp_div
 complex(kind(0d0)) :: phase_pf
 
 !complex(kind(0d0)),allocatable :: tttt(:,:)
@@ -73,18 +76,20 @@ else
 endif
 
 !! F4FILE ! 4-fermion part of OdJ
-if( index(MEDFILE,"/") == 8 ) then ! MEDCONF/***
-  F4FILE=trim("OBS/F4dJ"//MEDFILE(index(MEDFILE,"_"):))
-else
-  F4FILE=trim("OBS"//MEDFILE(8:index(MEDFILE,"/"))//"F4dJ"//MEDFILE(index(MEDFILE,"_"):))
-endif
+!if( index(MEDFILE,"/") == 8 ) then ! MEDCONF/***
+  !F4FILE=trim("OBS/WTU1Vrot"//MEDFILE(index(MEDFILE,"_"):))
+!else
+  !F4FILE=trim("OBS"//MEDFILE(8:index(MEDFILE,"/"))//"WTU1Vrot"//MEDFILE(index(MEDFILE,"_"):))
+!endif
 
 
 !! WT identity
 if( index(MEDFILE,"/") == 8 ) then ! MEDCONF/***
-  WTFILE=trim("OBS/WTU1V"//MEDFILE(index(MEDFILE,"_"):))
+  WTDIVFILE=trim("OBS/WTU1Vdiv"//MEDFILE(index(MEDFILE,"_"):))
+  WTROTFILE=trim("OBS/WTU1Vrot"//MEDFILE(index(MEDFILE,"_"):))
 else
-  WTFILE=trim("OBS"//MEDFILE(8:index(MEDFILE,"/"))//"WTU1V"//MEDFILE(index(MEDFILE,"_"):))
+  WTDIVFILE=trim("OBS"//MEDFILE(8:index(MEDFILE,"/"))//"WTU1Vdiv"//MEDFILE(index(MEDFILE,"_"):))
+  WTROTFILE=trim("OBS"//MEDFILE(8:index(MEDFILE,"/"))//"WTU1Vrot"//MEDFILE(index(MEDFILE,"_"):))
 endif
 
 INPUT_FILE_NAME="inputfile"
@@ -97,7 +102,8 @@ allocate( Dinv(1:num_fermion, 1:num_fermion) )
 allocate( divJ(1:num_faces) )
 allocate( divJ1(1:num_faces) )
 allocate( divJ2(1:num_faces) )
-allocate( F4(1:global_num_faces,global_num_faces) )
+allocate( F4rot(1:global_num_faces,global_num_faces) )
+allocate( F4div(1:global_num_faces,global_num_faces) )
 allocate( phibar_p(1:NMAT,1:NMAT,0:ratio) )
 allocate(Uf(1:NMAT,1:NMAT))
 allocate(Ymat(1:NMAT,1:NMAT))
@@ -109,8 +115,8 @@ if( MYRANK==0 ) then
   open(N_MEDFILE, file=MEDFILE, status='OLD',action='READ',form='unformatted')
   open(N_DinvFILE, file=DinvFILE, status='OLD',action='READ',form='unformatted')
   open(N_divJFILE, file=divJFILE, status='REPLACE')
-  open(N_F4FILE, file=F4FILE, status='REPLACE')
-  open(N_WTFILE, file=WTFILE, status='REPLACE')
+  open(N_WTROTFILE, file=WTROTFILE, status='REPLACE')
+  open(N_WTDIVFILE, file=WTDIVFILE, status='REPLACE')
 
   write(N_divJFILE,*) "# ite, Re(rot(J1)), Im(rot(J1), Re(div(J2)), Im(div(J2)), Re(DJ), Im(DJ)"
 endif
@@ -145,8 +151,9 @@ do
   if( control == 0 ) then 
     if( MYRANK == 0 ) then
       write(N_divJFILE,'(I7,2X)',advance='no') ite
-      write(N_F4FILE,'(I7,2X)',advance='no') ite
-      write(N_WTFILE,'(I7,2X)',advance='no') ite
+      !write(N_F4FILE,'(I7,2X)',advance='no') ite
+      write(N_WTROTFILE,'(I7,2X)',advance='no') ite
+      write(N_WTDIVFILE,'(I7,2X)',advance='no') ite
     endif
 
 
@@ -196,7 +203,7 @@ do
 
 
     !! 4-fermi terms
-    call calc_OdJ_4F(F4, \
+    call calc_OdJ_4F(F4rot,F4div, \
       Geta_eta,\
       Gchi_eta,\
       Geta_chi,\
@@ -245,15 +252,15 @@ do
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !! write OdJ
-    if( MYRANK==0 ) then
-      do gf1=1,global_num_faces
-        do gf2=1,global_num_faces
-          write(N_F4FILE,'(E23.16,2X,E23.16,2X)',advance='no') &
-            dble(F4(gf1,gf2)), dble( (0d0,-1d0)*F4(gf1,gf2) )
-        enddo
-      enddo
-      write(N_F4FILE,*)
-    endif
+    !if( MYRANK==0 ) then
+      !do gf1=1,global_num_faces
+        !do gf2=1,global_num_faces
+          !write(N_F4FILE,'(E23.16,2X,E23.16,2X)',advance='no') &
+            !dble(F4(gf1,gf2)), dble( (0d0,-1d0)*F4(gf1,gf2) )
+        !enddo
+      !enddo
+      !write(N_F4FILE,*)
+    !endif
 
     
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -264,19 +271,26 @@ do
       tag=gf2
       !! ctmp = dJ(gf2)
       if( MYRANK == rank ) then
-        ctmp = divJ1(lf) - divJ2(lf)
+        ctmp_rot = divJ1(lf)
+        ctmp_div = divJ2(lf)
         if( MYRANK /= 0 ) then 
-          call MPI_SEND(ctmp,1,MPI_DOUBLE_COMPLEX,0,tag,MPI_COMM_WORLD,IERR)
+          call MPI_SEND(ctmp_rot,1,MPI_DOUBLE_COMPLEX,0,tag,MPI_COMM_WORLD,IERR)
+          call MPI_SEND(ctmp_div,1,MPI_DOUBLE_COMPLEX,0,tag+10000,MPI_COMM_WORLD,IERR)
         endif
       endif
       if( MYRANK == 0 .and. rank /= 0 ) then
-        call MPI_RECV(ctmp,1,MPI_DOUBLE_COMPLEX,rank,tag,MPI_COMM_WORLD,ISTATUS,IERR)
+        call MPI_RECV(ctmp_rot,1,MPI_DOUBLE_COMPLEX,rank,tag,MPI_COMM_WORLD,ISTATUS,IERR)
+        call MPI_RECV(ctmp_div,1,MPI_DOUBLE_COMPLEX,rank,tag+10000,MPI_COMM_WORLD,ISTATUS,IERR)
       endif
       !!
       do gf1=1,global_num_faces
         if( MYRANK==0 ) then
-          ctmp2 = localFC(gf1) * ctmp + F4(gf1,gf2)
-          write(N_WTFILE,'(E23.16,2X,E23.16,2X)',advance='no') &
+          ctmp2 = localFC(gf1) * ctmp_rot + F4rot(gf1,gf2)
+          write(N_WTROTFILE,'(E23.16,2X,E23.16,2X)',advance='no') &
+            dble(ctmp2), dble( (0d0,-1d0)*ctmp2 )
+          !!
+          ctmp2 = localFC(gf1) * ctmp_div + F4div(gf1,gf2)
+          write(N_WTDIVFILE,'(E23.16,2X,E23.16,2X)',advance='no') &
             dble(ctmp2), dble( (0d0,-1d0)*ctmp2 )
         endif
       enddo
@@ -293,8 +307,8 @@ if( MYRANK == 0 ) then
   close(N_MEDFILE)
   close(N_divJFILE)
   close(N_DinvFILE)
-  close(N_F4FILE)
-  close(N_WTFILE)
+  close(N_WTROTFILE)
+  close(N_WTDIVFILE)
 endif
 
 !write(*,*) MYRANK, control

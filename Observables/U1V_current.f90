@@ -164,8 +164,13 @@ end subroutine make_trV2
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! calculate 4-fermion part of <O(f_1) dJ(f_2)>
+!! <O(f_1) dJ(f_2)> = OdJ_rot_4F - OdJ_div_4F
+!!  
+!!  OdJ_rot_4F : from rot(\lambda\eta) in dJ
+!!  OdJ_div_4F : from div(\lambda\chi) in dJ
 subroutine calc_OdJ_4F(\
-  OdJ_4F, \
+  OdJ_rot_4F, \
+  OdJ_div_4F, \
   Geta_eta,\
   Gchi_eta,\
   Geta_chi,\
@@ -180,7 +185,8 @@ use global_subroutines, only : syncronize_linkval
 use matrix_functions, only :matrix_product, hermitian_conjugate, make_unit_matrix, matrix_exp, matrix_trace
 implicit none
 
-complex(kind(0d0)), intent(out) :: OdJ_4F(1:global_num_faces,1:global_num_faces)
+complex(kind(0d0)), intent(out) :: OdJ_div_4F(1:global_num_faces,1:global_num_faces)
+complex(kind(0d0)), intent(out) :: OdJ_rot_4F(1:global_num_faces,1:global_num_faces)
 complex(kind(0d0)), intent(in) :: Geta_eta(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_sites,1:num_necessary_sites) 
 complex(kind(0d0)), intent(in) :: Gchi_eta(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_faces,1:num_necessary_sites) 
 complex(kind(0d0)), intent(in) :: Geta_chi(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_sites,1:num_necessary_faces) 
@@ -192,7 +198,8 @@ complex(kind(0d0)), intent(in) :: UMAT(1:NMAT,1:NMAT,1:num_necessary_links)
 
 complex(kind(0d0)) :: GchiGchi(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_faces,1:global_num_faces) 
 complex(kind(0d0)) :: GetaGchi(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_sites,1:global_num_faces) 
-complex(kind(0d0)) :: tmpOdJ_4F(1:global_num_faces,1:num_faces)
+complex(kind(0d0)) :: tmpOdJ_rot_4F(1:global_num_faces,1:num_faces)
+complex(kind(0d0)) :: tmpOdJ_div_4F(1:global_num_faces,1:num_faces)
 complex(kind(0d0)) :: DD!(1:NMAT,1:NMAT,1:NMAT,1:NMAT)
 complex(kind(0d0)), allocatable :: phibar_p(:,:,:,:)
 integer :: ratio,rank,tag
@@ -200,7 +207,7 @@ integer :: gs1,gl1,gf1,gs2,gl2,gf2,ls2,ll2,lf2,ls,gs,gfll2,fofll2
 integer :: i,j,k,l,a,b,c,d,p,q,r
 
 complex(kind(0d0)) :: Ucarry(1:NMAT,1:NMAT,1:num_necessary_links)
-integer :: orgll, info
+integer :: orgll, info, dir
 
 !! preparation
 ! ratio 
@@ -225,13 +232,18 @@ call calc_dualU(Ucarry,Umat)
 call construct_GFGF(GchiGchi,GetaGchi,Gchi_chi,Geta_chi)
 
 
-OdJ_4F=(0d0,0d0)
-tmpOdJ_4F=(0d0,0d0)
+OdJ_rot_4F=(0d0,0d0)
+OdJ_div_4F=(0d0,0d0)
+
+tmpOdJ_rot_4F=(0d0,0d0)
+tmpOdJ_div_4F=(0d0,0d0)
 do gf1=1,global_num_faces
   gs1=global_sites_in_f(gf1)%label_(1)
   do lf2=1,num_faces
+    !!! rotation part
     do p=1,links_in_f(lf2)%num_
       ll2=links_in_f(lf2)%link_labels_(p)
+      dir=links_in_f(lf2)%link_dirs_(p)
       ls2=link_org(ll2)
       do l=1,NMAT
         do k=1,NMAT
@@ -248,14 +260,15 @@ do gf1=1,global_num_faces
               do q=0,ratio-1
                 DD=DD*phibar_p(j,k,q,gs1)*phibar_p(l,i,ratio-q-1,gs1)
               enddo
-              tmpOdJ_4F(gf1,lf2) = tmpOdJ_4F(gf1,lf2) &
-                + DD * dcmplx( -beta_f(lf2)/(2d0*dble(NMAT)) )
+              tmpOdJ_rot_4F(gf1,lf2) = tmpOdJ_rot_4F(gf1,lf2) &
+                + DD * dcmplx( -beta_f(lf2)/(2d0*dble(NMAT*dir)) )
             enddo
           enddo
         enddo
       enddo
     enddo
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !!! divergence part
     do p=1,sites_in_f(lf2)%num_
       ls2=sites_in_f(lf2)%label_(p)
       !! contribution of [link FROM ls2]
@@ -265,8 +278,8 @@ do gf1=1,global_num_faces
         !! DD includes alpha_l(ll2)
         call calc_DD(DD,GchiGchi,Geta_lambda,Gchi_lambda,GetaGchi,&
           phibar_p,Ucarry(:,:,ll2),ratio,gf1,gs1,gfll2,ll2)
-        tmpOdJ_4F(gf1,lf2) = tmpOdJ_4F(gf1,lf2) &
-          + DD / dcmplx(NMAT *  num_faces_in_s(ls2) )
+        tmpOdJ_div_4F(gf1,lf2) = tmpOdJ_div_4F(gf1,lf2) &
+          - DD / dcmplx(NMAT *  num_faces_in_s(ls2) )
       enddo
       !! contribution of [link TO gs]
       do q=1,linkorg_to_s(ls2)%num_
@@ -274,14 +287,15 @@ do gf1=1,global_num_faces
         call find_global_origin_of_dual_global_link(gfll2,orgll,global_link_of_local(ll2))
         call calc_DD(DD,GchiGchi,Geta_lambda,Gchi_lambda,GetaGchi,phibar_p,Ucarry(:,:,ll2),ratio,gf1,gs1,gfll2,ll2)
         !! DD includes alpha_l(ll2)
-        tmpOdJ_4F(gf1,lf2) = tmpOdJ_4F(gf1,lf2) &
-          - DD / dcmplx(NMAT *  num_faces_in_s(ls2) )
+        tmpOdJ_div_4F(gf1,lf2) = tmpOdJ_div_4F(gf1,lf2) &
+          + DD / dcmplx(NMAT *  num_faces_in_s(ls2) )
       enddo
     enddo
   enddo
 enddo
 
-tmpOdJ_4F = tmpOdJ_4F / dcmplx( LatticeSpacing**(ratio+6) )
+tmpOdJ_rot_4F = tmpOdJ_rot_4F / dcmplx( LatticeSpacing**(ratio+6) )
+tmpOdJ_div_4F = tmpOdJ_div_4F / dcmplx( LatticeSpacing**(ratio+6) )
 
 do gf2=1,global_num_faces
   lf2=local_face_of_global(gf2)%label_
@@ -289,13 +303,16 @@ do gf2=1,global_num_faces
   tag=gf2
   if( MYRANK==0 ) then
     if( MYRANK==rank) then
-      OdJ_4F(:,gf2)=tmpOdJ_4F(:,lf2)
+      OdJ_rot_4F(:,gf2)=tmpOdJ_rot_4F(:,lf2)
+      OdJ_div_4F(:,gf2)=tmpOdJ_div_4F(:,lf2)
     else
-      call MPI_RECV(OdJ_4F(:,gf2),global_num_sites,MPI_DOUBLE_COMPLEX,rank,tag,MPI_COMM_WORLD,ISTATUS,IERR)
+      call MPI_RECV(OdJ_rot_4F(:,gf2),global_num_sites,MPI_DOUBLE_COMPLEX,rank,tag,MPI_COMM_WORLD,ISTATUS,IERR)
+      call MPI_RECV(OdJ_div_4F(:,gf2),global_num_sites,MPI_DOUBLE_COMPLEX,rank,tag+10000,MPI_COMM_WORLD,ISTATUS,IERR)
     endif
   else
     if( MYRANK==rank ) then
-      call MPI_SEND(tmpOdJ_4F(:,lf2),global_num_sites,MPI_DOUBLE_COMPLEX,0,tag,MPI_COMM_WORLD,IERR)
+      call MPI_SEND(tmpOdJ_rot_4F(:,lf2),global_num_sites,MPI_DOUBLE_COMPLEX,0,tag,MPI_COMM_WORLD,IERR)
+      call MPI_SEND(tmpOdJ_div_4F(:,lf2),global_num_sites,MPI_DOUBLE_COMPLEX,0,tag+10000,MPI_COMM_WORLD,IERR)
     endif
   endif
 enddo
