@@ -178,7 +178,7 @@ do
       Ymat = Ymat * (0d0,0.5d0)*beta_f(lf)
 
       !! bosonic part
-      call trace_mm(ctmp, Ymat, tmpmat)
+      call trace_mm(ctmp, Ymat, phibar_p(:,:,ratio) )
       localFC(gf) = localFC(gf) + ctmp / dcmplx(NMAT)
       !! fermionic part
       do p=0,ratio-1
