@@ -37,6 +37,7 @@ character(128) DIRNAME,COMMAND,CONFDIR0,CONFDIR1
 character(128) tmpc,tmpc2
 
 integer :: root
+character(20) :: c_root, c_num, c_num2, c_num3
 integer :: t_start, t_end, t_rate, t_max
 double precision :: diff
 
@@ -234,10 +235,15 @@ endif
         write(Fconfigin, '("CONFIG/inputconf_", i4.4, ".dat")') job_number-1
       endif
     else
+      write(c_root,*) root
       if( job_number <= 0 ) then
-        write(Fconfigin, '("CONFIG",i1.1,"/latestconf")') root
+        Fconfigin="CONFIG"//trim(adjustl(c_root))//"/latestconf"
+        !write(Fconfigin, '("CONFIG",trim(adjustl(c_root),"/latestconf")')
+        !write(Fconfigin, '("CONFIG",i1.1,"/latestconf")') root
       else
-        write(Fconfigin, '("CONFIG",i1.1,"/inputconf_", i4.4, ".dat")') root,job_number-1
+        write(c_num,*) job_number-1
+        Fconfigin="CONFIG"//trim(adjustl(c_root))//"/inputconf_"//trim(adjustl(c_num))
+        !write(Fconfigin, '("CONFIG",i1.1,"/inputconf_", i4.4, ".dat")') root,job_number-1
       endif
     endif
     call read_config(UMAT,PhiMat,state_mt95,seed)
@@ -292,14 +298,28 @@ endif
         write(Foutput, '("OUTPUT/output_",i4.4,":",i6.6,"+",i6.6,".dat")') job_number,total_ite,num_ite
         write(Fmedconf, '("MEDCONF/medconfig_", i6.6,"+",i6.6,".dat")') total_ite,num_ite
       else
-        write(Fconfigout, '("CONFIG",i1.1,"/inputconf_", i4.4, ".dat")') branch_use, job_number
-        write(Foutput, '("OUTPUT",i1.1,"/output_",i4.4,":",i6.6,"+",i6.6,".dat")') branch_use, job_number,total_ite,num_ite
-        write(Fmedconf, '("MEDCONF",i1.1,"/medconfig_", i6.6,"+",i6.6,".dat")') branch_use, total_ite,num_ite
+        write(c_root,*) branch_use
+        write(c_num,*) job_number
+        write(c_num2,*) total_ite
+        write(c_num3,*) num_ite
+        Fconfigout = "CONFIG"//trim(adjustl(c_root))//"/inputconf_"//trim(adjustl(c_num))//".dat"
+        Foutput = "OUTPUT"//trim(adjustl(c_root))//"/output_"//trim(adjustl(c_num))//":"//trim(adjustl(c_num2))//"+"//trim(adjustl(c_num3))//".dat"
+        Fmedconf = "MEDCONF"//trim(adjustl(c_root))//"/medconfig_"//trim(adjustl(c_num2))//"+"//trim(adjustl(c_num3))//".dat"
+        !write(Fconfigout, '("CONFIG",i1.1,"/inputconf_", i4.4, ".dat")') branch_use, job_number
+        !write(Foutput, '("OUTPUT",i1.1,"/output_",i4.4,":",i6.6,"+",i6.6,".dat")') branch_use, job_number,total_ite,num_ite
+        !write(Fmedconf, '("MEDCONF",i1.1,"/medconfig_", i6.6,"+",i6.6,".dat")') branch_use, total_ite,num_ite
       endif
     else !! branch mode
-      write(Fconfigout, '("CONFIG",i1.1,"/inputconf_", i4.4, ".dat")') new_branch_label, job_number
-      write(Foutput, '("OUTPUT",i1.1,"/output_",i4.4,":",i6.6,"+",i6.6,".dat")') new_branch_label, job_number,total_ite,num_ite
-      write(Fmedconf, '("MEDCONF",i1.1,"/medconfig_", i6.6,"+",i6.6,".dat")') new_branch_label, total_ite,num_ite
+      write(c_root,*) new_branch_label
+      write(c_num,*) job_number
+      write(c_num2,*) total_ite
+      write(c_num3,*) num_ite
+      Fconfigout = "CONFIG"//trim(adjustl(c_root))//"/inputconf_"//trim(adjustl(c_num))//".dat"
+      Foutput = "OUTPUT"//trim(adjustl(c_root))//"/output_"//trim(adjustl(c_num))//":"//trim(adjustl(c_num2))//"+"//trim(adjustl(c_num3))//".dat"
+      Fmedconf = "MEDCONF"//trim(adjustl(c_root))//"/medconfig_"//trim(adjustl(c_num2))//"+"//trim(adjustl(c_num3))//".dat"
+      !write(Fconfigout, '("CONFIG",i1.1,"/inputconf_", i4.4, ".dat")') new_branch_label, job_number
+      !write(Foutput, '("OUTPUT",i1.1,"/output_",i4.4,":",i6.6,"+",i6.6,".dat")') new_branch_label, job_number,total_ite,num_ite
+      !write(Fmedconf, '("MEDCONF",i1.1,"/medconfig_", i6.6,"+",i6.6,".dat")') new_branch_label, total_ite,num_ite
     endif
     call HybridMonteCarlo(UMAT,PhiMat,seed,total_ite)
   endif
