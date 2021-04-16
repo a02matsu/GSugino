@@ -191,13 +191,13 @@ contains
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !! Q Tr(-i \lambda_l^3 \phi_s^{r+2}
-  subroutine calc_opL1_2(op, PhiMat, Umat, Geta_lambda, Glambda_lambda, phibar_p, ratio)
+  subroutine calc_opL1_2(op_b, op_f, PhiMat, Umat, Geta_lambda, Glambda_lambda, phibar_p, ratio)
   use parallel
   use global_parameters
   use matrix_functions, only : matrix_anticommutator, matrix_commutator, matrix_power, trace_mm, matrix_product, matrix_3_product
   implicit none
 
-  complex(kind(0d0)), intent(out) :: op
+  complex(kind(0d0)), intent(out) :: op_b, op_f
   complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_necessary_sites)
   complex(kind(0d0)), intent(in) :: Umat(1:NMAT,1:NMAT,1:num_necessary_links)
   complex(kind(0d0)), intent(in) :: Geta_lambda(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_sites,1:num_links) 
@@ -259,8 +259,15 @@ contains
       enddo
     enddo
     tmp = tmp + trace
+  enddo
+  call MPI_REDUCE(tmp,op_b,1,MPI_DOUBLE_COMPLEX,MPI_SUM,0,MPI_COMM_WORLD,IERR)
 
-    !!!! 4-fermi part
+  !!!! 4-fermi part
+  tmp=(0d0,0d0)
+  do ll=1,num_links
+    gl=global_link_of_local(ll)
+    ls=link_org(ll)
+    lt=link_tip(ll)
 
     ! phibar^{r+2} part
     ! 1st term
@@ -338,7 +345,7 @@ contains
   enddo
 
 
-  call MPI_REDUCE(tmp,op,1,MPI_DOUBLE_COMPLEX,MPI_SUM,0,MPI_COMM_WORLD,IERR)
+  call MPI_REDUCE(tmp,op_f,1,MPI_DOUBLE_COMPLEX,MPI_SUM,0,MPI_COMM_WORLD,IERR)
 
   end subroutine calc_opL1_2
 
@@ -434,13 +441,13 @@ contains
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !! Q Tr(-i \lambda_l^3 U_l \phi_t^{r+2} U_l^{-1}
-  subroutine calc_opL2_2(op, PhiMat, Umat, Geta_lambda, Glambda_lambda, phibar_p, ratio)
+  subroutine calc_opL2_2(op_b, op_f, PhiMat, Umat, Geta_lambda, Glambda_lambda, phibar_p, ratio)
   use parallel
   use global_parameters
   use matrix_functions, only : matrix_anticommutator, matrix_commutator, matrix_power, trace_mm, matrix_product, matrix_3_product
   implicit none
 
-  complex(kind(0d0)), intent(out) :: op
+  complex(kind(0d0)), intent(out) :: op_b, op_f
   complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_necessary_sites)
   complex(kind(0d0)), intent(in) :: Umat(1:NMAT,1:NMAT,1:num_necessary_links)
   complex(kind(0d0)), intent(in) :: Geta_lambda(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_sites,1:num_links) 
@@ -504,8 +511,17 @@ contains
       enddo
     enddo
     tmp = tmp + trace
+  enddo
+  call MPI_REDUCE(tmp,op_b,1,MPI_DOUBLE_COMPLEX,MPI_SUM,0,MPI_COMM_WORLD,IERR)
 
-    !!!! 4-fermi part
+  !!!! 4-fermi part
+  tmp=(0d0,0d0)
+  do ll=1,num_links
+    gl=global_link_of_local(ll)
+    ls=link_org(ll)
+    lt=link_tip(ll)
+    gs=global_site_of_local(ls)
+    
     ! phibar^{r+2} part
     ! 1st term
     call matrix_product(tmpmat1, Dmat,Dmat)
@@ -584,7 +600,7 @@ contains
   enddo
 
 
-  call MPI_REDUCE(tmp,op,1,MPI_DOUBLE_COMPLEX,MPI_SUM,0,MPI_COMM_WORLD,IERR)
+  call MPI_REDUCE(tmp,op_f,1,MPI_DOUBLE_COMPLEX,MPI_SUM,0,MPI_COMM_WORLD,IERR)
 
   end subroutine calc_opL2_2
 

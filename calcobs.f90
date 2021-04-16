@@ -149,7 +149,8 @@ complex(kind(0d0)) :: WT_site
 complex(kind(0d0)) :: WT_link
 complex(kind(0d0)) :: WT_face
 complex(kind(0d0)) :: Sf1, Sf2, Sf3, Sf4, Sf5
-complex(kind(0d0)) :: opS1,opL1,opL2,opF1,opF2
+complex(kind(0d0)) :: opS1_b,opL1_b,opL2_b,opF1_b,opF2_b
+complex(kind(0d0)) :: opS1_f,opL1_f,opL2_f,opF1_f,opF2_f
 complex(kind(0d0)) :: massS1,massL1,massL2,massF1,massF2
 complex(kind(0d0)) :: XiQS
 complex(kind(0d0)) :: tmp_obs
@@ -661,7 +662,8 @@ do
 
     ! local operators 
       call calc_Qexact_operators(&
-        opS1, opL1, opL2, opF1, opF2, &
+        opS1_b, opL1_b, opL2_b, opF1_b, opF2_b, &
+        opS1_f, opL1_f, opL2_f, opF1_f, opF2_f, &
         massS1, massL1, massL2, massF1, massF2, &
         Umat,PhiMat, Geta_eta, Geta_lambda, Geta_chi, Glambda_lambda, &
         Glambda_chi, Gchi_eta, Gchi_lambda, Gchi_chi) 
