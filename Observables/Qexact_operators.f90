@@ -1,7 +1,8 @@
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! 
 subroutine calc_Qexact_operators(&
-    opS1, opL1, opL2, opF1, opF2, &
+    opS1_b, opL1_b, opL2_b, opF1_b, opF2_b, &
+    opS1_f, opL1_f, opL2_f, opF1_f, opF2_f, &
     massS1, massL1, massL2, massF1, massF2, &
     Umat,PhiMat,&
     Geta_eta, Geta_lambda, Geta_chi, Glambda_lambda, Glambda_chi, Gchi_eta, Gchi_lambda, Gchi_chi) 
@@ -10,7 +11,8 @@ use global_parameters
 use matrix_functions, only : matrix_product, make_unit_matrix
 implicit none
 
-complex(kind(0d0)), intent(out) :: opS1, opL1, opL2, opF1, opF2
+complex(kind(0d0)), intent(out) :: opS1_b, opL1_b, opL2_b, opF1_b, opF2_b
+complex(kind(0d0)), intent(out) :: opS1_f, opL1_f, opL2_f, opF1_f, opF2_f
 complex(kind(0d0)), intent(out) :: massS1, massL1, massL2, massF1, massF2
 complex(kind(0d0)), intent(in) :: Umat(1:NMAT,1:NMAT,1:num_necessary_links)
 complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_necessary_sites)
@@ -39,11 +41,11 @@ do ls=1,num_sites
 enddo
 call syncronize_phibar(phibar_p,ratio)
 
-call calc_opS1(opS1, PhiMat, Geta_eta, phibar_p, ratio)
-call calc_opL1_2(opL1, PhiMat, Umat, Geta_lambda, Glambda_lambda, phibar_p, ratio)
-call calc_opL2_2(opL2, PhiMat, Umat, Geta_lambda, Glambda_lambda, phibar_p, ratio)
-call calc_opF1(opF1, PhiMat, Umat, Geta_chi, Gchi_chi, phibar_p, ratio)
-call calc_opF2(opF2, Umat, Geta_chi, Glambda_chi, phibar_p, ratio)
+call calc_opS1(opS1_b, opS1_f, PhiMat, Geta_eta, phibar_p, ratio)
+call calc_opL1_2(opL1_b, opL1_f, PhiMat, Umat, Geta_lambda, Glambda_lambda, phibar_p, ratio)
+call calc_opL2_2(opL2_b, opL2_f, PhiMat, Umat, Geta_lambda, Glambda_lambda, phibar_p, ratio)
+call calc_opF1(opF1_b, opF1_f, PhiMat, Umat, Geta_chi, Gchi_chi, phibar_p, ratio)
+call calc_opF2(opF2_b, opF2_f, Umat, Geta_chi, Glambda_chi, phibar_p, ratio)
 
 call calc_massS1(massS1, PhiMat, Geta_eta, phibar_p, ratio)
 call calc_massL1_2(massL1, PhiMat, Geta_lambda, Glambda_lambda, phibar_p, ratio)
@@ -53,13 +55,13 @@ call calc_massF2(massF2, PhiMat, Geta_chi, phibar_p, ratio)
 
 contains
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  subroutine calc_opS1(op, PhiMat, Geta_eta, phibar_p, ratio)
+  subroutine calc_opS1(op_b, op_f, PhiMat, Geta_eta, phibar_p, ratio)
   use parallel
   use global_parameters
   use matrix_functions, only : matrix_commutator, matrix_power, trace_mm, matrix_product
   implicit none
 
-  complex(kind(0d0)), intent(out) :: op
+  complex(kind(0d0)), intent(out) :: op_b, op_f
   complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_necessary_sites)
   complex(kind(0d0)), intent(in) :: Geta_eta(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_sites,1:num_sites) 
   integer, intent(in) :: ratio
@@ -79,7 +81,12 @@ contains
     trace=(0d0,0d0)
     call trace_mm(trace, comm1, comm2)
     tmp=tmp+trace
+  enddo
+  call MPI_REDUCE(tmp,op_b,1,MPI_DOUBLE_COMPLEX,MPI_SUM,0,MPI_COMM_WORLD,IERR)
 
+  tmp=(0d0,0d0)
+  do ls=1,num_sites
+    gs=global_site_of_local(ls)
     !! fermionic part
     do r=0, ratio
       call matrix_product(tmpmat, Phimat(:,:,ls), phibar_p(:,:,r,ls))
@@ -97,20 +104,20 @@ contains
     enddo
   enddo !! ls
   
-  call MPI_REDUCE(tmp,op,1,MPI_DOUBLE_COMPLEX,MPI_SUM,0,MPI_COMM_WORLD,IERR)
+  call MPI_REDUCE(tmp,op_f,1,MPI_DOUBLE_COMPLEX,MPI_SUM,0,MPI_COMM_WORLD,IERR)
 
   end subroutine calc_opS1
 
 
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  subroutine calc_opL1(op, PhiMat, Umat, Geta_lambda, Glambda_lambda, phibar_p, ratio)
+  subroutine calc_opL1(op_b, op_f, PhiMat, Umat, Geta_lambda, Glambda_lambda, phibar_p, ratio)
   use parallel
   use global_parameters
   use matrix_functions, only : matrix_commutator, matrix_power, trace_mm, matrix_product
   implicit none
 
-  complex(kind(0d0)), intent(out) :: op
+  complex(kind(0d0)), intent(out) :: op_b, op_f
   complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_necessary_sites)
   complex(kind(0d0)), intent(in) :: Umat(1:NMAT,1:NMAT,1:num_necessary_links)
   complex(kind(0d0)), intent(in) :: Geta_lambda(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_sites,1:num_links) 
@@ -141,7 +148,15 @@ contains
     trace=(0d0,0d0)
     call trace_mm(trace, phimat(:,:,ls), phibar_p(:,:,ratio+1,ls))
     tmp = tmp - trace
+  enddo
+  call MPI_REDUCE(tmp,op_b,1,MPI_DOUBLE_COMPLEX,MPI_SUM,0,MPI_COMM_WORLD,IERR)
 
+  tmp=(0d0,0d0)
+  do ll=1,num_links
+    gl=global_link_of_local(ll)
+    ls=link_org(ll)
+    lt=link_tip(ll)
+    gs=global_site_of_local(ls)
     !! fermionic part
     trace=(0d0,0d0)
     do k=1,NMAT
@@ -170,7 +185,7 @@ contains
     tmp = tmp + (0d0,-1d0)*trace
   enddo
 
-  call MPI_REDUCE(tmp,op,1,MPI_DOUBLE_COMPLEX,MPI_SUM,0,MPI_COMM_WORLD,IERR)
+  call MPI_REDUCE(tmp,op_f,1,MPI_DOUBLE_COMPLEX,MPI_SUM,0,MPI_COMM_WORLD,IERR)
 
   end subroutine calc_opL1
 
@@ -328,13 +343,13 @@ contains
   end subroutine calc_opL1_2
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  subroutine calc_opL2(op, PhiMat, Umat, Geta_lambda, Glambda_lambda, phibar_p, ratio)
+  subroutine calc_opL2(op_b, op_f, PhiMat, Umat, Geta_lambda, Glambda_lambda, phibar_p, ratio)
   use parallel
   use global_parameters
   use matrix_functions, only : matrix_commutator, matrix_power, trace_mm, matrix_product, matrix_3_product
   implicit none
 
-  complex(kind(0d0)), intent(out) :: op
+  complex(kind(0d0)), intent(out) :: op_b, op_f
   complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_necessary_sites)
   complex(kind(0d0)), intent(in) :: Umat(1:NMAT,1:NMAT,1:num_necessary_links)
   complex(kind(0d0)), intent(in) :: Geta_lambda(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_sites,1:num_links) 
@@ -368,7 +383,18 @@ contains
     call matrix_product(tmpmat2, Umat(:,:,ll), phimat(:,:,ls), 'C','N' )
     call trace_mm(trace, tmpmat1, tmpmat2)
     tmp = tmp - trace
+  enddo
 
+  call MPI_REDUCE(tmp,op_b,1,MPI_DOUBLE_COMPLEX,MPI_SUM,0,MPI_COMM_WORLD,IERR)
+
+
+  tmp=(0d0,0d0)
+  do ll=1,num_links
+    gl=global_link_of_local(ll)
+    ls=link_org(ll)
+    lt=link_tip(ll)
+    gs=global_site_of_local(ls)
+    gt=global_site_of_local(lt)
     !! fermionic part
     call matrix_3_product(tmpmat1,Umat(:,:,ll),phibar_p(:,:,ratio+1,lt),Umat(:,:,ll),&
       'N','N','C')
@@ -402,7 +428,7 @@ contains
     tmp = tmp + trace
   enddo
 
-  call MPI_REDUCE(tmp,op,1,MPI_DOUBLE_COMPLEX,MPI_SUM,0,MPI_COMM_WORLD,IERR)
+  call MPI_REDUCE(tmp,op_f,1,MPI_DOUBLE_COMPLEX,MPI_SUM,0,MPI_COMM_WORLD,IERR)
 
   end subroutine calc_opL2
 
@@ -564,13 +590,13 @@ contains
 
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  subroutine calc_opF1(op, PhiMat, Umat, Geta_chi, Gchi_chi, phibar_p, ratio)
+  subroutine calc_opF1(op_b, op_f, PhiMat, Umat, Geta_chi, Gchi_chi, phibar_p, ratio)
   use parallel
   use global_parameters
   use matrix_functions, only : matrix_commutator, matrix_power, trace_mm, matrix_product, matrix_3_product, make_matrix_traceless
   implicit none
 
-  complex(kind(0d0)), intent(out) :: op
+  complex(kind(0d0)), intent(out) :: op_b, op_f
   complex(kind(0d0)), intent(in) :: PhiMat(1:NMAT,1:NMAT,1:num_necessary_sites)
   complex(kind(0d0)), intent(in) :: Umat(1:NMAT,1:NMAT,1:num_necessary_links)
   complex(kind(0d0)), intent(in) :: Geta_chi(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_sites,1:num_faces) 
@@ -614,7 +640,15 @@ contains
     call matrix_product(tmpmat1,Omega,Omega)
     call trace_mm(trace,tmpmat1,phibar_p(:,:,ratio,ls))
     tmp = tmp + trace * dcmplx(-0.25d0*beta_f(lf)*beta_f(lf))
+  enddo
+  call MPI_REDUCE(tmp,op_b,1,MPI_DOUBLE_COMPLEX,MPI_SUM,0,MPI_COMM_WORLD,IERR)
 
+
+  tmp=(0d0,0d0)
+  do lf=1,num_faces
+    gf=global_face_of_local(lf)
+    ls=sites_in_f(lf)%label_(1)
+    gs=global_site_of_local(ls)
     !! fermionic part
     trace=(0d0,0d0)
     do k=1,NMAT
@@ -657,17 +691,17 @@ contains
     tmp = tmp - (0d0,0.5d0)*dcmplx(beta_f(lf)) * trace
   enddo
 
-  call MPI_REDUCE(tmp,op,1,MPI_DOUBLE_COMPLEX,MPI_SUM,0,MPI_COMM_WORLD,IERR)
+  call MPI_REDUCE(tmp,op_f,1,MPI_DOUBLE_COMPLEX,MPI_SUM,0,MPI_COMM_WORLD,IERR)
   end subroutine calc_opF1
 
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  subroutine calc_opF2(op, Umat, Geta_chi, Glambda_chi, phibar_p, ratio)
+  subroutine calc_opF2(op_b, op_f, Umat, Geta_chi, Glambda_chi, phibar_p, ratio)
   use global_parameters
   use matrix_functions, only : matrix_product, trace_mm
   implicit none
   
-  complex(kind(0d0)), intent(out) :: op
+  complex(kind(0d0)), intent(out) :: op_b, op_f
   complex(kind(0d0)), intent(in) :: Umat(1:NMAT,1:NMAT,1:num_necessary_links)
   complex(kind(0d0)), intent(in) :: Geta_chi(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_sites,1:num_faces) 
   complex(kind(0d0)), intent(in) :: Glambda_chi(1:NMAT,1:NMAT,1:NMAT,1:NMAT,1:global_num_links,1:num_faces) 
@@ -707,8 +741,15 @@ contains
     call matrix_product(tmpmat1, Omega,Omega)
     call trace_mm(trace, tmpmat1, phibar_p(:,:,ratio,ls))
     tmp=tmp+(0d0,0.5d0)*beta_f(lf)*trace
+  enddo
+
+  call MPI_REDUCE(tmp,op_b,1,MPI_DOUBLE_COMPLEX,MPI_SUM,0,MPI_COMM_WORLD,IERR)
 
   
+  tmp=(0d0,0d0)
+  do lf=1,num_faces
+    ls=sites_in_f(lf)%label_(1)
+    gs=global_site_of_local(ls)
     !! fermionic part
     trace=(0d0,0d0)
     do p=0,ratio-1
@@ -778,7 +819,7 @@ contains
 
   enddo
 
-  call MPI_REDUCE(tmp,op,1,MPI_DOUBLE_COMPLEX,MPI_SUM,0,MPI_COMM_WORLD,IERR)
+  call MPI_REDUCE(tmp,op_f,1,MPI_DOUBLE_COMPLEX,MPI_SUM,0,MPI_COMM_WORLD,IERR)
   end subroutine calc_opF2
 
 
@@ -803,7 +844,6 @@ contains
   integer :: i,j,k,l
 
   factor = dcmplx(overall_factor * mass_square_phi * 0.5d0)
-  tmp=(0d0,0d0)
   do gs=1,global_num_sites 
     rank=local_site_of_global(gs)%rank_
     if(MYRANK==rank) then
