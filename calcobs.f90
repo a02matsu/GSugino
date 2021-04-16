@@ -15,7 +15,7 @@ character(128) :: DinvFILE
 character(128) :: EigenFILE
 character(128) :: OBSFILE
 character(32) :: OBSDIR   
-integer, parameter :: num_calcobs=95   ! 考えているobservableの数
+integer, parameter :: num_calcobs=105   ! 考えているobservableの数
 character(128) :: name_obs(1:num_calcobs) = (/ &
   "arg(Pf)", &
   "SbS", &
@@ -92,26 +92,36 @@ character(128) :: name_obs(1:num_calcobs) = (/ &
   "Im(WT Aface link)", &
   "Re(WT Aface face)", &
   "Im(WT Aface face)", &
-  "|opS1|", &
-  "arg(opS1)", &
-  "|opS1+massS1|", &
-  "arg(opS1+massS1)", &
-  "|opL1|", &
-  "arg(opL1)", &
-  "|opL1+massL1|", &
-  "arg(opL1+massL1)", &
-  "|opL2|", &
-  "arg(opL2)", &
-  "|opL2+massL2|", &
-  "arg(opL2+massL2)", &
-  "|opF1|", &
-  "arg(opF1)", &
-  "|opF1+massF1|", &
-  "arg(opF1+massF1)", &
-  "|opF2|", &
-  "arg(opF2)", &
-  "|opF2+massF2|+", &
-  "arg(opF2+massF2)" &
+  "|opS1_b|", &
+  "arg(opS1_b)", &
+  "|opS1_f|", &
+  "arg(opS1_f)", &
+  "|massS1|", &
+  "arg(massS1)", &
+  "|opL1_b|", &
+  "arg(opL1_b)", &
+  "|opL1_f|", &
+  "arg(opL1_f)", &
+  "|massL1|", &
+  "arg(massL1)", &
+  "|opL2_b|", &
+  "arg(opL2_b)", &
+  "|opL2_f|", &
+  "arg(opL2_f)", &
+  "|massL2|", &
+  "arg(massL2)", &
+  "|opF1_b|", &
+  "arg(opF1_b)", &
+  "|opF1_f|", &
+  "arg(opF1_f)", &
+  "|massF1|", &
+  "arg(massF1)", &
+  "|opF2_b|", &
+  "arg(opF2_b)", &
+  "|opF2_f|", &
+  "arg(opF2_f)", &
+  "|massF2|+", &
+  "arg(massF2)" &
   /)
 
 !integer :: trig_obs(1:num_calcobs)
