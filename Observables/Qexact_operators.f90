@@ -8,7 +8,7 @@ subroutine calc_Qexact_operators(&
     Geta_eta, Geta_lambda, Geta_chi, Glambda_lambda, Glambda_chi, Gchi_eta, Gchi_lambda, Gchi_chi) 
 use parallel
 use global_parameters
-use matrix_functions, only : matrix_product, make_unit_matrix
+use matrix_functions, only : matrix_product, make_unit_matrix, matrix_anticommutator
 implicit none
 
 complex(kind(0d0)), intent(out) :: opS1_b, opL1_b, opL2_b, opF1_b, opF2_b
@@ -40,6 +40,13 @@ do ls=1,num_sites
   enddo
 enddo
 call syncronize_phibar(phibar_p,ratio)
+!do k=0,ratio+1
+  !do ls=1,num_sites
+    !write(*,*) k,phibar_p(:,:,k,ls)
+    !write(*,*) "============"
+  !enddo
+!enddo
+
 
 call calc_opS1(opS1_b, opS1_f, PhiMat, Geta_eta, phibar_p, ratio)
 call calc_opL1_2(opL1_b, opL1_f, PhiMat, Umat, Geta_lambda, Glambda_lambda, phibar_p, ratio)
@@ -89,13 +96,13 @@ contains
     gs=global_site_of_local(ls)
     !! fermionic part
     do r=0, ratio
-      call matrix_product(tmpmat, Phimat(:,:,ls), phibar_p(:,:,r,ls))
+      call matrix_anticommutator(tmpmat, Phimat(:,:,ls), phibar_p(:,:,r,ls))
 
       do i=1,NMAT
         do j=1,NMAT
           do k=1,NMAT
             do l=1,NMAT
-              tmp = tmp - (2d0,0d0) * tmpmat(i,j) * phibar_p(k,l,ratio-r,ls) &
+              tmp = tmp -  tmpmat(i,j) * phibar_p(k,l,ratio-r,ls) &
                 * Geta_eta(l,i,j,k,gs,ls) 
             enddo
           enddo
@@ -704,6 +711,7 @@ contains
         enddo
       enddo
     enddo
+    write(*,*) trace
     tmp = tmp - (0d0,0.5d0)*dcmplx(beta_f(lf)) * trace
   enddo
 
@@ -927,7 +935,7 @@ contains
         do i=1,NMAT
           do l=1,NMAT
             do k=1,NMAT
-              tmp = tmp + Geta_eta(k,l,i,j,gs,ls)&
+              tmp = tmp + Geta_lambda(k,l,i,j,gs,ll)&
                 *Gmat(l,k,gs)*phibar_p(j,i,ratio+1,ls)
             enddo
           enddo
@@ -935,7 +943,8 @@ contains
       enddo
     enddo
   enddo
-  tmp = tmp * factor * (0d0,1d0)
+  write(*,*) tmp
+  !tmp = tmp * factor * (0d0,1d0)
   call MPI_REDUCE(tmp,op,1,MPI_DOUBLE_COMPLEX,MPI_SUM,0,MPI_COMM_WORLD,IERR)
 
   end subroutine calc_massL1
@@ -990,7 +999,7 @@ contains
                        * Glambda_lambda(l,m,m,n,gl,ll) &
                        !!
                     - Geta_lambda(i,j,l,m,gs,ll) &
-                       * Glambda_lambda(l,m,m,n,gl,ll) &
+                       * Glambda_lambda(k,l,m,n,gl,ll) &
                        !!
                     + Geta_lambda(i,j,m,n,gs,ll) &
                        * Glambda_lambda(k,l,l,m,gl,ll) &
@@ -1116,7 +1125,7 @@ contains
                        * Glambda_lambda(l,m,m,n,gl,ll) &
                        !!
                     - Geta_lambda(i,j,l,m,gs,ll) &
-                       * Glambda_lambda(l,m,m,n,gl,ll) &
+                       * Glambda_lambda(k,l,m,n,gl,ll) &
                        !!
                     + Geta_lambda(i,j,m,n,gs,ll) &
                        * Glambda_lambda(k,l,l,m,gl,ll) &
