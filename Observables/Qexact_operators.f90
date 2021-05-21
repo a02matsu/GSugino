@@ -712,7 +712,8 @@ contains
       enddo
     enddo
     !write(*,*) trace
-    tmp = tmp - (0d0,0.5d0)*dcmplx(beta_f(lf)) * trace
+    !tmp = tmp - (0d0,0.5d0)*dcmplx(beta_f(lf)) * trace
+    tmp = tmp + (0d0,0.5d0)*dcmplx(beta_f(lf)) * trace ! (2021/05/21)
   enddo
 
   call MPI_REDUCE(tmp,op_f,1,MPI_DOUBLE_COMPLEX,MPI_SUM,0,MPI_COMM_WORLD,IERR)
