@@ -16,7 +16,9 @@ character(128) :: EigenFILE
 character(128) :: OBSFILE
 character(32) :: OBSDIR   
 integer, parameter :: num_calcobs=105   ! 考えているobservableの数
-character(128) :: name_obs(1:num_calcobs) = (/ &
+!character(128) :: name_obs(1:num_calcobs) = (/ &
+character(len=128), parameter :: name_obs(1:num_calcobs) = &
+  [character(128):: &
   "arg(Pf)", &
   "SbS", &
   "SbL", &
@@ -121,8 +123,7 @@ character(128) :: name_obs(1:num_calcobs) = (/ &
   "|opF2_f|", &
   "arg(opF2_f)", &
   "|massF2|+", &
-  "arg(massF2)" &
-  /)
+  "arg(massF2)" ] !/)
 
 !integer :: trig_obs(1:num_calcobs)
 integer :: sizeM,sizeN
@@ -283,7 +284,7 @@ call getarg(1,MEDFILE)
 !call getarg(2,DinvFILE)
 DinvFILE=trim(MEDFILE(1:index(MEDFILE,"/"))//"Dinv"//MEDFILE(index(MEDFILE,"_"):))
 EigenFILE=trim(MEDFILE(1:index(MEDFILE,"/"))//"Eigen"//MEDFILE(index(MEDFILE,"_"):))
-if( index(MEDFILE,"/") == 8 ) then ! MEDCONF/***
+if( index(MEDFILE,"/") == 8 ) then 
   OBSDIR=trim(adjustl("OBS"))
 else
   OBSDIR=trim(adjustl("OBS"//MEDFILE(8:index(MEDFILE,"/")-1)))

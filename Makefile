@@ -2,7 +2,18 @@ VER=05
 #VER=debug
 VER_CALCOBS=05
 #FC=ifort
-FC=mpiifort
+##############################
+### for mpiifort
+#FC=mpiifort/
+#FLAGS_CLUSTER=-mkl=cluster -fpp $(PARA) -CB -traceback -g
+#LIB=Pfapack_m02/libpfapack.a
+##############################
+### for gfortran
+FC=mpif90
+OPTIONS=-g -fbacktrace -fbounds-check 
+FLAGS_CLUSTER=-cpp $(PARA) $(OPTIONS) 
+LIB=Pfapack_m02/libpfapack.a -I/usr/local/lib -llapack -lblas
+
 #PARA=-DPARALLEL -DPARATEST
 PARA=-DPARALLEL
 PARA2=-DPARALLEL -DCOUNT_TIME
@@ -11,7 +22,7 @@ PARA2=-DPARALLEL -DCOUNT_TIME
 #FLAGS_CLUSTER=-mkl=cluster -heap-arrays 10 -check bounds -fp-stack-check -check arg_temp_created -fpp $(PARA) -CB -traceback -g 
 #FLAGS_CLUSTER=-mkl=cluster -fpp $(PARA) -CB -traceback -check bounds -g -heap-arrays 
 #FLAGS_CLUSTER=-mkl=cluster -fpp $(PARA) -CB -traceback -g
-FLAGS_CLUSTER=-mkl=cluster -fpp $(PARA) -CB -traceback -g
+#FLAGS_CLUSTER=-mkl=cluster -fpp $(PARA) -CB -traceback -g
 #FLAGS_CLUSTER=-mkl=cluster -fpp $(PARA) -CB -traceback -g -check bounds
 #FLAGS_IFORT=-mkl -parallel -ipo
 #FLAGS_IFORT=-mkl -fpp $(PARA) -O3 -ipo
@@ -35,7 +46,6 @@ OBJS=$(SRCS:.f90=.o)
 SRC_MAIN=GSugino.f90  
 OBJ_MAIN=GSugino.o
 PROG=gsugino$(VER).exe
-LIB=Pfapack_m02/libpfapack.a
 ########################
 SRC_CALCOBSMAIN=calcobs.f90 
 OBJ_CALCOBSMAIN=calcobs.o

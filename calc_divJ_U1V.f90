@@ -69,14 +69,14 @@ call getarg(1,MEDFILE)
 DinvFILE=trim(MEDFILE(1:index(MEDFILE,"/"))//"Dinv"//MEDFILE(index(MEDFILE,"_"):))
 
 !! divJFILE
-if( index(MEDFILE,"/") == 8 ) then ! MEDCONF/***
+if( index(MEDFILE,"/") == 8 ) then 
   divJFILE=trim("OBS/U1V"//MEDFILE(index(MEDFILE,"_"):))
 else
   divJFILE=trim("OBS"//MEDFILE(8:index(MEDFILE,"/"))//"U1V"//MEDFILE(index(MEDFILE,"_"):))
 endif
 
 !! F4FILE ! 4-fermion part of OdJ
-!if( index(MEDFILE,"/") == 8 ) then ! MEDCONF/***
+!if( index(MEDFILE,"/") == 8 ) then 
   !F4FILE=trim("OBS/WTU1Vrot"//MEDFILE(index(MEDFILE,"_"):))
 !else
   !F4FILE=trim("OBS"//MEDFILE(8:index(MEDFILE,"/"))//"WTU1Vrot"//MEDFILE(index(MEDFILE,"_"):))
@@ -84,7 +84,7 @@ endif
 
 
 !! WT identity
-if( index(MEDFILE,"/") == 8 ) then ! MEDCONF/***
+if( index(MEDFILE,"/") == 8 ) then 
   WTDIVFILE=trim("OBS/WTU1Vdiv"//MEDFILE(index(MEDFILE,"_"):))
   WTROTFILE=trim("OBS/WTU1Vrot"//MEDFILE(index(MEDFILE,"_"):))
 else
@@ -203,13 +203,13 @@ do
 
 
     !! 4-fermi terms
-    call calc_OdJ_4F(F4rot,F4div, \
-      Geta_eta,\
-      Gchi_eta,\
-      Geta_chi,\
-      Geta_lambda,\
-      Gchi_lambda,\
-      Gchi_chi, \
+    call calc_OdJ_4F(F4rot,F4div, &
+      Geta_eta,&
+      Gchi_eta,&
+      Geta_chi,&
+      Geta_lambda,&
+      Gchi_lambda,&
+      Gchi_chi, &
       Phimat,Umat)
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

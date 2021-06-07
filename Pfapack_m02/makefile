@@ -14,15 +14,15 @@ OBJECTS= slasktrd.o slasktrf.o sskbpf10.o sskbpfa.o sskbtrd.o \
 	 skpfa.o skpf10.o skbpfa.o skbpf10.o sktrd.o sktd2.o \
 	 sktrf.o sktf2.o skbtrd.o
 
-#FORT = gfortran
-#FFLAGS = -O3 
-FORT = ifort 
+FORT = gfortran
+FFLAGS = -O3 
+#FORT = ifort 
 #FFLAGS = -O3 -ipo #-xHost
-FFLAGS = -O3 -ipo  -CB -traceback -g 
+#FFLAGS = -O3 -ipo  -CB -traceback -g 
 
 all: $(OBJECTS)
-#	$(AR) rvu libpfapack.a $(OBJECTS)
-	xiar rvu libpfapack.a $(OBJECTS)
+	$(AR) rvu libpfapack.a $(OBJECTS)
+#	xiar rvu libpfapack.a $(OBJECTS)
 clean:
 	rm -f *.o
 	rm -f *.mod

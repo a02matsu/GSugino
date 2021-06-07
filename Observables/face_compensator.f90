@@ -31,7 +31,14 @@ contains
   subroutine calc_face_compensator_main(Acomp,Umat,PhiMat,Geta_chi)
   use parallel
   use global_parameters
-  use matrix_functions, only : hermitian_conjugate, matrix_power, trace_mm, make_unit_matrix, matrix_product, matrix_3_product, matrix_commutator
+  use matrix_functions, only : &
+    hermitian_conjugate, &
+    matrix_power, &
+    trace_mm, &
+    make_unit_matrix, &
+    matrix_product, &
+    matrix_3_product, &
+    matrix_commutator
   implicit none
   
   complex(kind(0d0)), intent(out) :: Acomp
@@ -107,7 +114,14 @@ contains
   use parallel
   use global_parameters
   use Dirac_operator , only : prod_Dirac_site
-  use matrix_functions, only : hermitian_conjugate, matrix_power, trace_mm, make_unit_matrix, matrix_product, matrix_3_product, matrix_commutator
+  use matrix_functions, only : &
+    hermitian_conjugate, &
+    matrix_power, &
+    trace_mm, &
+    make_unit_matrix, &
+    matrix_product, &
+    matrix_3_product, &
+    matrix_commutator
   implicit none
   
   complex(kind(0d0)), intent(out) :: CSF
@@ -290,7 +304,14 @@ contains
   use parallel
   use global_parameters
   use Dirac_operator , only : prod_Dirac_link1, prod_dirac_link2
-  use matrix_functions, only : hermitian_conjugate, matrix_power, trace_mm, make_unit_matrix, matrix_product, matrix_3_product, matrix_commutator
+  use matrix_functions, only : &
+    hermitian_conjugate, &
+    matrix_power, &
+    trace_mm, &
+    make_unit_matrix, &
+    matrix_product, &
+    matrix_3_product, &
+    matrix_commutator
   implicit none
   
   complex(kind(0d0)), intent(out) :: CSF
@@ -525,7 +546,15 @@ contains
   use parallel
   use global_parameters
   use Dirac_operator , only : prod_Dirac_face1, Dirac_omega_adm
-  use matrix_functions, only : hermitian_conjugate, matrix_power, trace_mm, make_unit_matrix, matrix_product, matrix_product2, matrix_3_product, matrix_commutator
+  use matrix_functions, only : &
+    hermitian_conjugate, &
+    matrix_power, &
+    trace_mm, &
+    make_unit_matrix, &
+    matrix_product, &
+    matrix_product2, &
+    matrix_3_product, &
+    matrix_commutator
   implicit none
   
   complex(kind(0d0)), intent(out) :: CSF
@@ -771,7 +800,12 @@ contains
     CF_mass,&
     Umat,PhiMat,Geta_chi,ratio)
   use parallel
-  use matrix_functions, only : hermitian_conjugate, matrix_power, trace_mm, matrix_product, matrix_3_product
+  use matrix_functions, only : &
+    hermitian_conjugate, &
+    matrix_power, &
+    trace_mm, &
+    matrix_product, &
+    matrix_3_product
 
   use global_parameters
   implicit none
@@ -830,7 +864,10 @@ contains
   subroutine make_phibar_p(phibar_p,PhiMat,ratio,gf)
   use global_parameters
   use parallel
-  use matrix_functions, only : hermitian_conjugate, make_unit_matrix, matrix_product
+  use matrix_functions, only : &
+    hermitian_conjugate, &
+    make_unit_matrix, &
+    matrix_product
   implicit none
   
   integer, intent(in) :: ratio,gf
@@ -867,9 +904,11 @@ contains
   implicit none
 
   integer, intent(in) :: pekepeke
-  complex(kind(0d0)), intent(inout) :: eta(1:NMAT,1:NMAT,1:num_necessary_sites,1:NMAT,1:NMAT,0:pekepeke-1,1:global_num_faces) 
+  complex(kind(0d0)), intent(inout) :: &
+    eta(1:NMAT,1:NMAT,1:num_necessary_sites,1:NMAT,1:NMAT,0:pekepeke-1,1:global_num_faces) 
   
-  complex(kind(0d0)) :: tmp_eta(1:NMAT,1:NMAT,1:NMAT,1:NMAT,0:pekepeke-1,1:global_num_faces,num_necessary_sites)
+  complex(kind(0d0)) :: &
+    tmp_eta(1:NMAT,1:NMAT,1:NMAT,1:NMAT,0:pekepeke-1,1:global_num_faces,num_necessary_sites)
   integer :: s_send
   integer :: s_recv
   integer :: local, rank, tag
@@ -944,9 +983,11 @@ contains
   implicit none
 
   integer, intent(in) :: pekepeke
-  complex(kind(0d0)), intent(inout) :: lambda(1:NMAT,1:NMAT,1:num_necessary_links,1:NMAT,1:NMAT,0:pekepeke-1,1:global_num_faces) 
+  complex(kind(0d0)), intent(inout) :: &
+    lambda(1:NMAT,1:NMAT,1:num_necessary_links,1:NMAT,1:NMAT,0:pekepeke-1,1:global_num_faces) 
   
-  complex(kind(0d0)) :: tmp_lambda(1:NMAT,1:NMAT,1:NMAT,1:NMAT,0:pekepeke-1,1:global_num_faces, 1:num_necessary_links)
+  complex(kind(0d0)) :: &
+    tmp_lambda(1:NMAT,1:NMAT,1:NMAT,1:NMAT,0:pekepeke-1,1:global_num_faces, 1:num_necessary_links)
   integer :: s_send
   integer :: s_recv
   integer :: local, rank, tag
@@ -1023,9 +1064,11 @@ contains
   implicit none
 
   integer, intent(in) :: pekepeke
-  complex(kind(0d0)), intent(inout) :: chi(1:NMAT,1:NMAT,1:num_necessary_faces,1:NMAT,1:NMAT,0:pekepeke-1,1:global_num_faces) 
+  complex(kind(0d0)), intent(inout) :: &
+    chi(1:NMAT,1:NMAT,1:num_necessary_faces,1:NMAT,1:NMAT,0:pekepeke-1,1:global_num_faces) 
   
-  complex(kind(0d0)) :: tmp_chi(1:NMAT,1:NMAT,1:NMAT,1:NMAT,0:pekepeke-1,1:global_num_faces, 1:num_necessary_faces)
+  complex(kind(0d0)) :: &
+    tmp_chi(1:NMAT,1:NMAT,1:NMAT,1:NMAT,0:pekepeke-1,1:global_num_faces, 1:num_necessary_faces)
   integer :: s_send
   integer :: s_recv
   integer :: local, rank, tag

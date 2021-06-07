@@ -194,7 +194,7 @@ integer :: tag, rank
 integer :: err
 
 if( MYRANK==0 ) then
-  read(N_DinvFILE, '(I)', advance='no', iostat=err) ite
+  read(N_DinvFILE, '(I10)', advance='no', iostat=err) ite
 endif
 call MPI_BCAST(ite,1,MPI_INTEGER,0,MPI_COMM_WORLD,IERR)
 call MPI_BCAST(err,1,MPI_INTEGER,0,MPI_COMM_WORLD,IERR)

@@ -3,7 +3,14 @@
 subroutine calc_Yphibar_compensator(Acomp,PhiMat,UMAT)
 use parallel
 use global_parameters
-use matrix_functions, only : hermitian_conjugate, matrix_power, trace_mm, make_unit_matrix, matrix_product, matrix_3_product, matrix_commutator
+use matrix_functions, only : &
+  hermitian_conjugate, &
+  matrix_power, &
+  trace_mm, &
+  make_unit_matrix, &
+  matrix_product, &
+  matrix_3_product, &
+  matrix_commutator
 implicit none
 
 complex(kind(0d0)), intent(out) :: Acomp
@@ -54,7 +61,14 @@ subroutine calc_QCYphibar_Xi(&
     Geta_eta,Geta_lambda,Geta_chi,&
     Gchi_eta,Gchi_lambda,Gchi_chi,&
     Umat,PhiMat)
-use matrix_functions, only : hermitian_conjugate, matrix_power, trace_mm, make_unit_matrix, matrix_product, matrix_3_product, matrix_commutator
+use matrix_functions, only : &
+  hermitian_conjugate, &
+  matrix_power, &
+  trace_mm, &
+  make_unit_matrix, &
+  matrix_product, &
+  matrix_3_product, &
+  matrix_commutator
 implicit none
 
 complex(kind(0d0)), intent(out) :: QC_Xi_site

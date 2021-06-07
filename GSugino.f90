@@ -303,7 +303,10 @@ endif
         write(c_num2,*) total_ite
         write(c_num3,*) num_ite
         Fconfigout = "CONFIG"//trim(adjustl(c_root))//"/inputconf_"//trim(adjustl(c_num))//".dat"
-        Foutput = "OUTPUT"//trim(adjustl(c_root))//"/output_"//trim(adjustl(c_num))//":"//trim(adjustl(c_num2))//"+"//trim(adjustl(c_num3))//".dat"
+        Foutput = "OUTPUT"//trim(adjustl(c_root))&
+          //"/output_"//trim(adjustl(c_num))&
+          //":"//trim(adjustl(c_num2))&
+          //"+"//trim(adjustl(c_num3))//".dat"
         Fmedconf = "MEDCONF"//trim(adjustl(c_root))//"/medconfig_"//trim(adjustl(c_num2))//"+"//trim(adjustl(c_num3))//".dat"
         !write(Fconfigout, '("CONFIG",i1.1,"/inputconf_", i4.4, ".dat")') branch_use, job_number
         !write(Foutput, '("OUTPUT",i1.1,"/output_",i4.4,":",i6.6,"+",i6.6,".dat")') branch_use, job_number,total_ite,num_ite
@@ -314,9 +317,13 @@ endif
       write(c_num,*) job_number
       write(c_num2,*) total_ite
       write(c_num3,*) num_ite
-      Fconfigout = "CONFIG"//trim(adjustl(c_root))//"/inputconf_"//trim(adjustl(c_num))//".dat"
-      Foutput = "OUTPUT"//trim(adjustl(c_root))//"/output_"//trim(adjustl(c_num))//":"//trim(adjustl(c_num2))//"+"//trim(adjustl(c_num3))//".dat"
-      Fmedconf = "MEDCONF"//trim(adjustl(c_root))//"/medconfig_"//trim(adjustl(c_num2))//"+"//trim(adjustl(c_num3))//".dat"
+      Fconfigout = "CONFIG"//trim(adjustl(c_root))&
+        //"/inputconf_"//trim(adjustl(c_num))//".dat"
+      Foutput = "OUTPUT"//trim(adjustl(c_root))&
+        //"/output_"//trim(adjustl(c_num))&
+        //":"//trim(adjustl(c_num2))//"+"//trim(adjustl(c_num3))//".dat"
+      Fmedconf = "MEDCONF"//trim(adjustl(c_root))&
+        //"/medconfig_"//trim(adjustl(c_num2))//"+"//trim(adjustl(c_num3))//".dat"
       !write(Fconfigout, '("CONFIG",i1.1,"/inputconf_", i4.4, ".dat")') new_branch_label, job_number
       !write(Foutput, '("OUTPUT",i1.1,"/output_",i4.4,":",i6.6,"+",i6.6,".dat")') new_branch_label, job_number,total_ite,num_ite
       !write(Fmedconf, '("MEDCONF",i1.1,"/medconfig_", i6.6,"+",i6.6,".dat")') new_branch_label, total_ite,num_ite

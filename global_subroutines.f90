@@ -3041,7 +3041,9 @@ do f=1,global_num_faces
     if( MYRANK == rank ) then
       call trace_MTa(trace,chi(:,:,local),a,NMAT)
       if( MYRANK == 0 ) then
-        vec(face_index(a,f,NMAT,global_num_sites,global_num_links))=vec(face_index(a,f,NMAT,global_num_sites,global_num_links))+trace
+        vec(face_index(a,f,NMAT,global_num_sites,global_num_links))&
+          =vec(face_index(a,f,NMAT,global_num_sites,global_num_links))&
+          +trace
       else
         call MPI_SEND(trace,1,MPI_DOUBLE_COMPLEX,0,tag,MPI_COMM_WORLD,IERR)
       endif

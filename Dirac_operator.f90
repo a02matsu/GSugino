@@ -908,7 +908,7 @@ do i=1,sizeD
   call globalvec_to_localmat(eta_mat,lambda_mat,chi_mat,unitvec)
 #else
   call vec_to_mat(eta_mat,lambda_mat,chi_mat,unitvec)
-#ENDIF
+#endif
 
   call Prod_Dirac(&
     DF_eta, DF_lambda, DF_chi, &
@@ -983,7 +983,7 @@ do i=1,sizeD
   call globalvec_to_localmat(eta_mat,lambda_mat,chi_mat,unitvec)
 #else
   call vec_to_mat(eta_mat,lambda_mat,chi_mat,unitvec)
-#ENDIF
+#endif
 
   call Prod_DdagD(&
     DF_eta, DF_lambda, DF_chi, &
@@ -994,7 +994,6 @@ do i=1,sizeD
   ! only Rank0 possesses Dirac
   call localmat_to_globalvec(DdagD(:,i),DF_eta,DF_lambda,DF_chi)
 #else
-
   call mat_to_vec(DdagD(:,i),DF_eta,DF_lambda,DF_chi)
 #endif
 

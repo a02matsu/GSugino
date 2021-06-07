@@ -168,15 +168,15 @@ end subroutine make_trV2
 !!  
 !!  OdJ_rot_4F : from rot(\lambda\eta) in dJ
 !!  OdJ_div_4F : from div(\lambda\chi) in dJ
-subroutine calc_OdJ_4F(\
-  OdJ_rot_4F, \
-  OdJ_div_4F, \
-  Geta_eta,\
-  Gchi_eta,\
-  Geta_chi,\
-  Geta_lambda,\
-  Gchi_lambda,\
-  Gchi_chi, \
+subroutine calc_OdJ_4F(&
+  OdJ_rot_4F, &
+  OdJ_div_4F, &
+  Geta_eta,&
+  Gchi_eta,&
+  Geta_chi,&
+  Geta_lambda,&
+  Gchi_lambda,&
+  Gchi_chi, &
   Phimat,Umat)
 use global_parameters
 !use initialization_calcobs

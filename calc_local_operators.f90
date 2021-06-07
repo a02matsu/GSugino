@@ -3,7 +3,14 @@ program main
 use global_parameters
 use initialization_calcobs
 use simulation
-use matrix_functions, only : trace_mm, hermitian_conjugate, matrix_power, matrix_inverse, matrix_3_product, matrix_product, make_unit_matrix
+use matrix_functions, only : &
+  trace_mm, &
+  hermitian_conjugate, &
+  matrix_power, &
+  matrix_inverse, &
+  matrix_3_product, &
+  matrix_product, &
+  make_unit_matrix
 use parallel
 implicit none
 
@@ -83,7 +90,7 @@ call getarg(1,MEDFILE)
 !k=index(MEDFILE,"/") ! should be 8
 !p=index(MEDFILE,"_") ! should be 18 when it is "MEDCONF/medconfig_***"
 DinvFILE=trim(MEDFILE(1:index(MEDFILE,"/"))//"Dinv"//MEDFILE(index(MEDFILE,"_"):))
-if( index(MEDFILE,"/") == 8 ) then ! MEDCONF/***
+if( index(MEDFILE,"/") == 8 ) then 
   OBSDIR=trim(adjustl("OBS"))
 else
   OBSDIR=trim(adjustl("OBS"//MEDFILE(8:index(MEDFILE,"/")-1)))

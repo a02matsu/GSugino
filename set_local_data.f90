@@ -1573,7 +1573,8 @@ enddo
 write(*,*) "#!!!! SEND and RECV !!!!"
 write(*,*) "### send site ###"
 do local=1,size(send_sites,1)
-  write(*,*) "send site",global_site_of_local(send_sites(local)%label_),"(local",send_sites(local)%label_,") to RANK",send_sites(local)%rank_
+  write(*,*) "send site",global_site_of_local(send_sites(local)%label_),&
+    "(local",send_sites(local)%label_,") to RANK",send_sites(local)%rank_
 enddo
 !write(*,*) "### send link ###"
 !do local=1,size(send_links,1)
@@ -1585,7 +1586,8 @@ enddo
 !enddo
 write(*,*) "### recv site ###"
 do local=1,size(recv_sites,1)
-  write(*,*) "recv site",global_site_of_local(recv_sites(local)%label_),"(local",recv_sites(local)%label_,") from RANK",recv_sites(local)%rank_
+  write(*,*) "recv site",global_site_of_local(recv_sites(local)%label_),&
+    "(local",recv_sites(local)%label_,") from RANK",recv_sites(local)%rank_
 enddo
 !write(*,*) "### recv link ###"
 !do local=1,size(recv_links,1)

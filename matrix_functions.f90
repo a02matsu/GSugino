@@ -1251,7 +1251,7 @@ integer :: i,j
 
 NMAT=size(MAT1,1)
 tr_MdagM=(0d0,0d0)
-if( size(MAT1,2)/=NMAT .or. size(MAT2,1)/=NMAT .or. size(MAT2,2)/NMAT) then
+if( size(MAT1,2)/=NMAT .or. size(MAT2,1)/=NMAT .or. size(MAT2,2)/=NMAT) then
   write(*,*) "### Check matrix size in tr_MdagM ###"
   return
 endif

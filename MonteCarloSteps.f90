@@ -713,7 +713,11 @@ info=0
 !! first step
 
 call update_momentum_boson(P_PhiMat,P_AMat,PhiMat,UMAT,Dtau_A*0.5d0,Dtau_phi*0.5d0)
-if(pf==0) call update_momentum_fermion(P_PhiMat,P_AMat,PhiMat,UMAT,PF_eta,PF_lambda,PF_chi,local_info,Dtau_fermion_A*0.5d0, Dtau_fermion_phi*0.5d0)
+if(pf==0) then
+  call update_momentum_fermion(P_PhiMat,P_AMat,PhiMat,&
+    UMAT,PF_eta,PF_lambda,PF_chi,local_info,&
+    Dtau_fermion_A*0.5d0, Dtau_fermion_phi*0.5d0)
+endif
 !if(local_info==1) then
   !info=1
   !return
@@ -727,11 +731,16 @@ do i=1,Nfermion
     call update_Umat(UMat,P_AMat,Dtau_A)
     step=step+1
     if( step .ne. Nfermion*FB_ratio ) then
-      call update_momentum_boson(P_PhiMat,P_AMat,PhiMat,UMAT,Dtau_A,Dtau_phi)
+      call update_momentum_boson(&
+        P_PhiMat,P_AMat,PhiMat,UMAT,Dtau_A,Dtau_phi)
     endif
   enddo
   if( step .ne. Nfermion*FB_ratio ) then
-    if(pf==0) call update_momentum_fermion(P_PhiMat,P_AMat,PhiMat,UMAT,PF_eta,PF_lambda,PF_chi,local_info,Dtau_fermion_A, Dtau_fermion_phi)
+    if(pf==0) then
+      call update_momentum_fermion(&
+        P_PhiMat,P_AMat,PhiMat,UMAT,PF_eta,PF_lambda,PF_chi,&
+        local_info,Dtau_fermion_A, Dtau_fermion_phi)
+    endif
     if(local_info==1) then
       info=1
       return
@@ -740,8 +749,13 @@ do i=1,Nfermion
 enddo
 
 !! final step
-call update_momentum_boson(P_PhiMat,P_AMat,PhiMat,UMAT,Dtau_A*0.5d0, Dtau_phi*0.5d0)
-if(pf==0) call update_momentum_fermion(P_PhiMat,P_AMat,PhiMat,UMAT,PF_eta,PF_lambda,PF_chi,local_info,Dtau_fermion_A*0.5d0, Dtau_fermion_phi*0.5d0)
+call update_momentum_boson(&
+  P_PhiMat,P_AMat,PhiMat,UMAT,Dtau_A*0.5d0, Dtau_phi*0.5d0)
+if(pf==0) then
+  call update_momentum_fermion(&
+    P_PhiMat,P_AMat,PhiMat,UMAT,PF_eta,PF_lambda,PF_chi,&
+    local_info,Dtau_fermion_A*0.5d0, Dtau_fermion_phi*0.5d0)
+endif
 if(local_info==1) then
   info=1
   return
