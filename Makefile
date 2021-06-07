@@ -1,6 +1,7 @@
 VER=05
 #VER=debug
 VER_CALCOBS=05
+PARA=-DPARALLEL
 #FC=ifort
 ##############################
 ### for mpiifort
@@ -15,8 +16,7 @@ FLAGS_CLUSTER=-cpp $(PARA) $(OPTIONS)
 LIB=Pfapack_m02/libpfapack.a -I/usr/local/lib -llapack -lblas
 
 #PARA=-DPARALLEL -DPARATEST
-PARA=-DPARALLEL
-PARA2=-DPARALLEL -DCOUNT_TIME
+#PARA2=-DPARALLEL -DCOUNT_TIME
 #PARA=-DNOPARALLEL
 #FLAGS_IFORT=-mkl -fpp $(PARA) -CB -traceback -g 
 #FLAGS_CLUSTER=-mkl=cluster -heap-arrays 10 -check bounds -fp-stack-check -check arg_temp_created -fpp $(PARA) -CB -traceback -g 
